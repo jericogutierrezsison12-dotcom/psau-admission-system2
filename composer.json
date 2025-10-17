@@ -1,0 +1,15 @@
+{
+    "name": "psau/admission-system",
+    "description": "PSAU Admission System",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "^1.29",
+        "firebase/php-jwt": "^6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PSAU\\AdmissionSystem\\": "src/"
+        }
+    }
+} 

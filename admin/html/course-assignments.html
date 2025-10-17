@@ -1,0 +1,82 @@
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Course Assignment Status</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3><?php echo $stats['assigned_courses'] ?? 0; ?></h3>
+                        <p class="mb-0">Assigned Students</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3><?php echo $pending_assignments; ?></h3>
+                        <p class="mb-0">Pending Assignments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3><?php echo $match_percentage; ?>%</h3>
+                        <p class="mb-0">Preference Match Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Course Assignments -->
+        <?php if (!empty($recent_course_assignments)): ?>
+            <div class="mt-4">
+                <h5>Recent Course Assignments</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Course</th>
+                                <th>Preference Match</th>
+                                <th>Date Assigned</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recent_course_assignments as $assignment): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($assignment['first_name'] . ' ' . $assignment['last_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($assignment['course_code'] . ' - ' . $assignment['course_name']); ?></td>
+                                    <td>
+                                        <?php if ($assignment['preference_matched']): ?>
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle-fill"></i> Matched
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash-circle"></i> Not Matched
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo date('M d, Y H:i', strtotime($assignment['created_at'])); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="course_assignment.php" class="btn btn-sm btn-primary">Manage Course Assignments</a>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info mt-4">
+                <i class="bi bi-info-circle-fill"></i> No course assignments have been made yet.
+                <div class="mt-2">
+                    <a href="course_assignment.php" class="btn btn-sm btn-primary">Start Assigning Courses</a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div> 

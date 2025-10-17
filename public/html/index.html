@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSAU Admission System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../assets/images/psau-logo.png">
+</head>
+<body>
+    <!-- Desktop Navigation -->
+    <?php include 'templates/index_navbar.html'; ?>
+    
+    <!-- Mobile Navigation -->
+    <?php include 'templates/index_mobile.html'; ?>
+
+    <div class="container-main">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content animate-on-scroll">
+            <h1>Welcome to PSAU Admission System</h1>
+            <p>Your journey to becoming a PSAUan starts here. Apply now and be part of our growing community.</p>
+            <div class="button-group">
+                <a href="register.php" class="btn-primary">
+                    <i class="bi bi-person-plus"></i> Apply Now
+                </a>
+                <a href="#courses" class="btn-outline">
+                    <i class="bi bi-book"></i> View Courses
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Admission Process Section -->
+    <section class="process" id="admission-process">
+        <div class="section-title">
+            <h2>Admission Process</h2>
+            <p>Follow these steps to complete your application and enrollment at PSAU.</p>
+        </div>
+        <div class="process-steps">
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">1</div>
+                <i class="bi bi-person-plus step-icon"></i>
+                <h3>Create Account</h3>
+                <p>Register and verify your email or mobile number to start your application.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">2</div>
+                <i class="bi bi-file-earmark-arrow-up step-icon"></i>
+                <h3>Submit Documents</h3>
+                <p>Fill out the application form and upload your academic records and ID photo.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">3</div>
+                <i class="bi bi-search-check step-icon"></i>
+                <h3>Application Review</h3>
+                <p>Your documents will be reviewed. You'll be notified if resubmission is needed.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">4</div>
+                <i class="bi bi-pencil-square step-icon"></i>
+                <h3>Take Entrance Exam</h3>
+                <p>Attend the scheduled PSAU College Admission Test as instructed.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">5</div>
+                <i class="bi bi-bar-chart-steps step-icon"></i>
+                <h3>Exam Results & Course Selection</h3>
+                <p>View your exam results and select your preferred courses.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">6</div>
+                <i class="bi bi-award step-icon"></i>
+                <h3>Course Assignment</h3>
+                <p>Courses are assigned based on your preferences, exam results, and slot availability.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">7</div>
+                <i class="bi bi-calendar-check step-icon"></i>
+                <h3>Enrollment Scheduling</h3>
+                <p>Get your enrollment schedule and complete the enrollment requirements.</p>
+            </div>
+            <div class="step-card animate-on-scroll">
+                <div class="step-number">8</div>
+                <i class="bi bi-check-circle step-icon"></i>
+                <h3>Confirmation</h3>
+                <p>Receive confirmation of your enrollment and prepare for the start of classes.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Announcements Section -->
+    <section class="announcements" id="announcements">
+        <div class="section-title">
+            <h2>Announcements</h2>
+            <p>Stay updated with the latest news and important dates</p>
+        </div>
+        <div class="announcement-grid">
+            <!-- Announcements will be dynamically inserted here -->
+        </div>
+    </section>
+
+    <!-- Courses Section -->
+    <section class="courses" id="courses">
+        <div class="section-title">
+            <h2>Available Courses</h2>
+            <p>Explore our academic programs</p>
+        </div>
+        <div class="course-search-bar">
+            <input type="text" id="course-search" placeholder="Search courses..." aria-label="Search courses" />
+        </div>
+        <div class="course-grid">
+            <!-- Courses will be dynamically inserted here -->
+        </div>
+    </section>
+
+    <!-- Exam Info Section -->
+    <section class="info-section" id="exam-info">
+        <div class="section-title">
+            <h2>Exam Information</h2>
+            <p>Important details about the PSAU College Admission Test</p>
+        </div>
+        <div class="info-card">
+            <!-- Exam instructions will be dynamically inserted here -->
+        </div>
+    </section>
+
+    <!-- Enrollment Section -->
+    <section class="info-section" id="enrollment">
+        <div class="section-title">
+            <h2>Enrollment</h2>
+            <p>Complete your enrollment process</p>
+        </div>
+        <div class="info-card">
+            <!-- Enrollment instructions will be dynamically inserted here -->
+        </div>
+    </section>
+    </div>
+
+    <!-- Footer -->
+    <?php include 'templates/footer.html'; ?>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/index.js"></script>
+</body>
+</html> 

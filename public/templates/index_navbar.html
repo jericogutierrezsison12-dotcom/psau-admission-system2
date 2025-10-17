@@ -1,0 +1,81 @@
+<!-- PSAU Admission System Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid">
+        <!-- Logo and Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="#hero">
+            <img src="../logo/PSAU_logo.png" alt="PSAU Logo" class="navbar-logo me-2" style="height:32px;width:auto;object-fit:contain;">
+            <span>PSAU Admission</span>
+        </a>
+
+        <!-- Mobile Toggle Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#admission-process">
+                        <i class="bi bi-card-checklist"></i> Admission Process
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#announcements">
+                        <i class="bi bi-megaphone"></i> Announcements
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#courses">
+                        <i class="bi bi-book"></i> Courses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#exam-info">
+                        <i class="bi bi-pencil-square"></i> Exam Info
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#enrollment">
+                        <i class="bi bi-calendar-check"></i> Enrollment
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="ai/chatbot.php">
+                        <i class="bi bi-robot"></i> Chatbot
+                    </a>
+                </li>
+                <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="ai/recommendation.php">
+                        <i class="bi bi-stars"></i> Recommendation
+                    </a>
+                </li>
+                <?php endif; ?>
+                <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.php">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="register.php">
+                            <i class="bi bi-person-plus"></i> Apply Now
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.php">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
+</nav> 

@@ -1,0 +1,662 @@
+:root {
+  --psau-green: #2E7D32;
+  --psau-light-green: #4CAF50;
+  --psau-yellow: #FFC107;
+  --psau-dark: #1B5E20;
+  --psau-light: #e8f5e9;
+}
+
+/* --- CONTAINER STYLES --- */
+.container-main {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --- HERO SECTION --- */
+.hero {
+  background: linear-gradient(120deg, var(--psau-green) 60%, var(--psau-light-green) 100%);
+  color: #fff;
+  padding: 80px 0 60px 0;
+  text-align: center;
+  border-radius: 0 0 32px 32px;
+  box-shadow: 0 6px 32px rgba(46, 125, 50, 0.10);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  margin-bottom: 32px;
+  color: var(--psau-yellow);
+  font-weight: 500;
+}
+
+.hero .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.hero .btn-primary,
+.hero .btn-outline {
+  min-width: 180px;
+  max-width: 100%;
+  width: auto;
+  margin: 0;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+.hero .btn-primary {
+  background: var(--psau-yellow);
+  color: var(--psau-dark);
+  border: none;
+  padding: 0.85rem 2.2rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
+}
+
+.hero .btn-primary:hover {
+  background: var(--psau-light-green);
+  color: #fff;
+  transform: translateY(-3px) scale(1.04);
+}
+
+.hero .btn-outline {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+  padding: 0.85rem 2.2rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.hero .btn-outline:hover {
+  background: #fff;
+  color: var(--psau-green);
+  transform: translateY(-3px) scale(1.04);
+}
+
+/* --- ADMISSION PROCESS --- */
+#admission-process {
+  background: var(--psau-light);
+  padding: 60px 0 40px 0;
+  border-radius: 24px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 24px rgba(46, 125, 50, 0.08);
+}
+#admission-process .section-title h2 {
+  color: var(--psau-green);
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#admission-process .section-title p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+  color: #555;
+  font-size: 1.08rem;
+}
+#admission-process .process-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  justify-content: center;
+  margin-top: 32px;
+}
+#admission-process .step-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(46, 125, 50, 0.07);
+  padding: 36px 28px;
+  text-align: center;
+  width: 230px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid var(--psau-light-green);
+}
+#admission-process .step-card:hover {
+  transform: translateY(-8px) scale(1.04);
+  box-shadow: 0 8px 32px rgba(46, 125, 50, 0.13);
+}
+#admission-process .step-number {
+  background: var(--psau-green);
+  color: #fff;
+  font-size: 1.5rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px auto;
+  font-weight: 700;
+  border: 3px solid var(--psau-yellow);
+}
+#admission-process .step-icon {
+  color: var(--psau-light-green);
+  font-size: 2.3rem;
+  margin-bottom: 10px;
+}
+#admission-process .step-card h3 {
+  font-size: 1.18rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--psau-dark);
+}
+#admission-process .step-card p {
+  color: #555;
+  font-size: 1rem;
+}
+
+/* --- ANNOUNCEMENTS --- */
+#announcements {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(255, 193, 7, 0.08);
+  padding: 56px 0 36px 0;
+  margin-bottom: 40px;
+}
+#announcements .section-title h2 {
+  color: var(--psau-yellow);
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#announcements .section-title p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+  color: #555;
+  font-size: 1.08rem;
+}
+#announcements .announcement-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+  margin-top: 32px;
+}
+#announcements .announcement-card, #announcements .announcement {
+  background: var(--psau-light);
+  border-left: 6px solid var(--psau-yellow);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(255, 193, 7, 0.07);
+  padding: 24px 20px;
+  min-width: 260px;
+  max-width: 400px;
+  margin-bottom: 0;
+  color: var(--psau-dark);
+  font-size: 1rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+#announcements .announcement-card:hover, #announcements .announcement:hover {
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.13);
+  border-color: var(--psau-green);
+}
+
+/* --- AVAILABLE COURSES --- */
+#courses {
+  background: var(--psau-light);
+  padding: 60px 0 40px 0;
+  border-radius: 24px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 24px rgba(106, 27, 154, 0.07);
+}
+#courses .section-title h2 {
+  color: var(--psau-dark);
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#courses .section-title p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+  color: #555;
+  font-size: 1.08rem;
+}
+#courses .course-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+  margin-top: 44px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-top: 30px;
+}
+#courses .course-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(46, 125, 50, 0.07);
+  padding: 32px 20px 24px 20px;
+  text-align: center;
+  width: 260px;
+  height: 320px;
+  min-width: 260px;
+  max-width: 260px;
+  min-height: 320px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid var(--psau-green);
+  position: relative;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+#courses .course-card:hover {
+  transform: translateY(-8px) scale(1.04);
+  box-shadow: 0 8px 32px rgba(46, 125, 50, 0.13);
+  border-color: var(--psau-yellow);
+}
+#courses .course-slot-header {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--psau-yellow);
+  color: var(--psau-dark);
+  font-weight: 700;
+  font-size: 1.08rem;
+  padding: 8px 28px;
+  border-radius: 10px;
+  border: 2px solid var(--psau-yellow);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.13);
+  letter-spacing: 0.5px;
+  min-width: 80px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#courses .course-card h4 {
+  color: var(--psau-green);
+  font-size: 1.12rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  margin-top: 18px; /* add space for badge */
+  word-break: break-word;
+  border-top: 2px solid var(--psau-green);
+  padding-top: 12px;
+}
+#courses .course-card p {
+  color: #555;
+  font-size: 0.98rem;
+  flex: 1 1 auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* --- EXAM INFORMATION --- */
+#exam-info {
+  background: #fff;
+  padding: 60px 0 40px 0;
+  border-radius: 24px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 24px rgba(21, 101, 192, 0.07);
+}
+#exam-info .section-title h2 {
+  color: var(--psau-green);
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#exam-info .section-title p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+  color: #555;
+  font-size: 1.08rem;
+}
+#exam-info .info-card {
+  background: var(--psau-light);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+  padding: 32px 24px;
+  margin-top: 24px;
+  color: var(--psau-dark);
+  font-size: 1rem;
+  border-left: 6px solid var(--psau-green);
+}
+
+/* --- ENROLLMENT --- */
+#enrollment {
+  background: var(--psau-light);
+  padding: 60px 0 40px 0;
+  border-radius: 24px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 24px rgba(251, 192, 45, 0.07);
+}
+#enrollment .section-title h2 {
+  color: var(--psau-yellow);
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#enrollment .section-title p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+  color: #555;
+  font-size: 1.08rem;
+}
+#enrollment .info-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(251, 192, 45, 0.08);
+  padding: 32px 24px;
+  margin-top: 24px;
+  color: var(--psau-dark);
+  font-size: 1rem;
+  border-left: 6px solid var(--psau-yellow);
+}
+
+/* --- COURSE SEARCH BAR --- */
+.course-search-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem auto;
+    max-width: 600px;
+    padding: 0 1rem;
+    position: relative;
+}
+
+.course-search-bar input[type="text"] {
+    width: 100%;
+    padding: 1rem 3rem;
+    border: 2px solid var(--psau-green);
+    border-radius: 50px;
+    font-size: 1.1rem;
+    color: var(--psau-dark);
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+    transition: all 0.3s ease;
+}
+
+.course-search-bar input[type="text"]:focus {
+    outline: none;
+    border-color: var(--psau-yellow);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.15);
+    transform: translateY(-2px);
+}
+
+.course-search-bar input[type="text"]::placeholder {
+    color: #888;
+    font-weight: 400;
+}
+
+.course-search-bar::before {
+    content: "\F52A";
+    font-family: "bootstrap-icons";
+    position: absolute;
+    left: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--psau-green);
+    font-size: 1.2rem;
+    z-index: 1;
+}
+
+/* --- RESPONSIVE STYLES --- */
+@media (max-width: 900px) {
+  .process-steps,
+  .course-grid,
+  .announcement-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .step-card,
+  .course-card,
+  .announcement-card {
+    width: 100%;
+    max-width: 400px;
+    min-width: unset;
+    margin-bottom: 18px;
+  }
+
+  .hero {
+    padding: 48px 0 32px 0;
+  }
+
+  #admission-process .step-card,
+  #courses .course-card,
+  #announcements .announcement-card {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  #courses .course-grid {
+    padding-left: 24px;
+  }
+
+  #courses .course-card {
+    flex: 0 0 auto !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .container-main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .course-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .course-slot-header {
+    max-width: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+    word-break: break-word;
+  }
+
+  .hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .hero .button-group {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .hero .btn-primary,
+  .hero .btn-outline {
+    width: 90vw;
+    min-width: 0;
+    max-width: 350px;
+  }
+
+  #admission-process, #courses, #announcements, #exam-info, #enrollment {
+    padding-left: 0;
+    padding-right: 0;
+    border-radius: 0;
+  }
+
+  #admission-process .step-card, #courses .course-card, #announcements .announcement-card {
+    width: 98vw;
+    min-width: unset;
+    max-width: unset;
+    padding: 14px 4px;
+    font-size: 0.98rem;
+  }
+
+  #courses .course-slot-header {
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    min-width: 50px;
+    top: -18px;
+  }
+
+  #courses .course-card h4 {
+    margin-top: 10px;
+    padding-top: 6px;
+    font-size: 1rem;
+  }
+
+  #courses .course-card p {
+    max-height: 60px;
+    font-size: 0.95rem;
+  }
+
+  #announcements .announcement-card, #announcements .announcement {
+    min-width: unset;
+    max-width: unset;
+    font-size: 0.98rem;
+  }
+
+  #exam-info .info-card, #enrollment .info-card {
+    padding: 18px 8px;
+    font-size: 0.98rem;
+  }
+
+  .section-title h2 {
+    font-size: 1.2rem;
+  }
+
+  .section-title p {
+    font-size: 0.98rem;
+  }
+
+  #admission-process .step-number {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+    border-width: 2px;
+  }
+
+  #admission-process .step-icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+
+  #courses .course-card {
+    flex: 0 0 90vw !important;
+    width: auto !important;
+    max-width: 95vw !important;
+    min-width: 180px !important;
+  }
+
+  #courses .course-grid {
+    padding-top: 16px;
+  }
+
+  #courses .course-card {
+    width: 200px;
+    height: 260px;
+    min-width: 200px;
+    max-width: 200px;
+    min-height: 260px;
+    max-height: 260px;
+  }
+
+  .course-search-bar {
+    padding: 0 0.5rem;
+    margin: 1.5rem auto;
+  }
+
+  .course-search-bar input[type="text"] {
+    padding: 0.8rem 2.5rem;
+    font-size: 1rem;
+  }
+
+  .course-search-bar::before {
+    left: 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero h1 {
+    font-size: 1.1rem;
+  }
+
+  .hero p {
+    font-size: 0.9rem;
+  }
+
+  #admission-process .step-card, #courses .course-card, #announcements .announcement-card {
+    padding: 8px 2px;
+    font-size: 0.92rem;
+  }
+
+  #courses .course-card h4 {
+    font-size: 0.92rem;
+  }
+
+  #admission-process .step-number {
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+    border-width: 2px;
+  }
+
+  #admission-process .step-icon {
+    font-size: 1.1rem;
+  }
+} 

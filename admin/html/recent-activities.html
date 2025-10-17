@@ -1,0 +1,36 @@
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">Recent System Activities</h5>
+    </div>
+    <div class="card-body">
+        <?php if (count($recent_activities) > 0): ?>
+            <?php foreach ($recent_activities as $activity): ?>
+                <div class="activity-item mb-3">
+                    <div>
+                        <?php
+                            // Choose icon based on activity type
+                            $icon_class = 'bi-info-circle text-primary';
+                            
+                            if (strpos($activity['action'], 'login') !== false) {
+                                $icon_class = 'bi-box-arrow-in-right text-success';
+                            } elseif (strpos($activity['action'], 'failed') !== false) {
+                                $icon_class = 'bi-exclamation-triangle text-warning';
+                            } elseif (strpos($activity['action'], 'verify') !== false) {
+                                $icon_class = 'bi-check-circle text-success';
+                            }
+                        ?>
+                        <i class="bi <?php echo $icon_class; ?> me-2"></i>
+                        <?php echo htmlspecialchars($activity['details']); ?>
+                    </div>
+                    <div class="activity-time">
+                        <?php echo date('M d, Y h:i A', strtotime($activity['created_at'])); ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="text-center py-4">
+                <p class="text-muted">No recent activities found.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div> 

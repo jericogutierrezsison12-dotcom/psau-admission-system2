@@ -1,0 +1,46 @@
+<!-- Mobile Navigation Menu -->
+<nav class="mobile-nav">
+    <div class="navbar">
+        <div class="container nav-container">
+            <input class="checkbox" type="checkbox" name="nav-toggle" id="nav-toggle" />
+            <div class="hamburger-lines">
+                <span class="line line1"></span>
+                <span class="line line2"></span>
+                <span class="line line3"></span>
+            </div>  
+            <div class="logo">
+                <img src="../logo/PSAU_logo.png" alt="PSAU Logo" class="mobile-logo">
+                <span>PSAU</span>
+            </div>
+            <div class="menu-items">
+                <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
+                    <li><a href="index.php"><i class="bi bi-house-door"></i> Home</a></li>
+                    <li><a href="#admission-process"><i class="bi bi-card-checklist"></i> Admission Process</a></li>
+                    <li><a href="#announcements"><i class="bi bi-megaphone"></i> Announcements</a></li>
+                    <li><a href="#courses"><i class="bi bi-book"></i> Courses</a></li>
+                    <li><a href="#exam-info"><i class="bi bi-pencil-square"></i> Exam Info</a></li>
+                    <li><a href="#enrollment"><i class="bi bi-calendar-check"></i> Enrollment</a></li>
+                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li><a href="ai/recommendation.php"><i class="bi bi-stars"></i> Recommendation</a></li>
+                    <li class="menu-divider"></li>
+                    <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li><a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                <?php else: ?>
+                    <li><a href="index.php"><i class="bi bi-house-door"></i> Home</a></li>
+                    <li><a href="#admission-process"><i class="bi bi-card-checklist"></i> Admission Process</a></li>
+                    <li><a href="#announcements"><i class="bi bi-megaphone"></i> Announcements</a></li>
+                    <li><a href="#courses"><i class="bi bi-book"></i> Courses</a></li>
+                    <li><a href="#exam-info"><i class="bi bi-pencil-square"></i> Exam Info</a></li>
+                    <li><a href="#enrollment"><i class="bi bi-calendar-check"></i> Enrollment</a></li>
+                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li class="menu-divider"></li>
+                    <li><a href="register.php"><i class="bi bi-person-plus"></i> Apply Now</a></li>
+                    <li><a href="login.php"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Include mobile navigation JavaScript -->
+<script src="js/mobile-nav.js"></script> 

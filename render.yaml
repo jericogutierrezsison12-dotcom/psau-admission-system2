@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: psau-backend-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r python/image/requirements.txt
+    startCommand: gunicorn python.image.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: false
+      - key: PORT
+        value: 10000

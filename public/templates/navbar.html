@@ -1,0 +1,78 @@
+<!-- PSAU Admission System Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid">
+        <!-- Logo and Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="index.php">
+            <img src="../logo/PSAU_logo.png" alt="PSAU Logo" class="navbar-logo me-2" style="height:32px;width:auto;object-fit:contain;">
+            <span>PSAU Admission</span>
+        </a>
+
+        <!-- Mobile Toggle Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav ms-auto">
+                <!-- Home is visible to all -->
+                <li class="nav-item">
+                    <a class="nav-link" href="index.php">
+                        <i class="bi bi-house-door"></i> Home
+                    </a>
+                </li>
+
+                <?php if(!isset($_SESSION['user_id'])): ?>
+                    <!-- Navigation for non-logged in users -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="announcements.php">
+                            <i class="bi bi-megaphone"></i> Announcements
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="courses.php">
+                            <i class="bi bi-book"></i> Courses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="requirements.php">
+                            <i class="bi bi-card-checklist"></i> Requirements
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="apply.php">
+                            <i class="bi bi-file-text"></i> Apply Now
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="register.php">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.php">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ai/chatbot.php">
+                            <i class="bi bi-robot"></i> Chatbot
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ai/recommendation.php">
+                            <i class="bi bi-stars"></i> Recommendation
+                        </a>
+                    </li>
+                    <!-- Navigation for logged-in users -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
+</nav> 

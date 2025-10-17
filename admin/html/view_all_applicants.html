@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View All Applicants - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .reminder-btn[disabled] {
+            cursor: not-allowed;
+        }
+        .cooldown-timer {
+            font-size: 0.8rem;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <?php include 'templates/sidebar.php'; ?>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid">
+            <h2 class="mb-4">All Applicants</h2>
+            
+            <?php if (isset($error_message)): ?>
+                <div class="alert alert-danger"><?php echo $error_message; ?></div>
+            <?php endif; ?>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="applicantsTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Control #</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Submission Time</th>
+                                    <th>Score</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($applicants as $applicant): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($applicant['control_number']); ?></td>
+                                        <td><?php echo htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($applicant['email']); ?></td>
+                                        <td>
+                                            <?php 
+                                                // Determine the display status based on application and enrollment status
+                                                $display_status = $applicant['status'] ?? 'Not Submitted';
+                                                $status_class = 'secondary';
+                                                
+                                                // Check enrollment status first
+                                                if ($applicant['enrollment_status']) {
+                                                    switch ($applicant['enrollment_status']) {
+                                                        case 'pending':
+                                                            $display_status = 'Enrollment Pending';
+                                                            $status_class = 'warning';
+                                                            break;
+                                                        case 'completed':
+                                                            $display_status = 'Enrolled';
+                                                            $status_class = 'success';
+                                                            break;
+                                                        case 'cancelled':
+                                                            $display_status = 'Enrollment Cancelled';
+                                                            $status_class = 'danger';
+                                                            break;
+                                                    }
+                                                } else {
+                                                    // Use application status
+                                                    switch ($applicant['status']) {
+                                                        case 'Submitted':
+                                                            $status_class = 'primary';
+                                                            break;
+                                                        case 'Verified':
+                                                            $status_class = 'info';
+                                                            break;
+                                                        case 'Score Posted':
+                                                            $status_class = 'success';
+                                                            break;
+                                                        case 'Course Assigned':
+                                                            $status_class = 'warning';
+                                                            break;
+                                                        case 'Enrolled':
+                                                            $status_class = 'success';
+                                                            break;
+                                                        default:
+                                                            $status_class = 'secondary';
+                                                    }
+                                                }
+                                            ?>
+                                            <span class="badge bg-<?php echo $status_class; ?>">
+                                                <?php echo $display_status; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                                if (isset($applicant['application_date'])) {
+                                                    echo date('M d, Y h:i A', strtotime($applicant['application_date']));
+                                                } else {
+                                                    echo 'Not submitted';
+                                                }
+                                            ?>
+                                        </td>
+                                        <td><?php echo $applicant['stanine_score'] ?? 'Not yet'; ?></td>
+                                        <td>
+                                            <?php
+                                                $reminder_type = '';
+                                                $button_text = '';
+                                                
+                                                if (!$applicant['status']) {
+                                                    $reminder_type = 'application_submission';
+                                                    $button_text = 'Submit Application';
+                                                } elseif ($applicant['status'] == 'Score Posted' && !isset($applicant['course_selected'])) {
+                                                    $reminder_type = 'course_selection';
+                                                    $button_text = 'Select Course';
+                                                } elseif ($applicant['status'] == 'Course Assigned' && !$applicant['enrollment_status']) {
+                                                    $reminder_type = 'enrollment_completion';
+                                                    $button_text = 'Complete Enrollment';
+                                                } elseif ($applicant['enrollment_status'] == 'pending') {
+                                                    $reminder_type = 'enrollment_completion';
+                                                    $button_text = 'Complete Enrollment';
+                                                }
+                                                
+                                                if ($reminder_type):
+                                                    $cooldown = false;
+                                                    $time_remaining = 0;
+                                                    
+                                                    if ($applicant['last_reminder']) {
+                                                        $last_reminder = new DateTime($applicant['last_reminder']);
+                                                        $now = new DateTime();
+                                                        $diff = $now->diff($last_reminder);
+                                                        $hours = $diff->h + ($diff->days * 24);
+                                                        
+                                                        if ($hours < 24) {
+                                                            $cooldown = true;
+                                                            $time_remaining = 24 - $hours;
+                                                        }
+                                                    }
+                                            ?>
+                                                <button 
+                                                    class="btn btn-warning btn-sm reminder-btn" 
+                                                    <?php echo $cooldown ? 'disabled' : ''; ?>
+                                                    data-user-id="<?php echo $applicant['id']; ?>"
+                                                    data-reminder-type="<?php echo $reminder_type; ?>"
+                                                >
+                                                    <i class="bi bi-bell"></i> Send Reminder
+                                                </button>
+                                                <?php if ($cooldown): ?>
+                                                    <div class="cooldown-timer">
+                                                        Wait <?php echo $time_remaining; ?> hours
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/view_all_applicants.js"></script>
+</body>
+</html> 

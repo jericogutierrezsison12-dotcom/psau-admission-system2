@@ -1,0 +1,260 @@
+<?php
+/**
+ * PSAU Admission System - Bulk Score Upload
+ * Page for admins to upload entrance exam scores in bulk using Excel files
+ */
+
+// Include required files
+require_once '../includes/db_connect.php';
+require_once '../includes/session_checker.php';
+require_once '../includes/admin_auth.php';
+require_once '../vendor/autoload.php';
+require_once '../firebase/firebase_email.php';
+
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+// Check if user is logged in as admin
+is_admin_logged_in();
+
+// Ensure only admin users can access bulk score upload
+require_page_access('bulk_score_upload');
+
+// Get current admin
+$admin_id = $_SESSION['admin_id'];
+
+// Check if this is an AJAX request
+$is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+
+// Initialize response array
+$response = [
+    'success' => false,
+    'message' => '',
+    'errors' => []
+];
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
+    try {
+        // Validate file upload
+        if (!isset($_FILES['score_file']) || $_FILES['score_file']['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception("Please select a valid Excel file to upload.");
+        }
+
+        $file = $_FILES['score_file'];
+        $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
+        if (!in_array($file_ext, ['xlsx', 'xls'])) {
+            throw new Exception("Invalid file format. Please upload an Excel file (.xlsx or .xls).");
+        }
+
+        // Start transaction
+        $conn->beginTransaction();
+        
+        // Load Excel file
+        $spreadsheet = IOFactory::load($file['tmp_name']);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = $worksheet->toArray();
+        
+        // Validate header row
+        $expected_headers = ['control number', 'stanine score', 'remarks'];
+        $headers = array_map(function($header) {
+            return strtolower(trim(str_replace('_', ' ', $header)));
+        }, $rows[0]);
+        
+        // Check if required columns exist
+        $control_number_index = array_search('control number', $headers);
+        $stanine_score_index = array_search('stanine score', $headers);
+        $remarks_index = array_search('remarks', $headers);
+        
+        if ($control_number_index === false || $stanine_score_index === false) {
+            throw new Exception("Invalid Excel format. Required columns 'Control Number' and 'Stanine Score' not found. Please use the provided template.");
+        }
+        
+        // Process rows
+        $success_count = 0;
+        $error_count = 0;
+        $error_log = [];
+        
+        for ($i = 1; $i < count($rows); $i++) {
+            $row = $rows[$i];
+            
+            // Skip empty rows
+            if (empty(array_filter($row))) {
+                continue;
+            }
+            
+            try {
+                $control_number = trim($row[$control_number_index]);
+                $stanine_score = intval($row[$stanine_score_index]);
+                $remarks = $remarks_index !== false ? trim($row[$remarks_index]) : null;
+                
+                // Validate control number exists
+                $stmt = $conn->prepare("SELECT id FROM users WHERE control_number = ?");
+                $stmt->execute([$control_number]);
+                
+                if ($stmt->rowCount() == 0) {
+                    throw new Exception("Invalid control number: $control_number");
+                }
+                
+                // Validate stanine score
+                if ($stanine_score < 1 || $stanine_score > 9) {
+                    throw new Exception("Invalid stanine score for control number: $control_number");
+                }
+                
+                // Check if score already exists
+                $stmt = $conn->prepare("SELECT id FROM entrance_exam_scores WHERE control_number = ?");
+                $stmt->execute([$control_number]);
+                
+                if ($stmt->rowCount() > 0) {
+                    // Update existing score
+                    $stmt = $conn->prepare("
+                        UPDATE entrance_exam_scores 
+                        SET stanine_score = ?, 
+                            uploaded_by = ?, 
+                            upload_date = NOW(), 
+                            upload_method = 'bulk',
+                            remarks = ?
+                        WHERE control_number = ?
+                    ");
+                    
+                    $stmt->execute([
+                        $stanine_score,
+                        $admin_id,
+                        $remarks,
+                        $control_number
+                    ]);
+                } else {
+                    // Insert new score
+                    $stmt = $conn->prepare("
+                        INSERT INTO entrance_exam_scores 
+                        (control_number, stanine_score, uploaded_by, upload_method, remarks)
+                        VALUES (?, ?, ?, 'bulk', ?)
+                    ");
+                    
+                    $stmt->execute([
+                        $control_number,
+                        $stanine_score,
+                        $admin_id,
+                        $remarks
+                    ]);
+                }
+
+                // Get user details and application ID
+                $stmt = $conn->prepare("
+                    SELECT u.*, a.id as application_id 
+                    FROM users u 
+                    LEFT JOIN applications a ON u.id = a.user_id 
+                    WHERE u.control_number = ?
+                ");
+                $stmt->execute([$control_number]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && $user['application_id']) {
+                    // Update application status
+                    $stmt = $conn->prepare("
+                        UPDATE applications 
+                        SET status = 'Score Posted' 
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$user['application_id']]);
+
+                    // Get admin username from database
+                    $stmt = $conn->prepare("SELECT username FROM admins WHERE id = ?");
+                    $stmt->execute([$admin_id]);
+                    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $admin_username = $admin['username'];
+
+                    // Add to status history
+                    $stmt = $conn->prepare("
+                        INSERT INTO status_history 
+                        (application_id, status, description, performed_by) 
+                        VALUES (?, 'Score Posted', 'Entrance exam score has been posted', ?)
+                    ");
+                    $stmt->execute([$user['application_id'], $admin_username]);
+
+                    // Send email notification
+                    $email_sent = send_score_notification_email(
+                        [
+                            'first_name' => $user['first_name'],
+                            'last_name' => $user['last_name'],
+                            'email' => $user['email']
+                        ],
+                        $control_number,
+                        $stanine_score
+                    );
+                    
+                    if (!$email_sent) {
+                        $error_log[] = "Warning: Email notification failed for control number: $control_number";
+                    }
+                }
+                
+                $success_count++;
+            } catch (Exception $e) {
+                $error_count++;
+                $error_log[] = "Row " . ($i + 1) . ": " . $e->getMessage();
+            }
+        }
+        
+        // Log the activity
+        $stmt = $conn->prepare("INSERT INTO activity_logs (action, user_id, details) VALUES (?, ?, ?)");
+        $stmt->execute([
+            'bulk_score_upload',
+            $admin_id,
+            "Bulk score upload: $success_count successful, $error_count failed"
+        ]);
+        
+        // Commit transaction
+        $conn->commit();
+        
+        $response['success'] = true;
+        $response['message'] = "Upload completed: $success_count scores processed successfully, $error_count failed.";
+        if ($error_count > 0) {
+            $response['errors'] = $error_log;
+        }
+    } catch (Exception $e) {
+        // Roll back transaction
+        $conn->rollBack();
+        $response['message'] = "Error: " . $e->getMessage();
+    }
+    
+    // Only send JSON response for AJAX requests
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    } else {
+        // For non-AJAX requests, redirect to the same page with a message
+        $_SESSION['upload_message'] = $response['message'];
+        $_SESSION['upload_success'] = $response['success'];
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
+}
+
+// Get recent uploads
+try {
+    $query = "
+        SELECT 
+            ees.control_number,
+            ees.stanine_score,
+            ees.upload_date,
+            u.first_name,
+            u.last_name
+        FROM entrance_exam_scores ees
+        JOIN users u ON ees.control_number = u.control_number
+        WHERE ees.upload_method = 'bulk'
+        ORDER BY ees.upload_date DESC
+        LIMIT 10
+    ";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->execute();
+    $recent_uploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching recent uploads: " . $e->getMessage());
+    $recent_uploads = [];
+}
+
+// Include the HTML template
+include 'html/bulk_score_upload.html'; 

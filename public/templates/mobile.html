@@ -1,0 +1,58 @@
+<!-- Mobile Navigation Menu -->
+<nav class="mobile-nav">
+    <div class="navbar">
+        <div class="container nav-container">
+            <input class="checkbox" type="checkbox" name="nav-toggle" id="nav-toggle" />
+            <div class="hamburger-lines">
+                <span class="line line1"></span>
+                <span class="line line2"></span>
+                <span class="line line3"></span>
+            </div>  
+            <div class="logo d-flex align-items-center">
+                <img src="../logo/PSAU_logo.png" alt="PSAU Logo" class="mobile-logo" style="height:28px;width:auto;object-fit:contain;">
+                <span class="ms-2">PSAU</span>
+            </div>
+            <div class="menu-items">
+                <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
+                    <!-- User Profile Section (Only for logged in users) -->
+                    <div class="user-profile-section">
+                        <div class="user-info">
+                            <p class="control-number"><?php echo isset($_SESSION['control_number']) ? 
+                                htmlspecialchars($_SESSION['control_number']) : ''; ?></p>
+                            <p class="user-email"><?php echo isset($_SESSION['email']) ? 
+                                htmlspecialchars($_SESSION['email']) : ''; ?></p>
+                        </div>
+                    </div>
+
+                    <!-- Navigation for logged-in users (ordered to match screenshot) -->
+                    <li><a href="index.php"><i class="bi bi-house-door"></i> Home</a></li>
+                    <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li><a href="application_form.php"><i class="bi bi-file-earmark-text"></i> Application Form</a></li>
+                    <li><a href="application_progress.php"><i class="bi bi-graph-up"></i> Application Progress</a></li>
+                    <li><a href="course_selection.php"><i class="bi bi-book"></i> Course Selection</a></li>
+                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li><a href="ai/recommendation.php"><i class="bi bi-stars"></i> Recommendation</a></li>
+                    
+                    <li><a href="profile.php"><i class="bi bi-person-circle"></i> My Profile</a></li>
+                    <li class="menu-divider"></li>
+                    <li><a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                <?php else: ?>
+                    <!-- Navigation for non-logged in users -->
+                    <li><a href="index.php"><i class="bi bi-house-door"></i> Home</a></li>
+                    <li><a href="announcements.php"><i class="bi bi-megaphone"></i> Announcements</a></li>
+                    <li><a href="courses.php"><i class="bi bi-book"></i> Courses</a></li>
+                    <li><a href="requirements.php"><i class="bi bi-card-checklist"></i> Requirements</a></li>
+                    <li><a href="apply.php"><i class="bi bi-file-text"></i> Apply Now</a></li>
+                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li><a href="ai/recommendation.php"><i class="bi bi-stars"></i> Recommendation</a></li>
+                    <li class="menu-divider"></li>
+                    <li><a href="register.php"><i class="bi bi-person-plus"></i> Register</a></li>
+                    <li><a href="login.php"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Include mobile navigation JavaScript -->
+<script src="js/mobile-nav.js"></script> 

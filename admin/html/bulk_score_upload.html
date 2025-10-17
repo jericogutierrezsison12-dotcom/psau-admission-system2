@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Score Upload - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <?php include 'templates/sidebar.php'; ?>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Bulk Score Upload</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="success-message"></div>
+                        <div id="error-message"></div>
+                        
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Instructions</h5>
+                            <ol>
+                                <li>Download the Excel template using the button below</li>
+                                <li>Fill in the scores following the format in the template</li>
+                                <li>Upload the completed Excel file</li>
+                            </ol>
+                            <a href="generate_score_template.php" class="btn btn-outline-primary">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                        </div>
+                        
+                        <form id="score-upload-form" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="score_file" class="form-label">Select Excel File</label>
+                                <input type="file" class="form-control" id="score_file" name="score_file" accept=".xlsx,.xls" required>
+                                <div class="form-text">Only .xlsx and .xls files are accepted</div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" name="upload_scores" class="btn btn-primary">
+                                    <i class="bi bi-upload"></i> Upload Scores
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Recent BulkScore Uploads</h4>
+                    </div>
+                    <div class="card-body">
+                        <?php if (empty($recent_uploads)): ?>
+                            <p class="text-muted">No recent score uploads.</p>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Control #</th>
+                                            <th>Name</th>
+                                            <th>Stanine</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($recent_uploads as $upload): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($upload['control_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($upload['first_name'] . ' ' . $upload['last_name']); ?></td>
+                                                <td><?php echo htmlspecialchars($upload['stanine_score']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($upload['upload_date'])); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h4 class="mb-0">Manual Entry</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Enter scores for individual applicants manually.</p>
+                        <a href="manual_score_entry.php" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Go to Manual Entry
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/bulk_score_upload.js"></script>
+</body>
+</html>

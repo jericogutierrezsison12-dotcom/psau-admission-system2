@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Selection - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Mobile Navigation -->
+    <?php include 'templates/mobile.html'; ?>
+    
+    <!-- Desktop Navigation -->
+    <div class="desktop-nav">
+        <!-- Navigation Bar -->
+        <?php include 'templates/navbar.html'; ?>
+        
+        <!-- Sidebar -->
+        <?php include 'templates/sidebar.html'; ?>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid">
+            <!-- Page Title -->
+            <div class="page-title mb-4">
+                <h2>Course Selection</h2>
+                <p class="lead">Choose your preferred courses for admission</p>
+            </div>
+            
+            
+            <div class="row">
+                <div class="col-lg-10">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0">Course Selection</h4>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($message): ?>
+                                <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
+                                    <?php echo $message; ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if (!$canSelectCourses && !$hasSelectedCourses): ?>
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    You are not eligible to select courses yet. Please complete your entrance examination first.
+                                </div>
+                            <?php elseif ($hasSelectedCourses): ?>
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                    <strong>Course preferences have been successfully submitted.</strong> You cannot change your selections anymore.
+                                </div>
+                                
+                                <h5 class="mb-4">Your Course Preferences:</h5>
+                                
+                                <?php if (isset($selectedCourseDetails[1])): ?>
+                                <div class="card preference-card preference-card-1 mb-4">
+                                    <div class="preference-title preference-title-1">
+                                        <i class="bi bi-trophy-fill text-warning me-2"></i> First Choice
+                                    </div>
+                                    <div class="card-body">
+                                        <h5><?php echo htmlspecialchars($selectedCourseDetails[1]['course_code'] . ' - ' . $selectedCourseDetails[1]['course_name']); ?></h5>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (isset($selectedCourseDetails[2])): ?>
+                                <div class="card preference-card preference-card-2 mb-4">
+                                    <div class="preference-title preference-title-2">
+                                        <i class="bi bi-trophy-fill text-secondary me-2"></i> Second Choice
+                                    </div>
+                                    <div class="card-body">
+                                        <h5><?php echo htmlspecialchars($selectedCourseDetails[2]['course_code'] . ' - ' . $selectedCourseDetails[2]['course_name']); ?></h5>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (isset($selectedCourseDetails[3])): ?>
+                                <div class="card preference-card preference-card-3 mb-4">
+                                    <div class="preference-title preference-title-3">
+                                        <i class="bi bi-trophy-fill text-danger me-2"></i> Third Choice
+                                    </div>
+                                    <div class="card-body">
+                                        <h5><?php echo htmlspecialchars($selectedCourseDetails[3]['course_code'] . ' - ' . $selectedCourseDetails[3]['course_name']); ?></h5>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <div class="alert alert-info mt-4">
+                                    <h5><i class="bi bi-info-circle me-2"></i>What's Next?</h5>
+                                    <p>Your course preferences have been recorded. The admission committee will consider these preferences along with your entrance examination score for course assignment. You'll be notified once your course has been assigned.</p>
+                                </div>
+                            <?php else: ?>
+                                <p class="lead mb-4">Please select your preferred courses in order of preference (1st, 2nd, and 3rd choices).</p>
+                                
+                                <form method="post" action="">
+                                    <!-- First Choice (Required) -->
+                                    <div class="card preference-card preference-card-1 mb-4">
+                                        <div class="preference-title preference-title-1">
+                                            <i class="bi bi-trophy-fill text-warning me-2"></i> First Choice (Required)
+                                        </div>
+                                        <div class="card-body">
+                                            <select class="form-select" name="first_choice" required>
+                                                <option value="">-- Select Your First Choice --</option>
+                                                <?php foreach ($courses as $course): ?>
+                                                    <option value="<?php echo $course['id']; ?>" <?php echo ($selectedCourses[1] == $course['id']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']); ?> 
+                                                        (<?php echo $course['slots']; ?> slots)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <div class="form-text">This is your top priority course.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Second Choice (Optional) -->
+                                    <div class="card preference-card preference-card-2 mb-4">
+                                        <div class="preference-title preference-title-2">
+                                            <i class="bi bi-trophy-fill text-secondary me-2"></i> Second Choice (Optional)
+                                        </div>
+                                        <div class="card-body">
+                                            <select class="form-select" name="second_choice">
+                                                <option value="">-- Select Your Second Choice --</option>
+                                                <?php foreach ($courses as $course): ?>
+                                                    <option value="<?php echo $course['id']; ?>" <?php echo ($selectedCourses[2] == $course['id']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']); ?> 
+                                                        (<?php echo $course['slots']; ?> slots)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <div class="form-text">Your backup course if your first choice is unavailable.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Third Choice (Optional) -->
+                                    <div class="card preference-card preference-card-3 mb-4">
+                                        <div class="preference-title preference-title-3">
+                                            <i class="bi bi-trophy-fill text-danger me-2"></i> Third Choice (Optional)
+                                        </div>
+                                        <div class="card-body">
+                                            <select class="form-select" name="third_choice">
+                                                <option value="">-- Select Your Third Choice --</option>
+                                                <?php foreach ($courses as $course): ?>
+                                                    <option value="<?php echo $course['id']; ?>" <?php echo ($selectedCourses[3] == $course['id']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']); ?> 
+                                                        (<?php echo $course['slots']; ?> slots)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <div class="form-text">Your final option if both first and second choices are unavailable.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                        <strong>Important:</strong> Once you submit your course preferences, you will not be able to change them. Please review your choices carefully before submitting.
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="bi bi-save me-2"></i>Save Course Preferences
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="alert alert-info mt-4">
+                                        <h5><i class="bi bi-info-circle me-2"></i>Important Information</h5>
+                                        <p>Course assignment is based on your entrance examination score and course availability. 
+                                        Your preferences will be considered, but cannot be guaranteed. 
+                                        We recommend selecting multiple choices to increase your chances of being placed in a course that interests you.</p>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/course_selection.js"></script>
+</body>
+</html> 

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- reCAPTCHA v3 -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA"></script>
+    <!-- Fingerprint JS for device ID -->
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="login-page">
+    
+    <!-- Admin Login Container -->
+    <div class="admin-login-container">
+        <div class="admin-header">
+            <h3>Admin Portal</h3>
+            <p class="text-muted">PSAU Admission System</p>
+        </div>
+        
+        <!-- PHP: Device Blocked Message -->
+        <?php if (isset($block_info) && $block_info['blocked']): ?>
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-shield-lock"></i> Device Blocked</h5>
+                <p>Your device has been temporarily blocked due to multiple failed login attempts.</p>
+                <p>Time remaining: <span class="countdown" id="countdown"><?php echo htmlspecialchars($block_info['minutes_left']); ?> minutes</span></p>
+                <p class="small text-muted mt-2">This block will automatically be removed after 3 hours.</p>
+            </div>
+        <?php endif; ?>
+        
+        <!-- PHP: Attempts Warning -->
+        <?php if (isset($errors['attempts'])): ?>
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span class="attempts-warning"><?php echo htmlspecialchars($errors['attempts']); ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <!-- PHP: Login Error -->
+        <?php if (isset($errors['login']) && !isset($errors['blocked'])): ?>
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <?php echo htmlspecialchars($errors['login']); ?>
+            </div>
+        <?php endif; ?>
+        
+        <!-- PHP: reCAPTCHA Error -->
+        <?php if (isset($errors['recaptcha'])): ?>
+            <div class="alert alert-danger">
+                <i class="bi bi-shield-exclamation me-2"></i>
+                <?php echo htmlspecialchars($errors['recaptcha']); ?>
+                <?php if (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1'): ?>
+                    <div class="mt-2 small">
+                        <strong>Localhost Notice:</strong> reCAPTCHA may have limited functionality on localhost.
+                        <?php if (empty($_POST['recaptcha_token'])): ?>
+                            The reCAPTCHA token was not generated.
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        
+        <!-- PHP: Login Form (only displayed if not blocked) -->
+        <?php if (!isset($block_info) || !$block_info['blocked']): ?>
+            <form method="POST" action="login.php" id="adminLoginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <input type="text" class="form-control <?php echo isset($errors['username']) ? 'is-invalid' : ''; ?>" 
+                            id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" 
+                            placeholder="Enter your username" required>
+                        <?php if (isset($errors['username'])): ?>
+                            <div class="invalid-feedback">
+                                <?php echo htmlspecialchars($errors['username']); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <input type="password" class="form-control <?php echo isset($errors['password']) ? 'is-invalid' : ''; ?>" 
+                            id="password" name="password" placeholder="Enter your password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <?php if (isset($errors['password'])): ?>
+                            <div class="invalid-feedback">
+                                <?php echo htmlspecialchars($errors['password']); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Hidden reCAPTCHA token field -->
+                <input type="hidden" id="recaptchaToken" name="recaptcha_token">
+                
+                <!-- Hidden device fingerprint field -->
+                <input type="hidden" id="deviceFingerprint" name="device_fingerprint">
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-admin" id="loginBtn">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login to Admin Portal
+                    </button>
+                </div>
+                
+                <div class="recaptcha-info mt-2">
+                    <small>
+                        <i class="bi bi-shield-check me-1"></i>
+                        This site is protected by reCAPTCHA and the Google 
+                        <a href="https://policies.google.com/privacy">Privacy Policy</a> and
+                        <a href="https://policies.google.com/terms">Terms of Service</a> apply.
+                        <?php if (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1'): ?>
+                            <br><strong class="text-primary">Running on localhost:</strong> reCAPTCHA validation has been relaxed for development.
+                        <?php endif; ?>
+                    </small>
+                </div>
+                
+                <div class="admin-footer">
+                    <div class="mb-2">
+                        <a href="../public/login.php">← Back to Public Portal</a>
+                    </div>
+                    <div>
+                        <a href="register.php">Register New Admin</a>
+                    </div>
+                </div>
+            </form>
+        <?php else: ?>
+            <div class="text-center mt-4">
+                <a href="../public/index.php" class="btn btn-outline-secondary">Return to Home</a>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/login.js"></script>
+</body>
+</html>

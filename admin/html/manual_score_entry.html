@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Score Entry - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <?php include 'templates/sidebar.php'; ?>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Manual Score Entry</h4>
+                    </div>
+                    <div class="card-body">
+                        <?php if ($success_message): ?>
+                            <div class="alert alert-success"><?php echo $success_message; ?></div>
+                        <?php endif; ?>
+                        
+                        <?php if ($error_message): ?>
+                            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+                        <?php endif; ?>
+                        
+                        <form method="post" action="" id="scoreForm">
+                            <div class="mb-3">
+                                <label for="control_number" class="form-label">Control Number</label>
+                                <input type="text" class="form-control" id="control_number" name="control_number" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="stanine_score" class="form-label">Stanine Score</label>
+                                <input type="number" class="form-control" id="stanine_score" name="stanine_score" min="1" max="9" required>
+                                <div class="form-text">Enter a stanine score from 1 to 9</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="remarks" class="form-label">Remarks</label>
+                                <textarea class="form-control" id="remarks" name="remarks" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" name="submit_score" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Submit Score
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Recent Manual Score Uploads</h4>
+                    </div>
+                    <div class="card-body">
+                        <?php if (empty($recent_uploads)): ?>
+                            <p class="text-muted">No recent score uploads.</p>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Control #</th>
+                                            <th>Name</th>
+                                            <th>Stanine</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($recent_uploads as $upload): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($upload['control_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($upload['first_name'] . ' ' . $upload['last_name']); ?></td>
+                                                <td><?php echo htmlspecialchars($upload['stanine_score']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($upload['upload_date'])); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h4 class="mb-0">Bulk Upload</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Upload scores for multiple applicants at once using an Excel file.</p>
+                        <a href="bulk_score_upload.php" class="btn btn-outline-primary">
+                            <i class="bi bi-upload"></i> Go to Bulk Upload
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/manual_score_entry.js"></script>
+</body>
+</html>

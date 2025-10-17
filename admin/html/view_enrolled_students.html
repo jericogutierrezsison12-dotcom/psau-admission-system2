@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrolled Students - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .student-photo {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <?php include 'templates/sidebar.php'; ?>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid">
+            <h2 class="mb-4">Enrolled Students</h2>
+            
+            <?php if (!empty($error_message)): ?>
+                <div class="alert alert-danger"><?php echo $error_message; ?></div>
+            <?php endif; ?>
+            
+            <!-- Search Section -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Control number, name, email, course..." 
+                                   value="<?php echo htmlspecialchars($search_term); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="">All Status</option>
+                                <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Enrolled</option>
+                                <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date From</label>
+                            <input type="date" class="form-control" name="date_from" 
+                                   value="<?php echo htmlspecialchars($date_from); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date To</label>
+                            <input type="date" class="form-control" name="date_to" 
+                                   value="<?php echo htmlspecialchars($date_to); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Actions</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" type="submit">Search</button>
+                                <?php if (!empty($search_term) || !empty($status_filter) || !empty($date_from) || !empty($date_to)): ?>
+                                    <a href="view_enrolled_students.php" class="btn btn-outline-secondary">Clear</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-success"><?php echo $counts['completed']; ?></h5>
+                            <p class="mb-0">Enrolled</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-warning"><?php echo $counts['pending']; ?></h5>
+                            <p class="mb-0">Pending</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-danger"><?php echo $counts['cancelled']; ?></h5>
+                            <p class="mb-0">Cancelled</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Control #</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Course</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($students as $student): ?>
+                                    <tr>
+                                        <td>
+                                            <?php if ($student['profile_picture']): ?>
+                                                <img src="../<?php echo htmlspecialchars($student['profile_picture']); ?>" 
+                                                     alt="Profile" class="student-photo">
+                                            <?php else: ?>
+                                                <div class="student-photo bg-secondary d-flex align-items-center justify-content-center">
+                                                    <i class="bi bi-person text-white"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><strong><?php echo htmlspecialchars($student['control_number']); ?></strong></td>
+                                        <td><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($student['email']); ?></td>
+                                        <td>
+                                            <?php if ($student['course_code']): ?>
+                                                <?php echo htmlspecialchars($student['course_code']); ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">Not assigned</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<?php 
+                                                echo match($student['enrollment_status']) {
+                                                    'completed' => 'success',
+                                                    'pending' => 'warning',
+                                                    'cancelled' => 'danger',
+                                                    default => 'secondary'
+                                                };
+                                            ?>">
+                                                <?php 
+                                                    echo match($student['enrollment_status']) {
+                                                        'completed' => 'Enrolled',
+                                                        'pending' => 'Pending',
+                                                        'cancelled' => 'Cancelled',
+                                                        default => 'Unknown'
+                                                    };
+                                                ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($student['stanine_score']): ?>
+                                                <?php echo $student['stanine_score']; ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($student['enrollment_date']): ?>
+                                                <?php echo date('M d, Y', strtotime($student['enrollment_date'])); ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

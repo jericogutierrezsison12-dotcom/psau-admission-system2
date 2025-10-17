@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrollment Completion - PSAU</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+    </style>
+    <script>
+    </script>
+    </head>
+<body>
+    <?php include 'templates/sidebar.php'; ?>
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0"><i class="bi bi-check2-square me-2"></i>Enrollment Completion</h1>
+            </div>
+            <?php if (!empty($success)): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Manual Update</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="enrollment_completion.php" class="needs-validation" novalidate>
+                                <input type="hidden" name="action" value="manual">
+                                <div class="mb-3">
+                                    <label for="control_number" class="form-label">Control Number</label>
+                                    <input type="text" class="form-control" id="control_number" name="control_number" required>
+                                    <div class="invalid-feedback">Please enter a control number.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Decision</label>
+                                    <div class="btn-group" role="group">
+                                        <input type="radio" class="btn-check" name="decision" id="dec_completed" value="completed" checked>
+                                        <label class="btn btn-outline-success" for="dec_completed"><i class="bi bi-check2-circle me-1"></i>Completed</label>
+                                        <input type="radio" class="btn-check" name="decision" id="dec_cancelled" value="cancelled">
+                                        <label class="btn btn-outline-danger" for="dec_cancelled"><i class="bi bi-x-circle me-1"></i>Cancelled</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">CSV Upload</h5>
+                            <a href="#" onclick="downloadTemplate(); return false;" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Template</a>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="enrollment_completion.php" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="csv">
+                                <div class="mb-3">
+                                    <label for="csv_file" class="form-label">CSV File</label>
+                                    <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                                    <div class="form-text">Headers required: control_number, decision (completed|cancelled)</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <?php if (!empty($results)): ?>
+            <div class="card mt-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Upload Results</h5></div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Control Number</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($results as $r): ?>
+                                <tr>
+                                    <td><?php echo (int)$r['row']; ?></td>
+                                    <td><?php echo htmlspecialchars($r['control_number']); ?></td>
+                                    <td class="text-danger"><?php echo htmlspecialchars($r['error']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function downloadTemplate(){
+        const csv = 'control_number,decision\n123456,completed\n654321,cancelled\n';
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'enrollment_completion_template.csv'; a.click();
+        URL.revokeObjectURL(url);
+    }
+    </script>
+</body>
+</html>
+
+
