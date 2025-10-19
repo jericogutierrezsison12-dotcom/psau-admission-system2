@@ -44,42 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         switch ($action) {
-            case 'resolve_unanswered':
-                $ua_id = (int)($_POST['ua_id'] ?? 0);
-                $question = trim($_POST['question'] ?? '');
-                $answer = trim($_POST['answer'] ?? '');
-                if (empty($ua_id) || empty($question) || empty($answer)) {
-                    throw new Exception('Question and answer are required.');
-                }
-                // Start transaction to ensure both operations are atomic
-                $conn->beginTransaction();
-                // Determine next sort order
-                $stmt = $conn->query("SELECT MAX(sort_order) as max_order FROM faqs");
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $sort_order = ($result['max_order'] ?? 0) + 1;
-                // Insert into faqs
-                $stmt = $conn->prepare("INSERT INTO faqs (question, answer, sort_order, is_active) VALUES (?, ?, ?, 1)");
-                $stmt->execute([$question, $answer, $sort_order]);
-                // Delete from unanswered_questions
-                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
-                $stmt->execute([$ua_id]);
-                $conn->commit();
-                $_SESSION['message'] = 'Unanswered question added as FAQ successfully';
-                $_SESSION['message_type'] = 'success';
-                header('Location: manage_faqs.php');
-                exit;
-
-            case 'delete_unanswered':
-                $ua_id = (int)($_POST['ua_id'] ?? 0);
-                if (empty($ua_id)) {
-                    throw new Exception('Invalid unanswered question ID.');
-                }
-                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
-                $stmt->execute([$ua_id]);
-                $_SESSION['message'] = 'Unanswered question deleted';
-                $_SESSION['message_type'] = 'success';
-                header('Location: manage_faqs.php');
-                exit;
             case 'add':
                 $question = trim($_POST['question'] ?? '');
                 $answer = trim($_POST['answer'] ?? '');
@@ -177,15 +141,6 @@ try {
     $faqs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_message = "Error fetching FAQs: " . $e->getMessage();
-}
-
-// Get unanswered questions
-try {
-    $stmt = $conn->query("SELECT id, question, created_at FROM unanswered_questions ORDER BY created_at DESC, id DESC");
-    $unanswered = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    // If table missing, set empty and show warning later in UI
-    $unanswered = [];
 }
 
 // Get admin details

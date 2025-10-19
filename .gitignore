@@ -1,0 +1,94 @@
+# PSAU Admission System - Git Ignore File
+
+# Environment and Configuration
+.env
+.env.local
+.env.production
+config.local.php
+*.log
+
+# Database
+*.sql
+database/psau_admission.sql
+
+# Uploads and User Data
+uploads/*
+!uploads/.gitkeep
+images/*
+!images/.gitkeep
+
+# Composer
+vendor/
+composer.lock
+
+# Node.js (for Firebase Functions)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+*.cache
+
+# Backup files
+*.bak
+*.backup
+
+# PHP
+*.php~
+*.php.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Firebase Functions
+functions/node_modules/
+functions/.runtimeconfig.json
+
+# Sensitive files (API keys, passwords)
+*secret*
+*password*
+*key*
+api_keys.txt
+secrets.json

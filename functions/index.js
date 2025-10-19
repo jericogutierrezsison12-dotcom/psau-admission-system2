@@ -1,6 +1,5 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const axios = require('axios');
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -230,104 +229,5 @@ exports.logApplicationStatusEmail = functions.https.onCall(async (data, context)
   } catch (error) {
     console.error('Error logging application status email request:', error);
     throw new functions.https.HttpsError('internal', 'Error processing application status email request', error);
-  }
-});
-
-/**
- * API Proxy to forward requests to Render backend
- * This function acts as a proxy between Firebase Hosting and Render backend
- */
-exports.apiProxy = functions.https.onRequest(async (req, res) => {
-  // Enable CORS
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-  
-  try {
-    // Get Render API URL from environment or use default
-    const RENDER_API_URL = functions.config().render?.api_url || 'https://psau-backend-api.onrender.com';
-    
-    // Forward the request to Render backend
-    const response = await axios({
-      method: req.method,
-      url: `${RENDER_API_URL}${req.path}`,
-      data: req.body,
-      headers: {
-        ...req.headers,
-        'host': undefined // Remove host header to avoid conflicts
-      },
-      timeout: 30000 // 30 second timeout
-    });
-    
-    // Forward the response back to the client
-    res.status(response.status).send(response.data);
-    
-  } catch (error) {
-    console.error('API Proxy Error:', error.message);
-    
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-      res.status(503).send({ 
-        error: 'Backend service unavailable',
-        message: 'The AI services are temporarily unavailable. Please try again later.'
-      });
-    } else if (error.response) {
-      // Forward error response from backend
-      res.status(error.response.status).send(error.response.data);
-    } else {
-      res.status(500).send({ 
-        error: 'Internal server error',
-        message: 'An unexpected error occurred'
-      });
-    }
-  }
-});
-
-/**
- * System Health Check
- * Checks the health of both Firebase and Render services
- */
-exports.systemHealth = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  
-  try {
-    const RENDER_API_URL = functions.config().render?.api_url || 'https://psau-backend-api.onrender.com';
-    
-    // Check Firebase services
-    const firebaseHealth = {
-      functions: 'healthy',
-      firestore: 'healthy',
-      hosting: 'healthy'
-    };
-    
-    // Check Render backend
-    let renderHealth = 'unknown';
-    try {
-      const response = await axios.get(`${RENDER_API_URL}/health`, { timeout: 5000 });
-      renderHealth = response.data.status || 'healthy';
-    } catch (error) {
-      renderHealth = 'unhealthy';
-    }
-    
-    res.status(200).send({
-      status: 'operational',
-      timestamp: new Date().toISOString(),
-      services: {
-        firebase: firebaseHealth,
-        render: renderHealth
-      }
-    });
-    
-  } catch (error) {
-    console.error('Health check error:', error);
-    res.status(500).send({
-      status: 'error',
-      message: 'Health check failed'
-    });
   }
 }); 

@@ -1,6 +1,20 @@
 {
   "rules": {
     ".read": "auth != null",
-    ".write": "auth != null"
+    ".write": "auth != null",
+    "applications": {
+      "$control_number": {
+        ".read": "auth != null && (auth.token.admin === true || auth.token.control_number === $control_number)",
+        ".write": "auth != null && (auth.token.admin === true || auth.token.control_number === $control_number)",
+        "status": {
+          ".read": "auth != null && (auth.token.admin === true || auth.token.control_number === $control_number)",
+          ".write": "auth != null && auth.token.admin === true"
+        },
+        "history": {
+          ".read": "auth != null && (auth.token.admin === true || auth.token.control_number === $control_number)",
+          ".write": "auth != null && auth.token.admin === true"
+        }
+      }
+    }
   }
-}
+} 
