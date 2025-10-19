@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PSAU Admission System</title>
     <meta name="description" content="AI-Assisted Admission System for Pampanga State Agricultural University">
-    <meta name="keywords" content="PSAU, admission, university, application, AI">
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
@@ -135,11 +134,9 @@
         auth.onAuthStateChanged((user) => {
             if (user) {
                 console.log('User is signed in:', user.email);
-                // Update UI for logged-in user
                 updateUserInterface(user);
             } else {
                 console.log('User is signed out');
-                // Update UI for logged-out user
                 updateUserInterface(null);
             }
         });
