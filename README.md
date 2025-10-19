@@ -1,239 +1,225 @@
-# PSAU AI-Assisted Admission System
+# PSAU Admission System
 
-A comprehensive admission system for Pampanga State Agricultural University featuring AI-powered document processing, course recommendations, and chatbot assistance.
+A fully AI-powered, secure, and automated Admission System for Pampanga State Agricultural University (PSAU).
 
-## 🏗️ Architecture
+## Project Overview
 
-This system uses a distributed architecture across multiple platforms:
+The PSAU Admission System provides an end-to-end solution for managing the university's admission process, from application submission to enrollment. The system is built using PHP for both frontend and backend functionality, MySQL for database storage, and Firebase for authentication, real-time updates, and notification services.
 
-- **InfinityFree**: PHP application hosting and MySQL database
-- **Replit**: Python AI/ML services (OCR, Chatbot, Course Recommendations)
-- **Render**: PHP vendor dependencies and API services (optional)
+## Features
 
-## 🚀 Quick Start
+- **User Registration and Authentication**: Secure registration with OTP verification via Firebase Authentication
+- **Application Submission**: PDF upload and automated validation using AI
+- **Progress Tracking**: Real-time status updates through Firebase Realtime Database
+- **Admin Dashboard**: For reviewing applications, scheduling exams, and managing the admission process
+- **Automated Notifications**: Email and SMS notifications for important steps in the admission process
+- **Course Selection and Assignment**: Course preference selection and admin assignment
+- **Enrollment Scheduling**: Final step to complete the admission process
+
+## Technical Stack
+
+- **Backend**: PHP 7.4+
+- **Frontend**: HTML5, CSS3, JavaScript (combined within PHP files)
+- **Database**: MySQL (via XAMPP)
+- **Authentication**: Firebase Authentication with SMS OTP
+- **Security**: Firebase reCAPTCHA v3
+- **Real-time Updates**: Firebase Realtime Database
+- **Email Notifications**: Firebase Cloud Functions with Gmail
+- **SMS Notifications**: Firebase Authentication SMS
+- **PDF Processing**: Python with OCR (Tesseract)
+
+## Installation and Setup
 
 ### Prerequisites
 
-- PHP 7.4+ with MySQL support
-- Python 3.11+
-- Composer (for PHP dependencies)
-- Git
+1. XAMPP (with PHP 7.4+ and MySQL)
+2. Firebase account with Blaze plan (for Cloud Functions)
+3. Python 3.7+ with pip
+4. Node.js and npm (for Firebase Functions)
 
-### Local Development Setup
+### Database Setup
 
-1. **Clone the repository**:
-   ```bash
-   git clone <your-repo-url>
-   cd psau-admission-system
+1. Start XAMPP and ensure MySQL service is running
+2. Import the database schema from `/database/psau_admission.sql`
+3. Default credentials are:
+   - Host: localhost
+   - Username: root
+   - Password: (blank)
+   - Database: psau_admission
+
+### Firebase Setup
+
+1. Create a Firebase project
+2. Enable Authentication with Email/Password and Phone
+3. Set up Realtime Database
+4. Set up Cloud Functions with the following environment variables:
    ```
-
-2. **Install PHP dependencies**:
-   ```bash
-   composer install
+   firebase functions:config:set gmail.email="jericogutierrezsison12@gmail.com" gmail.password="crsh iejc lhwz gasu"
    ```
+5. Deploy functions from the `/functions` directory
 
-3. **Setup database**:
-   - Import `database/psau_admission.sql` to your MySQL database
-   - Update database credentials in `includes/db_connect.php`
+### Python Setup
 
-4. **Setup Python services**:
-   ```bash
-   cd python/image
-   pip install -r requirements.txt
-   python app.py
-   ```
-
-5. **Configure environment**:
-   - Copy `env.example` to `.env`
-   - Update configuration values
-
-## 📁 Project Structure
-
+Install required Python packages:
 ```
-psau-admission-system/
-├── admin/                 # Admin panel PHP files
-├── public/               # Public-facing PHP files
-│   ├── ai/               # AI integration files
-│   ├── css/              # Stylesheets
-│   ├── js/               # JavaScript files
-│   └── templates/        # HTML templates
-├── includes/             # PHP includes and utilities
-├── python/image/        # Python AI/ML services
-│   ├── app.py           # Main Flask application
-│   ├── requirements.txt # Python dependencies
-│   ├── .replit         # Replit configuration
-│   └── replit.nix      # Replit Nix configuration
-├── database/            # Database schema and data
-├── firebase/            # Firebase configuration
-├── images/              # Uploaded images
-├── uploads/             # Uploaded documents
-├── vendor/              # Composer dependencies
-├── composer.json        # PHP dependencies
-├── render.yaml          # Render deployment config
-└── DEPLOYMENT.md        # Deployment guide
+pip install pytesseract pdf2image
 ```
 
-## 🔧 Features
+You also need to install Tesseract OCR engine on your system.
 
-### Core Features
-- **User Registration & Authentication**: Secure user accounts with email verification
-- **Document Upload & Processing**: AI-powered OCR for document validation
-- **Course Recommendations**: ML-based course suggestions based on student profile
-- **AI Chatbot**: Intelligent FAQ system with natural language processing
-- **Admin Panel**: Comprehensive administration interface
-- **Application Management**: Track and manage student applications
+### System Setup
 
-### AI/ML Features
-- **Document Classification**: Automatically classify uploaded documents
-- **OCR Processing**: Extract text from images and PDFs using PaddleOCR
-- **Grade Validation**: Verify academic performance from report cards
-- **Course Matching**: Recommend courses based on academic profile and interests
+1. Clone or download the project to your XAMPP htdocs directory
+2. Configure the database connection in `/includes/db_connect.php` if needed
+3. Configure the Firebase project details in your client-side scripts
+4. Ensure the `/uploads` directory is writable by the web server
 
-## 🌐 Deployment
+## System Architecture
 
-### Production Deployment
+- **Public Interface**: User-facing pages in `/public` directory
+- **Admin Interface**: Administration pages in `/admin` directory
+- **Backend Functions**: Reusable PHP scripts in `/includes` directory
+- **Firebase Functions**: Cloud functions in `/functions` directory
+- **Python Scripts**: PDF processing in `/python` directory
 
-1. **InfinityFree Setup**:
-   - Upload PHP files to InfinityFree hosting
-   - Import database schema
-   - Configure database credentials
+## Security Features
 
-2. **Replit Setup**:
-   - Create new Python Repl
-   - Upload `python/image/` directory
-   - Set environment variables
-   - Install dependencies
+- Password hashing using PHP's native `password_hash()`
+- Firebase reCAPTCHA v3 for login protection
+- OTP verification for user registration
+- Secure storage of Gmail credentials in Firebase environment variables
+- Role-based access control
 
-3. **Configuration**:
-   - Update API URLs in PHP files
-   - Configure CORS settings
-   - Set up environment variables
+## Credits
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+Developed for Pampanga State Agricultural University (PSAU) Admission System.
 
-## 🔌 API Endpoints
+## License
 
-### Python Services (Replit)
-- `POST /ocr_service` - Document OCR processing
-- `POST /ask_question` - Chatbot question handling
-- `POST /api/recommend` - Course recommendations
-- `POST /api/save_ratings` - Save user ratings
-- `GET /health` - Service health check
+Proprietary - All rights reserved.
 
-### PHP Services (InfinityFree)
-- `POST /public/ai/chatbot_handler.php` - Chatbot integration
-- `POST /public/ai/recommendation_handler.php` - Recommendation integration
-- `POST /admin/review_application.php` - Application review
-- `GET /public/dashboard.php` - User dashboard
+# PSAU Admission System - Firebase Email Integration
 
-## 🛠️ Configuration
+This guide explains how to set up and use the Firebase email integration for the PSAU Admission System.
 
-### Environment Variables
+## Overview
 
-#### Python Services (Replit)
+The system now uses Firebase Cloud Functions for all email notifications, including:
+- Application verification emails
+- Application rejection/resubmission emails
+- Test emails
+
+## Setup Instructions
+
+### 1. Create a Firebase Project
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Add project" and follow the setup steps
+3. Name your project (e.g., "psau-admission-system")
+4. Follow the prompts to complete setup
+
+### 2. Set Up Firebase Cloud Functions
+
+1. Install the Firebase CLI:
 ```
-DB_HOST=your-database-host
-DB_USER=your-database-user
-DB_PASS=your-database-password
-DB_NAME=psau_admission
-ALLOWED_ORIGINS=https://your-domain.infinityfreeapp.com
+npm install -g firebase-tools
 ```
 
-#### PHP Services (InfinityFree)
-Update `includes/db_connect.php` with your database credentials:
+2. Login to Firebase:
+```
+firebase login
+```
+
+3. Initialize your project:
+```
+mkdir functions
+cd functions
+firebase init functions
+```
+
+4. Create the Cloud Functions code in your `functions` directory:
+   - `index.js`: Contains the Cloud Functions for email sending
+   - `package.json`: Contains dependencies
+
+5. Install dependencies:
+```
+cd functions
+npm install
+```
+
+6. Deploy functions:
+```
+firebase deploy --only functions
+```
+
+7. After deployment, Firebase will show the URL for your Cloud Function. Copy this URL.
+
+### 3. Update Firebase Configuration
+
+1. Open `firebase_email.php` in your project
+2. Update the Firebase configuration:
 ```php
-$host = 'your-infinityfree-db-host';
-$dbname = 'your-database-name';
-$username = 'your-username';
-$password = 'your-password';
+$firebase_config = [
+    'api_key' => 'YOUR_FIREBASE_API_KEY', // From Firebase console
+    'project_id' => 'YOUR_PROJECT_ID',
+    'email_function_url' => 'YOUR_CLOUD_FUNCTION_URL'
+];
 ```
 
-## 🔒 Security Features
+## Testing the Integration
 
-- **Input Validation**: Comprehensive validation for all user inputs
-- **SQL Injection Protection**: Prepared statements and parameterized queries
-- **XSS Protection**: Output escaping and content security policies
-- **CSRF Protection**: Token-based request validation
-- **File Upload Security**: Type validation and secure file handling
-- **Authentication**: Secure session management and password hashing
+1. Use the Firebase Console to test your cloud functions
+2. Monitor the cloud function logs in Firebase Console to confirm proper email delivery
 
-## 📊 Database Schema
+## Troubleshooting
 
-The system uses MySQL with the following main tables:
-- `users` - User accounts and profiles
-- `applications` - Student applications
-- `courses` - Available courses
-- `faqs` - Frequently asked questions
-- `activity_logs` - System activity tracking
-- `ai_document_analysis` - AI processing results
+### Common Issues
 
-## 🤖 AI/ML Components
+1. **Email not sending**:
+   - Check your Firebase Cloud Function logs in the Firebase Console
+   - Verify your API key is correct
+   - Check that the Cloud Function URL is correct
 
-### Document Processing
-- **PaddleOCR**: Text extraction from images and PDFs
-- **ML Classification**: Document type classification
-- **Grade Validation**: Academic performance verification
+2. **Function deployment errors**:
+   - Make sure you've installed all dependencies
+   - Check that your Firebase project is properly set up
+   - Verify your `package.json` has the right dependencies
 
-### Course Recommendations
-- **Collaborative Filtering**: User-based recommendations
-- **Content-Based Filtering**: Course attribute matching
-- **Hybrid Approach**: Combined recommendation strategies
+3. **Integration errors**:
+   - Check PHP error logs for detailed error messages
+   - Make sure the Firebase email functions are being included properly
+   - Verify that cURL is enabled in your PHP configuration
 
-### Chatbot System
-- **FAQ Matching**: Intelligent question-answer pairing
-- **Natural Language Processing**: Understanding user queries
-- **Context Awareness**: Maintaining conversation context
+## File Structure
 
-## 🧪 Testing
+- `firebase_email.php`: Main integration file with email functions
+- `functions/`: Contains Cloud Function code for deployment
+  - `index.js`: Cloud Functions for email sending
+  - `package.json`: Node.js dependencies
 
-### Manual Testing
-1. Test user registration and login
-2. Test document upload and processing
-3. Test course recommendations
-4. Test chatbot functionality
-5. Test admin panel features
+## Using the Integration
 
-### Automated Testing
-```bash
-# Run PHP tests (if available)
-composer test
+To send an email from your PHP code:
 
-# Run Python tests
-cd python/image
-python -m pytest
-```
+```php
+// Include the Firebase email functions
+require_once 'firebase_email.php';
 
-## 📝 Contributing
+// Send a verification email
+$user = [
+    'email' => 'user@example.com',
+    'first_name' => 'John',
+    'last_name' => 'Doe'
+];
+$result = send_verification_email($user);
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+// Send a resubmission email
+$reason = "Missing documents";
+$result = send_resubmission_email($user, $reason);
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Check the [DEPLOYMENT.md](DEPLOYMENT.md) for deployment issues
-- Review logs in each platform's dashboard
-- Use browser developer tools for debugging API calls
-
-## 🔄 Updates
-
-### Recent Updates
-- ✅ Distributed architecture implementation
-- ✅ Replit Python service integration
-- ✅ InfinityFree PHP hosting configuration
-- ✅ CORS configuration for cross-platform communication
-- ✅ Environment-based configuration
-- ✅ Comprehensive deployment documentation
-
-### Planned Features
-- 🔄 Real-time notifications
-- 🔄 Advanced analytics dashboard
-- 🔄 Mobile app integration
-- 🔄 Multi-language support
+// Send a custom email
+$to = 'user@example.com';
+$subject = 'Custom Email';
+$message = '<p>This is a custom email message.</p>';
+$result = firebase_send_email($to, $subject, $message);
+``` 

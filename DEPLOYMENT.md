@@ -1,133 +1,187 @@
-# PSAU Admission System - Deployment Guide
+# PSAU Admission System - Render Deployment Guide
 
-## Overview
-This project is designed to run across multiple platforms:
-- **InfinityFree**: PHP application and database hosting
-- **Replit**: Python AI/ML services (OCR, Chatbot, Recommendations)
-- **Render**: PHP vendor dependencies and API services
+This guide will help you deploy the PSAU Admission System to Render platform.
+
+## Prerequisites
+
+1. **Git Repository**: Your code should be in a Git repository (GitHub, GitLab, or Bitbucket)
+2. **Render Account**: Sign up at [render.com](https://render.com)
+3. **Firebase Project**: Ensure your Firebase project is properly configured
 
 ## Deployment Steps
 
-### 1. InfinityFree Setup (Main Application)
+### 1. Prepare Your Repository
 
-1. **Upload PHP Files**:
-   - Upload all PHP files to your InfinityFree hosting
-   - Ensure `includes/db_connect.php` has correct database credentials
-   - Update database credentials in the file for your InfinityFree database
+Make sure your repository contains:
+- `render.yaml` - Render configuration file
+- `composer.json` - PHP dependencies
+- `database/psau_admission_postgresql.sql` - PostgreSQL schema
+- `scripts/init_db.sh` - Database initialization script
+- `.gitignore` - Git ignore file
 
-2. **Database Setup**:
-   - Import `database/psau_admission.sql` to your InfinityFree MySQL database
-   - Update database connection details in `includes/db_connect.php`
+### 2. Create Render Services
 
-3. **File Permissions**:
-   - Set uploads/ directory to writable (755 or 777)
-   - Set images/ directory to writable (755 or 777)
+#### Option A: Using render.yaml (Recommended)
 
-### 2. Replit Setup (Python Services)
+1. Go to your Render dashboard
+2. Click "New +" → "Blueprint"
+3. Connect your Git repository
+4. Render will automatically detect the `render.yaml` file
+5. Click "Apply" to create all services
 
-1. **Create New Repl**:
-   - Go to Replit.com and create a new Python Repl
-   - Upload the `python/image/` directory contents
+#### Option B: Manual Setup
 
-2. **Environment Variables**:
-   Set these environment variables in Replit:
+##### Web Service
+1. Go to your Render dashboard
+2. Click "New +" → "Web Service"
+3. Connect your Git repository
+4. Configure:
+   - **Name**: `psau-admission-system`
+   - **Environment**: `PHP`
+   - **Plan**: `Starter` (or higher)
+   - **Build Command**: `composer install --no-dev --optimize-autoloader`
+   - **Start Command**: `php -S 0.0.0.0:$PORT -t public`
+
+##### Database Service
+1. Click "New +" → "PostgreSQL"
+2. Configure:
+   - **Name**: `psau-admission-db`
+   - **Plan**: `Starter` (or higher)
+   - **Database Name**: `psau_admission`
+
+### 3. Environment Variables
+
+Set the following environment variables in your web service:
+
+#### Database Variables (Auto-configured if using render.yaml)
+- `DB_TYPE`: `postgresql`
+- `DB_HOST`: (Auto-configured from database service)
+- `DB_NAME`: (Auto-configured from database service)
+- `DB_USER`: (Auto-configured from database service)
+- `DB_PASSWORD`: (Auto-configured from database service)
+- `DB_PORT`: (Auto-configured from database service)
+
+#### Firebase Variables
+- `FIREBASE_API_KEY`: `AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8`
+- `FIREBASE_AUTH_DOMAIN`: `psau-admission-system.firebaseapp.com`
+- `FIREBASE_PROJECT_ID`: `psau-admission-system`
+- `FIREBASE_STORAGE_BUCKET`: `psau-admission-system.appspot.com`
+- `FIREBASE_MESSAGING_SENDER_ID`: `522448258958`
+- `FIREBASE_APP_ID`: `1:522448258958:web:994b133a4f7b7f4c1b06df`
+- `FIREBASE_EMAIL_FUNCTION_URL`: `https://sendemail-alsstt22ha-uc.a.run.app`
+
+#### Application Variables
+- `APP_ENV`: `production`
+- `PHP_VERSION`: `8.2`
+
+### 4. Database Initialization
+
+After deployment, you need to initialize the database:
+
+1. Go to your web service dashboard
+2. Click on "Shell" tab
+3. Run the database initialization script:
+   ```bash
+   ./scripts/init_db.sh
    ```
-   DB_HOST=your-infinityfree-db-host
-   DB_USER=your-infinityfree-db-user
-   DB_PASS=your-infinityfree-db-password
-   DB_NAME=your-infinityfree-db-name
-   ALLOWED_ORIGINS=https://your-infinityfree-domain.infinityfreeapp.com
-   ```
 
-3. **Install Dependencies**:
-   - Replit will automatically install from `requirements.txt`
-   - Wait for all packages to install (may take 5-10 minutes)
+Alternatively, you can manually run the SQL file:
+1. Go to your PostgreSQL service dashboard
+2. Click on "Connect" → "External Connection"
+3. Use a PostgreSQL client to connect and run `database/psau_admission_postgresql.sql`
 
-4. **Run the Application**:
-   - Click "Run" button in Replit
-   - Note the URL provided (e.g., `https://your-app.replit.dev`)
+### 5. File Permissions
 
-### 3. Render Setup (Optional - for Vendor Dependencies)
+Ensure the following directories are writable:
+- `uploads/` - For file uploads
+- `images/` - For image storage
 
-1. **Create New Web Service**:
-   - Go to Render.com and create a new Web Service
-   - Connect your GitHub repository
+You may need to create these directories if they don't exist:
+```bash
+mkdir -p uploads images
+chmod 755 uploads images
+```
 
-2. **Configuration**:
-   - Build Command: `composer install --no-dev --optimize-autoloader`
-   - Start Command: `php -S 0.0.0.0:$PORT -t vendor`
-   - Environment: PHP
+### 6. Firebase Configuration
 
-3. **Environment Variables**:
-   ```
-   DB_HOST=your-database-host
-   DB_USER=your-database-user
-   DB_PASS=your-database-password
-   DB_NAME=psau_admission
-   PYTHON_API_URL=https://your-replit-app.replit.dev
-   ```
+Make sure your Firebase project is properly configured:
 
-### 4. Update Configuration Files
+1. **Authentication**: Enable Email/Password and Phone authentication
+2. **Realtime Database**: Set up rules for your application
+3. **Cloud Functions**: Deploy your email functions
+4. **Storage**: Configure file upload rules
 
-1. **Update Python API URL**:
-   - In `includes/python_api.php`, update the Replit URL
-   - Replace `https://your-replit-app.replit.dev` with your actual Replit URL
+### 7. Testing Your Deployment
 
-2. **Update CORS Origins**:
-   - In `python/image/app.py`, update the allowed origins
-   - Replace placeholder URLs with your actual domains
+After deployment, test the following:
 
-3. **Update Database Credentials**:
-   - Update `includes/db_connect.php` with your InfinityFree database details
-   - Update `python/image/app.py` with the same database details
+1. **Homepage**: Visit your Render URL
+2. **User Registration**: Test user registration with Firebase
+3. **Admin Login**: Test admin login functionality
+4. **File Upload**: Test document upload functionality
+5. **Database**: Verify data is being stored correctly
 
-### 5. Testing the Deployment
+### 8. Monitoring and Maintenance
 
-1. **Test PHP Application**:
-   - Visit your InfinityFree domain
-   - Test user registration and login
-   - Test file uploads
-
-2. **Test Python Services**:
-   - Test chatbot functionality
-   - Test course recommendations
-   - Test OCR document processing
-
-3. **Test Integration**:
-   - Ensure PHP can communicate with Python services
-   - Check CORS settings
-   - Verify database connectivity
+- **Logs**: Monitor application logs in Render dashboard
+- **Database**: Monitor database performance and storage
+- **Firebase**: Monitor Firebase usage and quotas
+- **Updates**: Deploy updates by pushing to your Git repository
 
 ## Troubleshooting
 
-### Common Issues:
+### Common Issues
 
-1. **CORS Errors**:
-   - Check allowed origins in `python/image/app.py`
-   - Ensure your domain is included in the CORS configuration
+1. **Database Connection Failed**
+   - Check environment variables are set correctly
+   - Verify database service is running
+   - Check database initialization script ran successfully
 
-2. **Database Connection Issues**:
-   - Verify database credentials
-   - Check if database server allows external connections
-   - Ensure firewall settings allow connections
+2. **File Upload Issues**
+   - Ensure uploads directory exists and is writable
+   - Check file size limits in PHP configuration
+   - Verify Firebase Storage rules
 
-3. **Python Service Not Responding**:
-   - Check Replit logs for errors
-   - Verify all dependencies are installed
-   - Check environment variables
+3. **Firebase Authentication Issues**
+   - Check Firebase configuration in `firebase/config.php`
+   - Verify Firebase project settings
+   - Check browser console for JavaScript errors
 
-4. **File Upload Issues**:
-   - Check directory permissions
-   - Verify upload limits in PHP configuration
-   - Check available disk space
+4. **Build Failures**
+   - Check composer.json dependencies
+   - Verify PHP version compatibility
+   - Check build logs for specific errors
 
-### Support:
-- Check logs in each platform's dashboard
-- Use browser developer tools to debug API calls
-- Test each service individually before integration
+### Support
 
-## Security Notes:
-- Never commit database credentials to version control
-- Use environment variables for sensitive data
-- Regularly update dependencies
-- Monitor logs for suspicious activity
+For issues specific to:
+- **Render Platform**: Check Render documentation or support
+- **Firebase**: Check Firebase documentation or support
+- **Application Code**: Review application logs and error messages
+
+## Security Considerations
+
+1. **Environment Variables**: Never commit sensitive data to Git
+2. **Database Access**: Use strong passwords and limit access
+3. **File Uploads**: Validate file types and sizes
+4. **Firebase Rules**: Configure proper security rules
+5. **HTTPS**: Render provides HTTPS by default
+
+## Performance Optimization
+
+1. **Database Indexes**: Ensure proper indexes are created
+2. **Caching**: Implement caching where appropriate
+3. **File Storage**: Consider using CDN for static files
+4. **Database Queries**: Optimize database queries
+5. **Monitoring**: Set up monitoring and alerting
+
+## Backup Strategy
+
+1. **Database**: Regular database backups
+2. **Files**: Backup uploaded files
+3. **Code**: Version control with Git
+4. **Configuration**: Document all configuration changes
+
+---
+
+**Note**: This deployment guide assumes you're using the provided `render.yaml` configuration. Adjust the steps accordingly if you're setting up services manually.

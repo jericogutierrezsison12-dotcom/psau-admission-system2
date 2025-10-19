@@ -8,15 +8,15 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Firebase project configuration
+// Firebase project configuration - use environment variables for production
 $firebase_config = [
-    'apiKey' => 'AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8',
-    'authDomain' => 'psau-admission-system.firebaseapp.com',
-    'projectId' => 'psau-admission-system',
-    'storageBucket' => 'psau-admission-system.appspot.com',
-    'messagingSenderId' => '522448258958',
-    'appId' => '1:522448258958:web:994b133a4f7b7f4c1b06df',
-    'email_function_url' => 'https://sendemail-alsstt22ha-uc.a.run.app'
+    'apiKey' => $_ENV['FIREBASE_API_KEY'] ?? 'AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8',
+    'authDomain' => $_ENV['FIREBASE_AUTH_DOMAIN'] ?? 'psau-admission-system.firebaseapp.com',
+    'projectId' => $_ENV['FIREBASE_PROJECT_ID'] ?? 'psau-admission-system',
+    'storageBucket' => $_ENV['FIREBASE_STORAGE_BUCKET'] ?? 'psau-admission-system.appspot.com',
+    'messagingSenderId' => $_ENV['FIREBASE_MESSAGING_SENDER_ID'] ?? '522448258958',
+    'appId' => $_ENV['FIREBASE_APP_ID'] ?? '1:522448258958:web:994b133a4f7b7f4c1b06df',
+    'email_function_url' => $_ENV['FIREBASE_EMAIL_FUNCTION_URL'] ?? 'https://sendemail-alsstt22ha-uc.a.run.app'
 ];
 
 // Validate required configuration

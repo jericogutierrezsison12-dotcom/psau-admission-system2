@@ -4,40 +4,24 @@
  */
 
 $(document).ready(function() {
-    console.log('Application form JavaScript loaded');
+    // Load common components
+    $("#navbar-placeholder").load("templates/navbar.html", function() {
+        // Update username in navbar after loading
+        updateUserInfo();
+    });
     
-    // Load common components (only if placeholders exist)
-    if ($("#navbar-placeholder").length) {
-        $("#navbar-placeholder").load("templates/navbar.html", function() {
-            // Update username in navbar after loading
-            updateUserInfo();
-        }).fail(function() {
-            console.log('Navbar template not found, continuing without it');
-        });
-    }
+    $("#sidebar-placeholder").load("templates/sidebar.html", function() {
+        // Highlight active sidebar item
+        $(".nav-link").removeClass("active");
+        $(".nav-link[href='application_form.php']").addClass("active");
+    });
     
-    if ($("#sidebar-placeholder").length) {
-        $("#sidebar-placeholder").load("templates/sidebar.html", function() {
-            // Highlight active sidebar item
-            $(".nav-link").removeClass("active");
-            $(".nav-link[href='application_form.php']").addClass("active");
-        }).fail(function() {
-            console.log('Sidebar template not found, continuing without it');
-        });
-    }
+    $("#mobile-menu-placeholder").load("templates/mobile_menu.html", function() {
+        // Highlight active mobile menu item
+        $(".list-group-item").removeClass("active");
+        $(".list-group-item[href='application_form.php']").addClass("active");
+    });
     
-    if ($("#mobile-menu-placeholder").length) {
-        $("#mobile-menu-placeholder").load("templates/mobile_menu.html", function() {
-            // Highlight active mobile menu item
-            $(".list-group-item").removeClass("active");
-            $(".list-group-item[href='application_form.php']").addClass("active");
-        }).fail(function() {
-            console.log('Mobile menu template not found, continuing without it');
-        });
-    }
-    
-    // Initialize form functionality
-    console.log('Initializing form functionality');
     initFormFunctionality();
 });
 
@@ -45,22 +29,12 @@ $(document).ready(function() {
  * Initialize all form functionality
  */
 function initFormFunctionality() {
-    console.log('initFormFunctionality called');
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('pdf_file');
     const browseBtn = document.getElementById('browseBtn');
     const fileName = document.getElementById('file-name');
     const submitBtn = document.getElementById('submitBtn');
     const form = document.getElementById('uploadForm');
-    
-    console.log('Form elements found:', {
-        dropZone: !!dropZone,
-        fileInput: !!fileInput,
-        browseBtn: !!browseBtn,
-        fileName: !!fileName,
-        submitBtn: !!submitBtn,
-        form: !!form
-    });
     
     // Browse button click
     if (browseBtn) {
@@ -72,13 +46,9 @@ function initFormFunctionality() {
     
     // File input change
     if (fileInput) {
-        console.log('Adding file input change listener');
         fileInput.addEventListener('change', function() {
-            console.log('File input changed, files:', this.files);
             handleFileSelect(this.files);
         });
-    } else {
-        console.log('File input not found!');
     }
     
     // Drag and drop events
@@ -117,25 +87,18 @@ function initFormFunctionality() {
                 // Check file size (max 5MB)
                 if (file.size <= 5 * 1024 * 1024) {
                     if (fileName) fileName.innerHTML = `<i class="bi bi-file-earmark-pdf"></i> ${file.name}`;
-                    
-                    // Start ML classification scan
-                    console.log('Starting ML scan for file:', file.name);
-                    scanDocumentWithML(file);
-                    
                     checkFormValidity();
                 } else {
                     alert('File size must be less than 5MB.');
                     if (fileInput) fileInput.value = '';
                     if (fileName) fileName.textContent = '';
                     if (submitBtn) submitBtn.disabled = true;
-                    hideMLScanResults();
                 }
             } else {
                 alert('Only PDF files are allowed.');
                 if (fileInput) fileInput.value = '';
                 if (fileName) fileName.textContent = '';
                 if (submitBtn) submitBtn.disabled = true;
-                hideMLScanResults();
             }
         }
     }
@@ -286,167 +249,5 @@ function updateUserInfo() {
     // Use userData passed from PHP
     if (typeof userData !== 'undefined' && userData) {
         $('#navbarDropdown').text(userData.first_name + ' ' + userData.last_name);
-    }
-}
-
-/**
- * ML Classifier Functions
- */
-
-/**
- * Scan document with ML classifier
- */
-function scanDocumentWithML(file) {
-    console.log('scanDocumentWithML called with file:', file);
-    // Show loading state
-    showMLScanLoading();
-    
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Make API call to ML classifier
-    fetch('http://localhost:5000/ocr_service', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            displayMLScanResults(data);
-        } else {
-            showMLScanError(data.error || 'Failed to analyze document');
-        }
-    })
-    .catch(error => {
-        console.error('ML Scan Error:', error);
-        showMLScanError('Unable to connect to AI service. Please check your internet connection and try again.');
-    });
-}
-
-/**
- * Show ML scan loading state
- */
-function showMLScanLoading() {
-    console.log('showMLScanLoading called');
-    const scanResults = document.getElementById('ml-scan-results');
-    const scanLoading = document.getElementById('scan-loading');
-    const scanResultsDiv = document.getElementById('scan-results');
-    const scanError = document.getElementById('scan-error');
-    
-    console.log('Elements found:', {
-        scanResults: !!scanResults,
-        scanLoading: !!scanLoading,
-        scanResultsDiv: !!scanResultsDiv,
-        scanError: !!scanError
-    });
-    
-    if (scanResults) {
-        scanResults.style.display = 'block';
-    }
-    if (scanLoading) {
-        scanLoading.style.display = 'block';
-    }
-    if (scanResultsDiv) {
-        scanResultsDiv.style.display = 'none';
-    }
-    if (scanError) {
-        scanError.style.display = 'none';
-    }
-}
-
-/**
- * Display ML scan results
- */
-function displayMLScanResults(data) {
-    const scanLoading = document.getElementById('scan-loading');
-    const scanResults = document.getElementById('scan-results');
-    const scanError = document.getElementById('scan-error');
-    const documentType = document.getElementById('document-type');
-    const documentStatus = document.getElementById('document-status');
-    const analysisDetails = document.getElementById('analysis-details');
-    const extractedText = document.getElementById('extracted-text');
-    
-    // Hide loading and error states
-    if (scanLoading) scanLoading.style.display = 'none';
-    if (scanError) scanError.style.display = 'none';
-    
-    // Show results
-    if (scanResults) scanResults.style.display = 'block';
-    
-    // Set document type
-    if (documentType) {
-        const isReportCard = data.prediction === 'Report Card';
-        documentType.textContent = data.prediction || 'Unknown';
-        documentType.className = `badge fs-6 ${isReportCard ? 'bg-success' : 'bg-warning'}`;
-    }
-    
-    // Set document status
-    if (documentStatus && data.status_info) {
-        const status = data.status_info.status;
-        const statusText = status === 'passed' ? 'Passed' : 
-                          status === 'failed' ? 'Failed' : 
-                          status === 'unknown' ? 'Unknown' : 'Error';
-        
-        documentStatus.textContent = statusText;
-        documentStatus.className = `badge fs-6 ${
-            status === 'passed' ? 'bg-success' : 
-            status === 'failed' ? 'bg-danger' : 
-            status === 'unknown' ? 'bg-warning' : 'bg-secondary'
-        }`;
-    }
-    
-    // Set analysis details
-    if (analysisDetails && data.status_info) {
-        analysisDetails.innerHTML = `
-            <strong>Analysis:</strong> ${data.status_info.message || 'No additional details available'}<br>
-            <strong>Confidence:</strong> ${data.total_texts || 0} text elements detected<br>
-            <strong>Processing:</strong> AI-powered document analysis completed
-        `;
-    }
-    
-    // Set extracted text
-    if (extractedText && data.texts && data.texts.length > 0) {
-        const textList = data.texts.slice(0, 10).map((text, index) => 
-            `<div class="mb-1"><small class="text-muted">${index + 1}.</small> ${text.text} <span class="badge bg-light text-dark">${text.confidence}%</span></div>`
-        ).join('');
-        
-        extractedText.innerHTML = textList + (data.texts.length > 10 ? 
-            `<div class="text-muted mt-2"><small>... and ${data.texts.length - 10} more items</small></div>` : '');
-    } else if (extractedText) {
-        extractedText.innerHTML = '<div class="text-muted">No text could be extracted from this document.</div>';
-    }
-}
-
-/**
- * Show ML scan error
- */
-function showMLScanError(message) {
-    const scanLoading = document.getElementById('scan-loading');
-    const scanResults = document.getElementById('scan-results');
-    const scanError = document.getElementById('scan-error');
-    const errorMessage = document.getElementById('error-message');
-    
-    // Hide loading and results
-    if (scanLoading) scanLoading.style.display = 'none';
-    if (scanResults) scanResults.style.display = 'none';
-    
-    // Show error
-    if (scanError) scanError.style.display = 'block';
-    if (errorMessage) errorMessage.textContent = message;
-}
-
-/**
- * Hide ML scan results
- */
-function hideMLScanResults() {
-    const scanResults = document.getElementById('ml-scan-results');
-    if (scanResults) {
-        scanResults.style.display = 'none';
     }
 } 
