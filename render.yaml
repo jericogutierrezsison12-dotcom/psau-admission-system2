@@ -4,8 +4,13 @@ services:
     name: psau-admission-system
     env: php
     plan: starter
-    buildCommand: composer install --no-dev --optimize-autoloader
+    region: oregon
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php -v
+      echo "Build completed successfully"
     startCommand: php -S 0.0.0.0:$PORT -t public
+    healthCheckPath: /public/
     envVars:
       - key: PHP_VERSION
         value: 8.2
