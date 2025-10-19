@@ -64,9 +64,8 @@
                     results.insertAdjacentHTML('afterbegin', '<div class="alert alert-info">Please select at least one rating before submitting.</div>');
                     return;
                 }
-                const base = (window.RECO_API_BASE || '').replace(/\/$/, '');
                 const payload = getFormData();
-                fetch(base + '/api/save_ratings', {
+                fetch('recommendation_handler.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -105,14 +104,9 @@
     }
 
     btn.addEventListener('click', function(){
-        const base = (window.RECO_API_BASE || '').replace(/\/$/, '');
-        if (!base){
-            results.innerHTML = '<div class="alert alert-danger">Recommendation API base not configured.</div>';
-            return;
-        }
         const payload = getFormData();
         results.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Getting recommendations...</div>';
-        fetch(base + '/api/recommend', {
+        fetch('recommendation_handler.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

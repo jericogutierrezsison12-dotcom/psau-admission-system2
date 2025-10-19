@@ -39,8 +39,9 @@
 	function askQuestion(question){
 		addMessage(question, 'user');
 		showTyping();
-		var base = (window.CHATBOT_API_BASE || '').replace(/\/$/, '');
-		fetch(base + '/ask_question', {
+		
+		// Use PHP backend to call Python service
+		fetch('chatbot_handler.php', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ question: question })

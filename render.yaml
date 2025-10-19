@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: psau-vendor-service
+    env: php
+    buildCommand: composer install --no-dev --optimize-autoloader
+    startCommand: php -S 0.0.0.0:$PORT -t vendor
+    envVars:
+      - key: DB_HOST
+        value: your-database-host
+      - key: DB_USER
+        value: your-database-user
+      - key: DB_PASS
+        value: your-database-password
+      - key: DB_NAME
+        value: psau_admission
+      - key: PYTHON_API_URL
+        value: https://your-replit-app.replit.dev
+    healthCheckPath: /health
+    plan: free

@@ -4,11 +4,19 @@
  * Establishes connection to MySQL database for PSAU Admission System
  */
 
-// Database credentials
-$host = 'localhost';
-$dbname = 'psau_admission';
-$username = 'root';
-$password = '';
+// Database credentials - Environment-based configuration
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname = getenv('DB_NAME') ?: 'psau_admission';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') ?: '';
+
+// For InfinityFree hosting, use their database credentials
+if (strpos($_SERVER['HTTP_HOST'] ?? '', 'infinityfree') !== false) {
+    $host = 'sql201.infinityfree.com'; // Replace with your InfinityFree DB host
+    $dbname = 'if0_12345678_psau_admission'; // Replace with your actual DB name
+    $username = 'if0_12345678'; // Replace with your actual username
+    $password = 'your_password_here'; // Replace with your actual password
+}
 
 // Create connection
 $conn = null;

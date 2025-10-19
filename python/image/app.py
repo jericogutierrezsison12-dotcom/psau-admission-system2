@@ -31,17 +31,44 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost", "http://127.0.0.1"], "supports_credentials": True}})
+# CORS configuration for distributed deployment
+allowed_origins = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "https://your-infinityfree-domain.infinityfreeapp.com",  # Replace with your actual domain
+    "https://your-render-app.onrender.com"  # Replace with your actual Render domain
+]
+
+# Add environment-based origins
+if os.getenv('ALLOWED_ORIGINS'):
+    allowed_origins.extend(os.getenv('ALLOWED_ORIGINS').split(','))
+
+CORS(app, resources={r"/*": {"origins": allowed_origins, "supports_credentials": True}})
 app.secret_key = 'your-secret-key'  # Required for flash messages
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Database configuration
+# Database configuration - Environment-based for Replit deployment
 db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'psau_admission'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASS', ''),
+    'database': os.getenv('DB_NAME', 'psau_admission')
 }
+
+# For Replit deployment, use environment variables
+if os.getenv('REPLIT_DB_URL'):
+    # Replit provides database URL in format: mysql://user:pass@host:port/db
+    import re
+    db_url = os.getenv('REPLIT_DB_URL')
+    match = re.match(r'mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', db_url)
+    if match:
+        db_config = {
+            'host': match.group(3),
+            'user': match.group(1),
+            'password': match.group(2),
+            'database': match.group(5),
+            'port': int(match.group(4))
+        }
 
 # Initialize AI components
 try:
@@ -692,9 +719,12 @@ if __name__ == '__main__':
     print(f"   • ML Classifier: {'✅ Available' if ml_classifier and ml_classifier.is_model_available() else '❌ Unavailable'}")
     print(f"   • OCR Processor: {'✅ Available' if ocr_processor and ocr_processor.is_ocr_available() else '❌ Unavailable'}")
     
-    print("🌐 Access the application at: http://localhost:5000")
+    # Get port from environment (Replit uses dynamic ports)
+    port = int(os.getenv('PORT', 5000))
+    
+    print("🌐 Access the application at: http://localhost:" + str(port))
     print("📋 Available services:")
     print("   • AI Admission System (recommendations, chatbot)")
     print("   • OCR Service (document processing, classification)")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=port)
