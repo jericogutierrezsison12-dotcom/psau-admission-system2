@@ -2,7 +2,7 @@ services:
   - type: web
     name: psau-admission-system
     env: php
-    buildCommand: composer install
+    buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: php -S 0.0.0.0:$PORT -t public
     envVars:
       - key: PHP_VERSION
