@@ -1,43 +1,12 @@
 /**
- * PSAU Admission System - Application Form JavaScript
+ * PSAU Admission System - Application Form JavaScript (Simplified)
  * Handles the form validation and file upload interactions
  */
 
+console.log('Application form JavaScript (simplified) loaded');
+
 $(document).ready(function() {
-    console.log('Application form JavaScript loaded');
-    
-    // Load common components (only if placeholders exist)
-    if ($("#navbar-placeholder").length) {
-        $("#navbar-placeholder").load("templates/navbar.html", function() {
-            // Update username in navbar after loading
-            updateUserInfo();
-        }).fail(function() {
-            console.log('Navbar template not found, continuing without it');
-        });
-    }
-    
-    if ($("#sidebar-placeholder").length) {
-        $("#sidebar-placeholder").load("templates/sidebar.html", function() {
-            // Highlight active sidebar item
-            $(".nav-link").removeClass("active");
-            $(".nav-link[href='application_form.php']").addClass("active");
-        }).fail(function() {
-            console.log('Sidebar template not found, continuing without it');
-        });
-    }
-    
-    if ($("#mobile-menu-placeholder").length) {
-        $("#mobile-menu-placeholder").load("templates/mobile_menu.html", function() {
-            // Highlight active mobile menu item
-            $(".list-group-item").removeClass("active");
-            $(".list-group-item[href='application_form.php']").addClass("active");
-        }).fail(function() {
-            console.log('Mobile menu template not found, continuing without it');
-        });
-    }
-    
-    // Initialize form functionality
-    console.log('Initializing form functionality');
+    console.log('Document ready - initializing form functionality');
     initFormFunctionality();
 });
 
@@ -183,56 +152,6 @@ function initFormFunctionality() {
         });
     }
     
-    // Form field validation
-    if (form) {
-        const requiredFields = form.querySelectorAll('[required]');
-        requiredFields.forEach(function(field) {
-            field.addEventListener('input', checkFormValidity);
-        });
-        
-        // Form submit validation
-        form.addEventListener('submit', function(event) {
-            let isValid = true;
-            
-            requiredFields.forEach(function(field) {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('is-invalid');
-                } else {
-                    field.classList.remove('is-invalid');
-                }
-            });
-            
-            // Validate GPA/grade range
-            const gpaField = document.getElementById('gpa');
-            if (gpaField && gpaField.value) {
-                const gpaValue = parseFloat(gpaField.value);
-                if (gpaValue < 75 || gpaValue > 100) {
-                    isValid = false;
-                    gpaField.classList.add('is-invalid');
-                    alert('GPA/Average Grade must be between 75 and 100.');
-                }
-            }
-            
-            // Validate age
-            const ageField = document.getElementById('age');
-            if (ageField && ageField.value) {
-                const ageValue = parseInt(ageField.value);
-                if (ageValue < 16 || ageValue > 100) {
-                    isValid = false;
-                    ageField.classList.add('is-invalid');
-                    alert('Age must be between 16 and 100.');
-                }
-            }
-            
-            // Prevent form submission if validation fails
-            if (!isValid) {
-                event.preventDefault();
-                window.scrollTo(0, 0);
-            }
-        });
-    }
-    
     // Check if all required fields are filled
     function checkFormValidity() {
         if (!submitBtn || !form) return;
@@ -276,16 +195,6 @@ function initFormFunctionality() {
         }
         
         submitBtn.disabled = !isValid;
-    }
-}
-
-/**
- * Updates user information in the navbar
- */
-function updateUserInfo() {
-    // Use userData passed from PHP
-    if (typeof userData !== 'undefined' && userData) {
-        $('#navbarDropdown').text(userData.first_name + ' ' + userData.last_name);
     }
 }
 
@@ -403,24 +312,44 @@ function displayMLScanResults(data) {
     
     // Set analysis details
     if (analysisDetails && data.status_info) {
-        analysisDetails.innerHTML = `
-            <strong>Analysis:</strong> ${data.status_info.message || 'No additional details available'}<br>
+        const status = data.status_info.status;
+        const message = data.status_info.message || 'No additional details available';
+        
+        let analysisText = `
+            <strong>Analysis:</strong> ${message}<br>
             <strong>Confidence:</strong> ${data.total_texts || 0} text elements detected<br>
-            <strong>Processing:</strong> AI-powered document analysis completed
+            <strong>Processing:</strong> AI-powered document analysis completed<br>
         `;
+        
+        if (status === 'failed') {
+            analysisText += `<div class="alert alert-warning mt-2 mb-0">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> Our AI detected failed remarks or grades in your document. 
+                You can still submit your application for review by our admissions team.
+            </div>`;
+        } else if (status === 'passed') {
+            analysisText += `<strong>Note:</strong> Our AI analysis shows no failed remarks detected. Your document appears to meet the academic requirements.`;
+        } else {
+            analysisText += `<strong>Note:</strong> Unable to determine academic status. Please ensure your document is clear and contains grade information.`;
+        }
+        
+        analysisDetails.innerHTML = analysisText;
     }
     
-    // Set extracted text
+    // Set extracted text (hidden by default)
     if (extractedText && data.texts && data.texts.length > 0) {
-        const textList = data.texts.slice(0, 10).map((text, index) => 
+        // Show all items when details are expanded
+        const textList = data.texts.map((text, index) => 
             `<div class="mb-1"><small class="text-muted">${index + 1}.</small> ${text.text} <span class="badge bg-light text-dark">${text.confidence}%</span></div>`
         ).join('');
         
-        extractedText.innerHTML = textList + (data.texts.length > 10 ? 
-            `<div class="text-muted mt-2"><small>... and ${data.texts.length - 10} more items</small></div>` : '');
+        extractedText.innerHTML = textList;
     } else if (extractedText) {
         extractedText.innerHTML = '<div class="text-muted">No text could be extracted from this document.</div>';
     }
+    
+    // Set up toggle functionality for extracted text
+    setupExtractedTextToggle();
 }
 
 /**
@@ -449,4 +378,32 @@ function hideMLScanResults() {
     if (scanResults) {
         scanResults.style.display = 'none';
     }
-} 
+}
+
+/**
+ * Set up toggle functionality for extracted text
+ */
+function setupExtractedTextToggle() {
+    const toggleBtn = document.getElementById('toggle-extracted-text');
+    const extractedText = document.getElementById('extracted-text');
+    
+    if (toggleBtn && extractedText) {
+        toggleBtn.addEventListener('click', function() {
+            const isVisible = extractedText.style.display !== 'none';
+            
+            if (isVisible) {
+                // Hide the text
+                extractedText.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="bi bi-eye"></i> Show Details';
+                toggleBtn.classList.remove('btn-outline-secondary');
+                toggleBtn.classList.add('btn-outline-info');
+            } else {
+                // Show the text
+                extractedText.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="bi bi-eye-slash"></i> Hide Details';
+                toggleBtn.classList.remove('btn-outline-info');
+                toggleBtn.classList.add('btn-outline-secondary');
+            }
+        });
+    }
+}

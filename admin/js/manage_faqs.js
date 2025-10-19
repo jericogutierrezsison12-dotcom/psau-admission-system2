@@ -25,6 +25,24 @@ $(document).ready(function() {
         }
     });
 
+    // Initialize Unanswered table (if present)
+    if ($('#unansweredTable').length) {
+        $('#unansweredTable').DataTable({
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [3] }
+            ],
+            pageLength: 10,
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ per page",
+                info: "Showing _START_ to _END_ of _TOTAL_",
+                infoEmpty: "No items available",
+                infoFiltered: "(filtered from _MAX_)"
+            }
+        });
+    }
+
     // Handle Edit FAQ
     $('.edit-faq').on('click', function() {
         const id = $(this).data('id');
@@ -87,6 +105,35 @@ $(document).ready(function() {
             $(this).prop('checked', !isActive);
             alert('Failed to update FAQ status. Please try again.');
         });
+    });
+
+    // Resolve unanswered -> add as FAQ
+    $(document).on('click', '.resolve-unanswered', function() {
+        const uaId = $(this).data('id');
+        const q = $(this).data('question');
+        const answer = prompt('Provide an answer for this question:\n\n' + q);
+        if (answer && answer.trim()) {
+            $('<form method="POST">')
+                .append('<input type="hidden" name="action" value="resolve_unanswered">')
+                .append('<input type="hidden" name="ua_id" value="' + uaId + '">')
+                .append('<input type="hidden" name="question" value="' + $('<div>').text(q).html() + '">')
+                .append('<input type="hidden" name="answer" value="' + $('<div>').text(answer).html() + '">')
+                .appendTo('body')
+                .submit();
+        }
+    });
+
+    // Delete unanswered
+    $(document).on('click', '.delete-unanswered', function() {
+        const uaId = $(this).data('id');
+        const q = $(this).data('question');
+        if (confirm('Delete this unanswered question?\n\n' + q)) {
+            $('<form method="POST">')
+                .append('<input type="hidden" name="action" value="delete_unanswered">')
+                .append('<input type="hidden" name="ua_id" value="' + uaId + '">')
+                .appendTo('body')
+                .submit();
+        }
     });
 
     // Form Validation

@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
+require_once '../includes/crypto.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -251,10 +252,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $image_path_db = 'images/' . $new_imagename;
                             
                             $stmt = $conn->prepare($sql);
+                            $enc_validation_message = isset($validation_result['message']) ? encrypt_aes_gcm($validation_result['message']) : null;
                             $stmt->execute([
                                 $new_filename,
                                 $validation_result['isValid'] ?? false,
-                                $validation_result['message'] ?? 'PDF validation failed',
+                                $enc_validation_message ?? encrypt_aes_gcm('PDF validation failed'),
                                 $document_path,
                                 $file_size,
                                 $image_path_db,
@@ -308,11 +310,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $image_path_db = 'images/' . $new_imagename;
                             
                             $stmt = $conn->prepare($sql);
+                            $enc_validation_message = isset($validation_result['message']) ? encrypt_aes_gcm($validation_result['message']) : null;
                             $stmt->execute([
                                 $user['id'],
                                 $new_filename,
                                 $validation_result['isValid'] ?? false,
-                                $validation_result['message'] ?? 'PDF validation failed',
+                                $enc_validation_message ?? encrypt_aes_gcm('PDF validation failed'),
                                 $document_path,
                                 $file_size,
                                 $image_path_db,
