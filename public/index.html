@@ -6,6 +6,15 @@
     <title>PSAU Admission System</title>
     <meta name="description" content="AI-Assisted Admission System for Pampanga State Agricultural University">
     
+    <!-- Immediate Redirect to PHP -->
+    <script>
+        // Immediate redirect to index.php
+        window.location.replace('index.php');
+    </script>
+    
+    <!-- Fallback redirect for JavaScript disabled -->
+    <meta http-equiv="refresh" content="0; url=index.php">
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
@@ -20,146 +29,11 @@
 </head>
 <body>
     <div id="app">
-        <header>
-            <nav class="navbar">
-                <div class="nav-brand">
-                    <img src="../logo/PSAU_logo.png" alt="PSAU Logo" class="logo">
-                    <h1>PSAU Admission System</h1>
-                </div>
-                <div class="nav-links">
-                    <a href="index.php" class="nav-link active">Home</a>
-                    <a href="login.php" class="nav-link">Login</a>
-                    <a href="register.php" class="nav-link">Register</a>
-                </div>
-            </nav>
-        </header>
-
-        <main>
-            <section class="hero">
-                <div class="hero-content">
-                    <h2>Welcome to PSAU Admission System</h2>
-                    <p>AI-Powered Admission Process for Pampanga State Agricultural University</p>
-                    <div class="hero-buttons">
-                        <a href="register.php" class="btn btn-primary">Start Application</a>
-                        <a href="login.php" class="btn btn-secondary">Student Login</a>
-                    </div>
-                </div>
-            </section>
-
-            <section class="features">
-                <div class="container">
-                    <h3>System Features</h3>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <div class="feature-icon">🤖</div>
-                            <h4>AI-Powered Validation</h4>
-                            <p>Automated document verification using advanced AI technology</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">📱</div>
-                            <h4>Mobile Friendly</h4>
-                            <p>Responsive design that works on all devices</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🔒</div>
-                            <h4>Secure & Safe</h4>
-                            <p>Firebase-powered security with real-time updates</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">⚡</div>
-                            <h4>Fast Processing</h4>
-                            <p>Quick application processing and status updates</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="cta">
-                <div class="container">
-                    <h3>Ready to Apply?</h3>
-                    <p>Join thousands of students who have successfully applied through our system</p>
-                    <a href="register.php" class="btn btn-primary btn-large">Apply Now</a>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <div class="container">
-                <div class="footer-content">
-                    <div class="footer-section">
-                        <h4>PSAU Admission System</h4>
-                        <p>AI-Assisted Admission Process</p>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Quick Links</h4>
-                        <ul>
-                            <li><a href="index.php">Home</a></li>
-                            <li><a href="register.php">Apply</a></li>
-                            <li><a href="login.php">Login</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Contact</h4>
-                        <p>Pampanga State Agricultural University</p>
-                        <p>Admission Office</p>
-                    </div>
-                </div>
-                <div class="footer-bottom">
-                    <p>&copy; 2024 PSAU Admission System. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
+        <!-- Redirect Message -->
+        <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h2>Redirecting to PSAU Admission System...</h2>
+            <p>If you are not redirected automatically, <a href="index.php">click here</a>.</p>
+        </div>
     </div>
-
-    <!-- Firebase Configuration -->
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8",
-            authDomain: "psau-admission-system.firebaseapp.com",
-            projectId: "psau-admission-system",
-            storageBucket: "psau-admission-system.appspot.com",
-            messagingSenderId: "522448258958",
-            appId: "1:522448258958:web:994b133a4f7b7f4c1b06df"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        
-        // Initialize Firebase services
-        const auth = firebase.auth();
-        const database = firebase.database();
-
-        // Check authentication status
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                console.log('User is signed in:', user.email);
-                updateUserInterface(user);
-            } else {
-                console.log('User is signed out');
-                updateUserInterface(null);
-            }
-        });
-
-        function updateUserInterface(user) {
-            const navLinks = document.querySelector('.nav-links');
-            if (user) {
-                navLinks.innerHTML = `
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                    <a href="profile.php" class="nav-link">Profile</a>
-                    <a href="logout.php" class="nav-link">Logout</a>
-                `;
-            } else {
-                navLinks.innerHTML = `
-                    <a href="index.php" class="nav-link active">Home</a>
-                    <a href="login.php" class="nav-link">Login</a>
-                    <a href="register.php" class="nav-link">Register</a>
-                `;
-            }
-        }
-    </script>
-
-    <!-- JavaScript -->
-    <script src="js/main.js"></script>
 </body>
 </html>
