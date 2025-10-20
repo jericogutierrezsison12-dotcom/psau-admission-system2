@@ -6,6 +6,59 @@ A fully AI-powered, secure, and automated Admission System for Pampanga State Ag
 
 The PSAU Admission System provides an end-to-end solution for managing the university's admission process, from application submission to enrollment. The system is built using PHP for both frontend and backend functionality, MySQL for database storage, and Firebase for authentication, real-time updates, and notification services.
 
+## 🚀 Quick Deployment to InfinityFree
+
+This project is ready for deployment to InfinityFree hosting. Follow the steps below:
+
+### Prerequisites
+- InfinityFree account (free at [infinityfree.net](https://infinityfree.net))
+- Git repository access
+
+### Deployment Steps
+
+1. **Clone/Download the Project**
+   ```bash
+   git clone <your-repository-url>
+   cd psau-admission-system
+   ```
+
+2. **Run Deployment Script**
+   ```bash
+   php deploy_to_infinityfree.php
+   ```
+
+3. **Configure Database**
+   - Create MySQL database in InfinityFree control panel
+   - Update `includes/db_connect.php` with your database credentials
+   - Import `database/psau_admission.sql` via phpMyAdmin
+
+4. **Upload Files**
+   - Upload all files to your InfinityFree htdocs directory
+   - Set uploads directory permissions to 755
+
+5. **Configure Firebase**
+   - Update Firebase configuration in `firebase/config.php`
+   - Deploy Firebase Cloud Functions
+
+6. **Test Application**
+   - Visit your domain to test functionality
+   - Test user registration and admin login
+
+### 📋 Deployment Checklist
+
+- [ ] Database credentials updated
+- [ ] Firebase configuration updated
+- [ ] Files uploaded to hosting
+- [ ] Database schema imported
+- [ ] File permissions set correctly
+- [ ] Application tested
+
+### 🔧 Configuration Files
+
+- `config_production.php` - Production environment settings
+- `includes/db_connect_infinity.php` - InfinityFree database template
+- `DEPLOYMENT.md` - Detailed deployment guide
+
 ## Features
 
 - **User Registration and Authentication**: Secure registration with OTP verification via Firebase Authentication
