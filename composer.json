@@ -5,19 +5,11 @@
     "require": {
         "php": ">=7.4",
         "phpoffice/phpspreadsheet": "^1.29",
-        "firebase/php-jwt": "^6.4",
-        "ext-pdo": "*",
-        "ext-pdo_pgsql": "*",
-        "ext-pdo_mysql": "*"
+        "firebase/php-jwt": "^6.4"
     },
     "autoload": {
         "psr-4": {
             "PSAU\\AdmissionSystem\\": "src/"
         }
-    },
-    "scripts": {
-        "post-install-cmd": [
-            "chmod +x scripts/init_db.sh"
-        ]
     }
 } 

@@ -1,29 +1,33 @@
-# Environment variables
+# PSAU Admission System - Git Ignore File
+
+# Environment files
 .env
 .env.local
 .env.production
 .env.staging
 
-# Database credentials
-includes/.app_key
-includes/enc_key.php
+# Logs
+logs/
+*.log
+error.log
+access.log
 
-# Uploads directory (keep structure but ignore content)
+# Uploads and user content
 uploads/*
 !uploads/.gitkeep
-
-# Images directory (keep structure but ignore content)
 images/*
 !images/.gitkeep
+temp/
+cache/
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-.pytest_cache/
+# Database
+*.sql
+*.db
+*.sqlite
+
+# Composer
+vendor/
+composer.lock
 
 # Node modules
 node_modules/
@@ -31,10 +35,32 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Firebase
-.firebase/
-firebase-debug.log
-firebase-debug.*.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
 
 # IDE files
 .vscode/
@@ -43,7 +69,7 @@ firebase-debug.*.log
 *.swo
 *~
 
-# OS generated files
+# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -52,57 +78,38 @@ firebase-debug.*.log
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-logs/
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
 
 # Temporary files
-tmp/
-temp/
-
-# Composer
-vendor/
-composer.phar
-
-# Backup files
+*.tmp
+*.temp
 *.bak
 *.backup
-*.old
+
+# Configuration files with sensitive data
+config.php
+database.php
+firebase-config.js
+
+# Replit specific
+.replit
+replit.nix
+
+# PHP specific
+*.php~
+*.php.bak
+
+# Session files
+sessions/
+*.sess
 
 # Cache files
 cache/
 *.cache
 
-# Session files
-sessions/
-
-# Error logs
-error_log
-access_log
-
-# XAMPP specific
-xampp/
-
-# Development files
-dev/
-test/
-tests/
-
-# Documentation build
-docs/_build/
-
-# Coverage reports
-coverage/
-*.coverage
-
-# Local configuration
-config.local.php
-db.local.php
-
-# Replit files
-.replit
-.replitignore
-replit.nix
-
-# Render specific
-render.yaml
+# Error pages
+error.html
+maintenance.html

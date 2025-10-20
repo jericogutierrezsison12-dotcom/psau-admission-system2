@@ -1,0 +1,28 @@
+# Python requirements for PSAU Admission System
+# OCR and PDF processing
+pytesseract==0.3.10
+pdf2image==1.16.3
+Pillow==10.0.0
+opencv-python==4.8.0.76
+
+# Image processing
+numpy==1.24.3
+scikit-image==0.21.0
+
+# Firebase integration
+firebase-admin==6.2.0
+google-cloud-firestore==2.11.1
+
+# HTTP requests
+requests==2.31.0
+urllib3==2.0.4
+
+# Data processing
+pandas==2.0.3
+openpyxl==3.1.2
+
+# Machine learning for document analysis
+scikit-learn==1.3.0
+
+# Additional utilities
+python-dotenv==1.0.0

@@ -1,0 +1,33 @@
+{
+  "name": "psau-admission-system",
+  "version": "1.0.0",
+  "description": "PSAU Admission System - AI-powered admission management",
+  "main": "index.js",
+  "scripts": {
+    "start": "php -S 0.0.0.0:8000 -t .",
+    "dev": "php -S localhost:8000 -t .",
+    "install-deps": "composer install && pip install -r requirements.txt",
+    "setup-db": "mysql -u root -e 'CREATE DATABASE IF NOT EXISTS psau_admission;' && mysql -u root psau_admission < database/psau_admission.sql",
+    "deploy-firebase": "cd firebase && firebase deploy",
+    "test": "php -l public/index.php && php -l admin/dashboard.php"
+  },
+  "keywords": [
+    "admission",
+    "university",
+    "php",
+    "mysql",
+    "firebase",
+    "ai",
+    "ocr"
+  ],
+  "author": "PSAU Development Team",
+  "license": "Proprietary",
+  "dependencies": {
+    "firebase-tools": "^12.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "php": ">=7.4",
+    "node": ">=16.0.0"
+  }
+}
