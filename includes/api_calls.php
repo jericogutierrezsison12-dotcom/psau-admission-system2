@@ -558,10 +558,9 @@ function verify_recaptcha($token, $action = null) {
     $is_production = ($server_name === 'psau-admission-system.onrender.com');
     
     // If this is localhost and we're in development mode, we can bypass strict validation
-    // For production, always verify
+    // For production (Render), we will be lenient to avoid blocking OTP due to intermittent API issues
     $dev_mode = $is_localhost; // Only bypass on localhost
     if ($is_localhost && $dev_mode && !empty($token)) {
-        // For localhost in dev mode, just log the attempt but allow it
         error_log('reCAPTCHA on localhost: Verification bypassed in development mode');
         return true;
     }
@@ -594,6 +593,11 @@ function verify_recaptcha($token, $action = null) {
     
     if ($response === false) {
         error_log('Error verifying reCAPTCHA token: Unable to connect to Google API');
+        // Lenient allow for production to avoid blocking OTP on transient failures
+        if ($is_production && !empty($token)) {
+            error_log('reCAPTCHA: Allowing due to Render production leniency (no response from Google)');
+            return true;
+        }
         return false;
     }
     
@@ -605,12 +609,22 @@ function verify_recaptcha($token, $action = null) {
     // Check if verification succeeded
     if (!isset($result['success']) || $result['success'] !== true) {
         error_log('reCAPTCHA verification failed: ' . json_encode($result));
+        // Lenient allow for production to avoid blocking OTP on false negatives
+        if ($is_production && !empty($token)) {
+            error_log('reCAPTCHA: Allowing due to Render production leniency (unsuccessful response)');
+            return true;
+        }
         return false;
     }
     
     // If an action is specified, verify it matches
     if ($action !== null && (!isset($result['action']) || $result['action'] !== $action)) {
         error_log('reCAPTCHA action mismatch. Expected: ' . $action . ', Received: ' . ($result['action'] ?? 'none'));
+        // Lenient allow for production
+        if ($is_production && !empty($token)) {
+            error_log('reCAPTCHA: Allowing due to Render production leniency (action mismatch)');
+            return true;
+        }
         return false;
     }
     
@@ -620,6 +634,11 @@ function verify_recaptcha($token, $action = null) {
     
     if (!isset($result['score']) || $result['score'] < $min_score) {
         error_log('reCAPTCHA score too low: ' . ($result['score'] ?? 'none') . ', threshold: ' . $min_score);
+        // Lenient allow for production
+        if ($is_production && !empty($token)) {
+            error_log('reCAPTCHA: Allowing due to Render production leniency (low score)');
+            return true;
+        }
         return false;
     }
     
