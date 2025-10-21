@@ -247,8 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
             $response['errors'] = $error_log;
         }
     } catch (Exception $e) {
-        // Roll back transaction
-        $conn->rollBack();
+        // Roll back transaction only if one is active
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
         $response['message'] = "Error: " . $e->getMessage();
     }
     
