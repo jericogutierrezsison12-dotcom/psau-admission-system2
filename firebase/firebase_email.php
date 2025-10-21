@@ -205,10 +205,16 @@ function send_exam_schedule_email($user, $schedule) {
     $to = $user['email'];
     $subject = "PSAU Admission System: Entrance Exam Schedule";
     
-    // Format date and time
-    $exam_date = date('l, F j, Y', strtotime($schedule['exam_date']));
-    $exam_time_start = date('h:i A', strtotime($schedule['exam_time']));
-    $exam_time_end = date('h:i A', strtotime($schedule['exam_time_end']));
+    // Format date and time with defensive checks
+    $exam_date = date('l, F j, Y', strtotime($schedule['exam_date'] ?? ''));
+    $exam_time_start = '';
+    if (!empty($schedule['exam_time'])) {
+        $exam_time_start = date('h:i A', strtotime($schedule['exam_time']));
+    }
+    $exam_time_end = '';
+    if (!empty($schedule['exam_time_end'])) {
+        $exam_time_end = date('h:i A', strtotime($schedule['exam_time_end']));
+    }
     
     // Create HTML message
     $message = "
@@ -742,4 +748,3 @@ function test_firebase_email($to) {
     
     return firebase_send_email($to, $subject, $message);
 }
-?> 

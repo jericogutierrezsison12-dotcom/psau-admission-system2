@@ -9,7 +9,9 @@ require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
 
 // Check if admin is logged in
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
@@ -176,10 +178,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_schedule') {
                                 $applicant['id'], $schedule_id, $exam_date, $exam_time, $exam_time_end, $venue_name, $venue_id
                             ]);
                             
-                            // Send email
+                            // Send email (include end time)
                             send_exam_schedule_email($applicant, [
                                 'exam_date' => $exam_date,
                                 'exam_time' => $exam_time,
+                                'exam_time_end' => $exam_time_end,
                                 'venue' => $venue_name,
                                 'instructions' => $instructions,
                                 'requirements' => $requirements
@@ -301,10 +304,11 @@ else if (isset($_POST['action']) && $_POST['action'] === 'assign_applicants') {
                         $schedule['venue_id']
                     ]);
                     
-                    // Send email notification
+                    // Send email notification (include end time)
                     send_exam_schedule_email($applicant, [
                         'exam_date' => $schedule['exam_date'],
                         'exam_time' => $schedule['exam_time'],
+                        'exam_time_end' => $schedule['exam_time_end'],
                         'venue' => $schedule['venue_name'],
                         'instructions' => $schedule['instructions'],
                         'requirements' => $schedule['requirements']
@@ -425,8 +429,7 @@ else if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['
         $_SESSION['message_type'] = 'danger';
     }
     
-    header("Location: schedule_exam.php?tab=schedules");
-    exit;
+    safe_redirect('schedule_exam.php?tab=schedules');
 }
 
 // Return JSON response for AJAX requests
@@ -440,13 +443,11 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
 if (isset($response['redirect']) && !empty($response['redirect'])) {
     $_SESSION['message'] = $response['message'];
     $_SESSION['message_type'] = $response['success'] ? 'success' : 'danger';
-    header("Location: " . $response['redirect']);
-    exit;
+    safe_redirect($response['redirect']);
 }
 
 // If no redirect specified, go back to schedule_exam.php
 $_SESSION['message'] = $response['message'];
 $_SESSION['message_type'] = $response['success'] ? 'success' : 'danger';
-header("Location: schedule_exam.php");
-exit;
+safe_redirect('schedule_exam.php');
 ?> 
