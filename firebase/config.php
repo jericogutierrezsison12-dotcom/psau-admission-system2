@@ -16,7 +16,12 @@ $firebase_config = [
     'storageBucket' => 'psau-admission-system.appspot.com',
     'messagingSenderId' => '522448258958',
     'appId' => '1:522448258958:web:994b133a4f7b7f4c1b06df',
-    'email_function_url' => 'https://sendemail-alsstt22ha-uc.a.run.app'
+    'email_function_url' => 'https://sendemail-alsstt22ha-uc.a.run.app',
+    'allowed_domains' => [
+        'localhost',
+        '127.0.0.1',
+        'psau-admission-system.onrender.com'
+    ]
 ];
 
 // Validate required configuration

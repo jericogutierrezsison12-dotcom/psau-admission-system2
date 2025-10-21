@@ -81,11 +81,10 @@ function firebase_send_email($to, $subject, $message, $options = []) {
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Content-Length: ' . strlen($json_payload),
-            'Authorization: Bearer ' . $firebase_config['apiKey']
+            'User-Agent: PSAU-Admission-System/1.0'
         ],
-        CURLOPT_VERBOSE => true,
-        CURLOPT_STDERR => fopen('php://stderr', 'w'),
-        CURLOPT_FAILONERROR => true
+        CURLOPT_VERBOSE => false,
+        CURLOPT_FAILONERROR => false
     ];
     
     if (curl_setopt_array($ch, $curl_options) === false) {

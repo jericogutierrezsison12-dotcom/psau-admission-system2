@@ -7,6 +7,7 @@
 // Include the database connection and other required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/simple_email.php'; // Added for email fallback
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');

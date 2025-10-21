@@ -552,13 +552,14 @@ function verify_recaptcha($token, $action = null) {
     $secret_key = '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N';
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     
-    // Check if running on localhost - special handling
+    // Check if running on localhost or production domain
     $server_name = strtolower($_SERVER['SERVER_NAME'] ?? 'localhost');
     $is_localhost = ($server_name === 'localhost' || $server_name === '127.0.0.1' || strpos($server_name, '192.168.') === 0);
+    $is_production = ($server_name === 'psau-admission-system.onrender.com');
     
     // If this is localhost and we're in development mode, we can bypass strict validation
-    // You can remove this in production or set a strong password
-    $dev_mode = true; // Set to false in production
+    // For production, always verify
+    $dev_mode = $is_localhost; // Only bypass on localhost
     if ($is_localhost && $dev_mode && !empty($token)) {
         // For localhost in dev mode, just log the attempt but allow it
         error_log('reCAPTCHA on localhost: Verification bypassed in development mode');

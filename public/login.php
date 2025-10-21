@@ -10,6 +10,7 @@ require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/security_functions.php';
 require_once '../includes/functions.php'; // Added for remember me functions
+require_once '../includes/simple_email.php'; // Added for email fallback
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
