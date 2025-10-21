@@ -123,7 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $conn->prepare("UPDATE faqs SET question = ?, answer = ?, is_active = ? WHERE id = ?");
                 $stmt->execute([$question, $answer, $is_active, $id]);
                 
-                echo json_encode(['success' => true, 'message' => 'FAQ updated successfully']);
+                $_SESSION['message'] = 'FAQ updated successfully';
+                $_SESSION['message_type'] = 'success';
+                header('Location: manage_faqs.php');
                 exit;
                 
             case 'delete':
@@ -151,7 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $conn->commit();
                 
-                echo json_encode(['success' => true, 'message' => 'FAQ deleted successfully']);
+                $_SESSION['message'] = 'FAQ deleted successfully';
+                $_SESSION['message_type'] = 'success';
+                header('Location: manage_faqs.php');
                 exit;
                 
             case 'toggle':
