@@ -38,7 +38,7 @@ function setupOtpVerification() {
     // Create RecaptchaVerifier with correct site key
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'normal',
-        'sitekey': '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N',
+        'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
         'callback': (response) => {
             // reCAPTCHA solved
             isRecaptchaVerified = true;
@@ -179,7 +179,7 @@ function setupOtpVerification() {
             
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'normal',
-                'sitekey': '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N',
+                'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
                 'callback': (response) => {
                     isRecaptchaVerified = true;
                     recaptchaResponse = response;
