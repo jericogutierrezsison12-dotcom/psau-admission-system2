@@ -72,8 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_identifier = trim($_POST['login_identifier'] ?? '');
     $password = $_POST['password'] ?? '';
     $remember_me = isset($_POST['remember_me']);
-    $recaptcha_token = $_POST['recaptcha_token'] ?? '';
-    
     // Check if device is blocked before processing
     if ($block_info && $block_info['blocked']) {
         $errors['blocked'] = 'Your device has been temporarily blocked due to multiple failed login attempts.';
@@ -85,15 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
-        }
-        
-        // Verify the reCAPTCHA token
-        if (!empty($recaptcha_token)) {
-            if (!verify_recaptcha($recaptcha_token, 'login')) {
-                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
-            }
-        } else {
-            $errors['recaptcha'] = 'CAPTCHA verification is required';
         }
         
         // If no validation errors, attempt to login
