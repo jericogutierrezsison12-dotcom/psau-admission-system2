@@ -80,12 +80,26 @@ $(document).ready(function() {
         const question = $(this).data('question');
         
         if (confirm('Are you sure you want to delete this FAQ?\n\n' + question)) {
-            // Create and submit form
-            $('<form method="POST" action="manage_faqs.php">')
-                .append('<input type="hidden" name="action" value="delete">')
-                .append('<input type="hidden" name="id" value="' + id + '">')
-                .appendTo('body')
-                .submit();
+            $.post('manage_faqs.php', {
+                action: 'delete',
+                id: id
+            })
+            .done(function(response) {
+                try {
+                    const result = JSON.parse(response);
+                    if (result.success) {
+                        location.reload(); // Reload page to show updated list
+                    } else {
+                        alert('Error: ' + (result.message || 'Failed to delete FAQ'));
+                    }
+                } catch (e) {
+                    console.error('Error parsing response:', e);
+                    alert('Error deleting FAQ. Please try again.');
+                }
+            })
+            .fail(function() {
+                alert('Failed to delete FAQ. Please try again.');
+            });
         }
     });
 
@@ -149,18 +163,51 @@ $(document).ready(function() {
         }
     });
 
-    // Form Validation
+    // Form Validation and Submission
     $('#faqForm').on('submit', function(e) {
+        e.preventDefault();
+        
         const question = $('#question').val().trim();
         const answer = $('#answer').val().trim();
+        const action = $('#formAction').val();
+        const id = $('#faqId').val();
+        const isActive = $('#is_active').is(':checked') ? 1 : 0;
         
         if (!question || !answer) {
-            e.preventDefault();
             alert('Please fill in all required fields.');
             return false;
         }
         
-        return true;
+        const formData = {
+            action: action,
+            question: question,
+            answer: answer,
+            is_active: isActive
+        };
+        
+        if (action === 'edit' && id) {
+            formData.id = id;
+        }
+        
+        $.post('manage_faqs.php', formData)
+        .done(function(response) {
+            try {
+                const result = JSON.parse(response);
+                if (result.success) {
+                    location.reload(); // Reload page to show updated list
+                } else {
+                    alert('Error: ' + (result.message || 'Failed to save FAQ'));
+                }
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                alert('Error saving FAQ. Please try again.');
+            }
+        })
+        .fail(function() {
+            alert('Failed to save FAQ. Please try again.');
+        });
+        
+        return false;
     });
 
     // Reset form to add mode
