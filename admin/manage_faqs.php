@@ -46,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     error_log("FAQ Action received: " . $action);
     error_log("POST data: " . print_r($_POST, true));
     
+    // Set JSON header for AJAX requests
+    if (in_array($action, ['toggle', 'delete', 'edit'])) {
+        header('Content-Type: application/json');
+    }
+    
     try {
         switch ($action) {
             case 'resolve_unanswered':
