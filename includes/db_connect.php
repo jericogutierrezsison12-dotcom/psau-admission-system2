@@ -19,7 +19,7 @@ if (file_exists(__DIR__ . '/../.env')) {
 $host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'JCFNOSYEIrgNDqxwzaHBEufEJDPLQKKU';
+$password = $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
 $port = $_ENV['DB_PORT'] ?? 40148;
 
 // Create connection
@@ -30,13 +30,17 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     // Set default fetch mode to associative array
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    // Set charset to utf8
+    $conn->exec("SET NAMES utf8");
 } catch(PDOException $e) {
     // Log error instead of displaying it directly
     error_log("Connection failed: " . $e->getMessage());
+    error_log("Connection details - Host: $host, Port: $port, Database: $dbname, Username: $username");
     
     // If in development mode, you can display the error
     if(defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
         echo "Connection failed: " . $e->getMessage();
+        echo "<br>Host: $host, Port: $port, Database: $dbname, Username: $username";
     } else {
         echo "Database connection error. Please try again later.";
     }
