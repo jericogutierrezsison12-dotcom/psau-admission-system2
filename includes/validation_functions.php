@@ -138,5 +138,4 @@ function validate_pdf($pdf_path) {
             'message' => 'Exception during PDF validation: ' . $e->getMessage()
         ];
     }
-}
-?> 
+} 

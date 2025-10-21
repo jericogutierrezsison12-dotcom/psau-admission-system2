@@ -39,10 +39,10 @@ try {
     
     // If in development mode, you can display the error
     if(defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        echo "Connection failed: " . $e->getMessage();
-        echo "<br>Host: $host, Port: $port, Database: $dbname, Username: $username";
+        error_log("Connection failed: " . $e->getMessage());
+        error_log("Host: $host, Port: $port, Database: $dbname, Username: $username");
     } else {
-        echo "Database connection error. Please try again later.";
+        error_log("Database connection error. Please try again later.");
     }
     exit;
 } 
