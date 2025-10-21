@@ -252,4 +252,3 @@ function track_admin_login_attempt($device_id, $success = false) {
         return ['blocked' => false, 'error' => true];
     }
 }
-?> 

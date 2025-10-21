@@ -569,4 +569,3 @@ function get_user_course($conn, $user_id) {
     
     return $course ? $course['course_code'] . ' - ' . $course['course_name'] : 'Not yet assigned';
 }
-?> 

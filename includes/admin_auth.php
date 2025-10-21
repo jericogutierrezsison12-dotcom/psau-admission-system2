@@ -160,4 +160,3 @@ function require_page_access($page_name, $redirect_url = null) {
 }
 
 // Intentionally no log_admin_activity here to avoid duplication with includes/functions.php
-?> 
