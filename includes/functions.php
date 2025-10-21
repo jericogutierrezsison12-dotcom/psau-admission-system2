@@ -569,3 +569,23 @@ function get_user_course($conn, $user_id) {
     
     return $course ? $course['course_code'] . ' - ' . $course['course_name'] : 'Not yet assigned';
 }
+
+/**
+ * Perform a safe redirect ensuring no prior output breaks headers.
+ * Discards any active output buffers before sending Location header.
+ */
+function safe_redirect($location) {
+    if (headers_sent() === false) {
+        if (ob_get_level() > 0) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+        }
+        header("Location: $location");
+        exit;
+    }
+    // Fallback if headers have already been sent: render minimal HTML link
+    echo '<script>window.location.href=' . json_encode($location) . ';</script>';
+    echo '<noscript><meta http-equiv="refresh" content="0;url=' . htmlspecialchars($location, ENT_QUOTES, 'UTF-8') . '"></noscript>';
+    exit;
+}

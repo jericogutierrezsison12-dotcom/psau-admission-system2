@@ -181,8 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 
                 // Redirect with success message
-                header('Location: verify_applications.php?success=1');
-                exit;
+                safe_redirect('verify_applications.php?success=1');
                 
             } elseif ($action === 'verify_no_email') {
                 // Verify the application without sending email
@@ -194,8 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 log_activity($conn, 'verify_application', "Admin verified application (no email) for " . $user['first_name'] . ' ' . $user['last_name'], $admin['id'] ?? 1);
                 
                 // Redirect with success message
-                header('Location: verify_applications.php?success=1');
-                exit;
+                safe_redirect('verify_applications.php?success=1');
             } elseif ($action === 'reject') {
                 // Get rejection reason
                 $rejection_reason = $_POST['rejection_reason'] ?? 'Missing or incomplete requirements';
@@ -250,8 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 
                 // Redirect with rejection message
-                header('Location: verify_applications.php?rejected=1');
-                exit;
+                safe_redirect('verify_applications.php?rejected=1');
             } elseif ($action === 'test_email') {
                 // Get test email address
                 $test_email = $_POST['test_email'] ?? $user['email'];
