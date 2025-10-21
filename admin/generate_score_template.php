@@ -7,7 +7,10 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../vendor/autoload.php';
+// Load Composer autoload if available
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -18,7 +21,41 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 // Check if user is logged in as admin
 is_admin_logged_in();
 
-// Create new spreadsheet
+// Fallback data shared by both XLSX and CSV
+$headers = ['Control Number', 'Stanine Score', 'Remarks'];
+$sampleData = [
+    ['2024-0001', 7, 'Sample entry'],
+    ['2024-0002', 5, ''],
+    ['2024-0003', 9, ''],
+];
+
+// If PhpSpreadsheet is unavailable, generate CSV fallback
+if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
+    // Prepare CSV output
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment;filename="score_upload_template.csv"');
+    header('Cache-Control: max-age=0');
+
+    $out = fopen('php://output', 'w');
+    // Headers
+    fputcsv($out, $headers);
+    // Sample rows
+    foreach ($sampleData as $row) {
+        fputcsv($out, $row);
+    }
+    // Blank line and instructions
+    fputcsv($out, []);
+    fputcsv($out, ['Instructions:']);
+    fputcsv($out, ["1. Control Number: Enter the applicant's control number"]);
+    fputcsv($out, ['2. Stanine Score: Enter a score from 1 to 9']);
+    fputcsv($out, ['3. Remarks: Optional notes about the score']);
+    fputcsv($out, ['4. Do not modify the column headers']);
+    fputcsv($out, ['5. Remove sample data before uploading']);
+    fclose($out);
+    exit;
+}
+
+// Create new spreadsheet (XLSX)
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 
@@ -31,7 +68,6 @@ $spreadsheet->getProperties()
     ->setDescription('Template for bulk uploading entrance exam scores');
 
 // Set column headers
-$headers = ['Control Number', 'Stanine Score', 'Remarks'];
 $sheet->fromArray($headers, null, 'A1');
 
 // Style the header row
@@ -75,11 +111,6 @@ $validation->setPrompt('Enter a stanine score from 1 to 9');
 $sheet->setDataValidation('B2:B1000', $validation);
 
 // Add sample data
-$sampleData = [
-    ['2024-0001', 7, 'Sample entry'],
-    ['2024-0002', 5, ''],
-    ['2024-0003', 9, ''],
-];
 $sheet->fromArray($sampleData, null, 'A2');
 
 // Add instructions
