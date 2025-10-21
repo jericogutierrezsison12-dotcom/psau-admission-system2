@@ -1,30 +1,13 @@
-# Use PHP 8.1 with Apache
+# Simple PHP Dockerfile for Render free tier
 FROM php:8.1-apache
 
-# Install system dependencies
+# Install basic dependencies
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    git \
-    curl \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
+    && docker-php-ext-install pdo pdo_mysql zip \
     && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-    pdo \
-    pdo_mysql \
-    zip \
-    gd \
-    mbstring \
-    xml \
-    bcmath
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -32,14 +15,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock ./
-
-# Install dependencies with verbose output for debugging
-RUN composer install --no-dev --optimize-autoloader --no-interaction --verbose
-
-# Copy application files
+# Copy all files
 COPY . .
+
+# Install dependencies (if any)
+RUN if [ -f composer.json ]; then composer install --no-dev --optimize-autoloader --no-interaction; fi
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
