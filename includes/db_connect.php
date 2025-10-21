@@ -15,16 +15,17 @@ if (file_exists(__DIR__ . '/../.env')) {
     }
 }
 
-// Database credentials - use environment variables if available, otherwise defaults
-$host = $_ENV['DB_HOST'] ?? 'localhost';
-$dbname = $_ENV['DB_NAME'] ?? 'psau_admission';
+// Database credentials - use environment variables if available, otherwise Railway defaults
+$host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
+$dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? '';
+$password = $_ENV['DB_PASS'] ?? 'JCFNOSYEIrgNDqxwzaHBEufEJDPLQKKU';
+$port = $_ENV['DB_PORT'] ?? 40148;
 
 // Create connection
 $conn = null;
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $conn = new PDO("mysql:host=$host;port=$port;dbname=$dbname", $username, $password);
     // Set the PDO error mode to exception
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     // Set default fetch mode to associative array
