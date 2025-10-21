@@ -46,11 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     error_log("FAQ Action received: " . $action);
     error_log("POST data: " . print_r($_POST, true));
     
-    // Set JSON header only for toggle (AJAX) requests
-    if ($action === 'toggle') {
-        header('Content-Type: application/json');
-    }
-    
     try {
         switch ($action) {
             case 'resolve_unanswered':

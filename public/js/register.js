@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Password validation functionality
     if (currentStep === '1') {
         setupPasswordValidation();
-        setupStep1Recaptcha();
     }
 });
 
@@ -214,67 +213,6 @@ function setupOtpVerification() {
             sendOTP();
         }
     });
-}
-
-// Setup reCAPTCHA for Step 1
-function setupStep1Recaptcha() {
-    // Create RecaptchaVerifier for Step 1
-    window.recaptchaVerifierStep1 = new RecaptchaVerifier(auth, 'recaptcha-container-step1', {
-        'size': 'normal',
-        'callback': (response) => {
-            // reCAPTCHA solved
-            isRecaptchaVerified = true;
-            recaptchaResponse = response;
-            
-            // Set the token in the hidden field
-            document.getElementById('recaptcha_token').value = response;
-            
-            // Enable the continue button
-            document.getElementById('continue-btn').disabled = false;
-            
-            // Add visual feedback
-            const recaptchaIframe = document.querySelector('#recaptcha-container-step1 iframe[title="reCAPTCHA"]');
-            if (recaptchaIframe) {
-                const recaptchaElement = recaptchaIframe.parentElement;
-                recaptchaElement.setAttribute('data-verified', 'true');
-            }
-        },
-        'expired-callback': () => {
-            // reCAPTCHA expired
-            isRecaptchaVerified = false;
-            recaptchaResponse = null;
-            document.getElementById('continue-btn').disabled = true;
-            
-            // Clear the token
-            document.getElementById('recaptcha_token').value = '';
-            
-            // Remove verified state
-            const recaptchaIframe = document.querySelector('#recaptcha-container-step1 iframe[title="reCAPTCHA"]');
-            if (recaptchaIframe) {
-                const recaptchaElement = recaptchaIframe.parentElement;
-                recaptchaElement.removeAttribute('data-verified');
-            }
-        }
-    });
-    
-    window.recaptchaVerifierStep1.render().then(widgetId => {
-        window.recaptchaWidgetIdStep1 = widgetId;
-        
-        // Add CSS to maintain check mark
-        const style = document.createElement('style');
-        style.textContent = `
-            #recaptcha-container-step1[data-verified="true"] iframe {
-                pointer-events: none;
-            }
-            #recaptcha-container-step1[data-verified="true"] .recaptcha-checkbox-checked {
-                display: block !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-    
-    // Initially disable continue button
-    document.getElementById('continue-btn').disabled = true;
 }
 
 // Setup password validation

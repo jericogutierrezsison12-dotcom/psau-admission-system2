@@ -8,7 +8,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/simple_email.php'; // Added for email fallback
-require_once '../includes/api_calls.php'; // Added for reCAPTCHA verification
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -83,16 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($password !== $confirm_password) {
             $errors['confirm_password'] = 'Passwords do not match';
-        }
-        
-        // Validate reCAPTCHA
-        $recaptcha_token = $_POST['recaptcha_token'] ?? '';
-        if (empty($recaptcha_token)) {
-            $errors['recaptcha'] = 'Please complete the reCAPTCHA verification';
-        } else {
-            if (!verify_recaptcha($recaptcha_token)) {
-                $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
-            }
         }
 
         // If no errors, proceed to OTP verification

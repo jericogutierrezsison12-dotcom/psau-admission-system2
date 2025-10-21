@@ -47,7 +47,6 @@
                 <!-- Step 1: Registration Form -->
                 <form method="POST" action="register.php" id="registrationForm">
                     <input type="hidden" name="step" value="1">
-                    <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -132,16 +131,8 @@
                         </div>
                     </div>
                     
-                    <!-- reCAPTCHA for Step 1 -->
-                    <div class="mt-3">
-                        <div id="recaptcha-container-step1"></div>
-                        <?php if (isset($errors['recaptcha'])): ?>
-                            <div class="invalid-feedback d-block"><?php echo $errors['recaptcha']; ?></div>
-                        <?php endif; ?>
-                    </div>
-                    
                     <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-psau" id="continue-btn" disabled>Continue to Verification</button>
+                        <button type="submit" class="btn btn-psau">Continue to Verification</button>
                         <a href="login.php" class="btn btn-light">Already have an account? Login</a>
                     </div>
                 </form>

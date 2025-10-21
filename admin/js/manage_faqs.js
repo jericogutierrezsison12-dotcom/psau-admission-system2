@@ -61,11 +61,6 @@ $(document).ready(function() {
         $('#submitButtonText').text('Update FAQ');
         $('#isActiveContainer').show();
         $('#cancelEdit').show();
-        
-        // Scroll to form
-        $('html, body').animate({
-            scrollTop: $('#faqForm').offset().top - 100
-        }, 500);
     });
 
     // Handle Cancel Edit
@@ -79,14 +74,9 @@ $(document).ready(function() {
         const id = $(this).data('id');
         const question = $(this).data('question');
         
-        if (confirm('Are you sure you want to delete this FAQ?\n\n' + question)) {
-            // Create and submit form
-            $('<form method="POST" action="manage_faqs.php">')
-                .append('<input type="hidden" name="action" value="delete">')
-                .append('<input type="hidden" name="id" value="' + id + '">')
-                .appendTo('body')
-                .submit();
-        }
+        $('#deleteFaqId').val(id);
+        $('#deleteFaqQuestion').text(question);
+        $('#deleteModal').modal('show');
     });
 
     // Handle Toggle Status
