@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Insert new course with initial values
             $stmt = $conn->prepare("
-                INSERT INTO courses (course_code, course_name, description, total_capacity, enrolled_students, scheduled_slots, slots)
+                INSERT INTO courses (course_code, course_name, description, total_capacity, enrolled_students, slots)
                 VALUES (?, ?, ?, ?, 0, 0, ?)
             ");
             
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             // Get current course data
-            $stmt = $conn->prepare("SELECT scheduled_slots FROM courses WHERE id = ?");
+            $stmt = $conn->prepare("SELECT total_capacity, enrolled_students FROM courses WHERE id = ?");
             $stmt->execute([$course_id]);
             $current_course = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -105,9 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 throw new Exception("Course not found.");
             }
             
-            // Check if new capacity is less than already scheduled slots
-            if ($total_capacity < $current_course['scheduled_slots']) {
-                throw new Exception("Cannot reduce capacity below already scheduled slots ({$current_course['scheduled_slots']}).");
+            // Check if new capacity is less than enrolled students
+            if ($total_capacity < $current_course['enrolled_students']) {
+                throw new Exception("Cannot reduce capacity below enrolled students ({$current_course['enrolled_students']}).");
             }
             
             // Update course
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 WHERE id = ?
             ");
             
-            $new_available_slots = $total_capacity - $current_course['scheduled_slots'];
+            $new_available_slots = $total_capacity - $current_course['enrolled_students'];
             $stmt->execute([$course_code, $course_name, $description, $total_capacity, $new_available_slots, $course_id]);
             
             // Log activity
