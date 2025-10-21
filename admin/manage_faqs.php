@@ -42,6 +42,10 @@ if (isset($_SESSION['message'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
+    // Debug logging
+    error_log("FAQ Action received: " . $action);
+    error_log("POST data: " . print_r($_POST, true));
+    
     try {
         switch ($action) {
             case 'resolve_unanswered':
