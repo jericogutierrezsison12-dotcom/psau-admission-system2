@@ -4,11 +4,22 @@
  * Establishes connection to MySQL database for PSAU Admission System
  */
 
-// Database credentials
-$host = 'localhost';
-$dbname = 'psau_admission';
-$username = 'root';
-$password = '';
+// Load environment variables
+if (file_exists(__DIR__ . '/../.env')) {
+    $lines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+            list($key, $value) = explode('=', $line, 2);
+            $_ENV[trim($key)] = trim($value);
+        }
+    }
+}
+
+// Database credentials - use environment variables if available, otherwise defaults
+$host = $_ENV['DB_HOST'] ?? 'localhost';
+$dbname = $_ENV['DB_NAME'] ?? 'psau_admission';
+$username = $_ENV['DB_USER'] ?? 'root';
+$password = $_ENV['DB_PASS'] ?? '';
 
 // Create connection
 $conn = null;

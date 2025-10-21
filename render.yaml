@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: psau-admission-system
+    env: php
+    plan: free
+    buildCommand: composer install --no-dev --optimize-autoloader
+    startCommand: vendor/bin/heroku-php-apache2 public/
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: psau-db
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: psau-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: psau-db
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: psau-db
+          property: password
+      - key: FIREBASE_API_KEY
+        value: AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8
+      - key: FIREBASE_AUTH_DOMAIN
+        value: psau-admission-system.firebaseapp.com
+      - key: FIREBASE_PROJECT_ID
+        value: psau-admission-system
+      - key: FIREBASE_STORAGE_BUCKET
+        value: psau-admission-system.appspot.com
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        value: "522448258958"
+      - key: FIREBASE_APP_ID
+        value: 1:522448258958:web:994b133a4f7b7f4c1b06df
+      - key: FIREBASE_EMAIL_FUNCTION_URL
+        value: https://sendemail-alsstt22ha-uc.a.run.app
+      - key: ENVIRONMENT
+        value: production
+
+databases:
+  - name: psau-db
+    plan: free
+    databaseName: psau_admission
