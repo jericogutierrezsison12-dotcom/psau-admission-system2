@@ -45,4 +45,4 @@ try {
         error_log("Database connection error. Please try again later.");
     }
     exit;
-} 
+}
