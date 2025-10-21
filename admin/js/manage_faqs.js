@@ -44,7 +44,8 @@ $(document).ready(function() {
     }
 
     // Handle Edit FAQ
-    $('.edit-faq').on('click', function() {
+    $(document).on('click', '.edit-faq', function() {
+        console.log('Edit FAQ clicked'); // Debug log
         const id = $(this).data('id');
         const question = $(this).data('question');
         const answer = $(this).data('answer');
@@ -68,7 +69,8 @@ $(document).ready(function() {
     });
 
     // Handle Delete FAQ
-    $('.delete-faq').on('click', function() {
+    $(document).on('click', '.delete-faq', function() {
+        console.log('Delete FAQ clicked'); // Debug log
         const id = $(this).data('id');
         const question = $(this).data('question');
         
@@ -78,7 +80,8 @@ $(document).ready(function() {
     });
 
     // Handle Toggle Status
-    $('.toggle-status').on('change', function() {
+    $(document).on('change', '.toggle-status', function() {
+        console.log('Toggle status changed'); // Debug log
         const id = $(this).data('id');
         const isActive = $(this).prop('checked') ? 1 : 0;
         

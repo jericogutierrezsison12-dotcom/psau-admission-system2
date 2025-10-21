@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Insert new course with initial values
             $stmt = $conn->prepare("
                 INSERT INTO courses (course_code, course_name, description, total_capacity, enrolled_students, slots)
-                VALUES (?, ?, ?, ?, 0, 0, ?)
+                VALUES (?, ?, ?, ?, 0, ?)
             ");
             
             $stmt->execute([$course_code, $course_name, $description, $total_capacity, $total_capacity]);
