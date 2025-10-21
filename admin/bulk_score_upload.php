@@ -8,10 +8,15 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
-require_once '../vendor/autoload.php';
+// Try to load Composer autoloader if present
+$hasPhpSpreadsheet = false;
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+	require_once __DIR__ . '/../vendor/autoload.php';
+	$hasPhpSpreadsheet = class_exists('PhpOffice\\PhpSpreadsheet\\IOFactory');
+}
 require_once '../firebase/firebase_email.php';
 
-use PhpOffice\PhpSpreadsheet\IOFactory;
+// Do not import with "use" to avoid conditional import issues; use FQCN when needed
 
 // Check if user is logged in as admin
 is_admin_logged_in();
@@ -44,17 +49,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         $file = $_FILES['score_file'];
         $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         
-        if (!in_array($file_ext, ['xlsx', 'xls'])) {
-            throw new Exception("Invalid file format. Please upload an Excel file (.xlsx or .xls).");
+        // Allow CSV uploads always; allow XLSX/XLS only if PhpSpreadsheet is available
+        $allowed_when_phpspreadsheet = ['xlsx', 'xls'];
+        $allowed_extensions = $hasPhpSpreadsheet ? array_merge($allowed_when_phpspreadsheet, ['csv']) : ['csv'];
+        
+        if (!in_array($file_ext, $allowed_extensions)) {
+            if ($hasPhpSpreadsheet) {
+                throw new Exception("Invalid file format. Allowed: .xlsx, .xls, or .csv");
+            } else {
+                throw new Exception("Invalid file format. PhpSpreadsheet is not installed; please upload a CSV (.csv) file.");
+            }
         }
 
         // Start transaction
         $conn->beginTransaction();
         
-        // Load Excel file
-        $spreadsheet = IOFactory::load($file['tmp_name']);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $rows = $worksheet->toArray();
+        // Load rows from file (Excel via PhpSpreadsheet, or CSV fallback)
+        $rows = [];
+        if (in_array($file_ext, ['xlsx', 'xls'])) {
+            if (!$hasPhpSpreadsheet) {
+                throw new Exception("Excel processing requires PhpSpreadsheet. Please upload a CSV instead.");
+            }
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file['tmp_name']);
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+        } else if ($file_ext === 'csv') {
+            $handle = fopen($file['tmp_name'], 'r');
+            if ($handle === false) {
+                throw new Exception("Failed to open uploaded CSV file.");
+            }
+            // Detect and skip UTF-8 BOM
+            $firstBytes = fread($handle, 3);
+            if ($firstBytes !== "\xEF\xBB\xBF") {
+                // Rewind if no BOM
+                fseek($handle, 0);
+            }
+            while (($data = fgetcsv($handle)) !== false) {
+                $rows[] = $data;
+            }
+            fclose($handle);
+        }
         
         // Validate header row
         $expected_headers = ['control number', 'stanine score', 'remarks'];
