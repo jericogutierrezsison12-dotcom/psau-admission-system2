@@ -17,8 +17,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Check if admin is logged in
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: login.php');
-    exit;
+    safe_redirect('login.php');
 }
 
 // Ensure only admin and registrar users can access verify applications
@@ -75,7 +74,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
     if (!in_array($role, ['admin','registrar'], true)) {
         $_SESSION['message'] = 'You do not have permission to verify applications.';
         $_SESSION['message_type'] = 'danger';
-        header('Location: verify_applications.php');
+        safe_redirect('verify_applications.php');
         exit;
     }
     try {
@@ -140,7 +139,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $_SESSION['message_type'] = 'danger';
     }
     
-    header("Location: verify_applications.php");
+    safe_redirect('verify_applications.php');
     exit;
 }
 

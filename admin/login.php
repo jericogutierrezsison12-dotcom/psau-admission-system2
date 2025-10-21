@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/security_functions.php';
 require_once '../includes/api_calls.php';
+require_once '../includes/functions.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,8 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Redirect if already logged in as admin
 if (isset($_SESSION['admin_id'])) {
-    header('Location: dashboard.php');
-    exit;
+    safe_redirect('dashboard.php');
 }
 
 // Initialize variables
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     
                     // Redirect to admin dashboard
-                    header('Location: dashboard.php');
+                    safe_redirect('dashboard.php');
                     exit;
                 } else {
                     error_log('Admin login failed - Invalid credentials for username: ' . $username);
