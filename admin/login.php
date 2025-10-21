@@ -59,9 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $recaptcha_token = $_POST['recaptcha_token'] ?? '';
     
-    error_log('Form data - Username: ' . $username . ', Password length: ' . strlen($password) . ', reCAPTCHA token: ' . (empty($recaptcha_token) ? 'empty' : 'present'));
+    error_log('Form data - Username: ' . $username . ', Password length: ' . strlen($password));
     
     // Check if device is blocked before processing
     if ($block_info && $block_info['blocked']) {
@@ -77,27 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($password)) {
             $errors['password'] = 'Password is required';
             error_log('Password validation failed: empty');
-        }
-        
-        // Verify the reCAPTCHA token
-        if (!empty($recaptcha_token)) {
-            error_log('Verifying reCAPTCHA token...');
-            if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
-                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
-                error_log('reCAPTCHA verification failed');
-            } else {
-                error_log('reCAPTCHA verification successful');
-            }
-        } else {
-            // Check if we're on localhost
-            $is_localhost = (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1');
-            if ($is_localhost) {
-                error_log('Localhost detected, allowing login without reCAPTCHA token');
-                // On localhost, we can proceed without reCAPTCHA token
-            } else {
-                $errors['recaptcha'] = 'CAPTCHA verification is required';
-                error_log('reCAPTCHA token required but not provided');
-            }
         }
         
         // If no validation errors, attempt to login
