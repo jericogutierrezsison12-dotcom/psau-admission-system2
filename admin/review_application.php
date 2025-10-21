@@ -120,8 +120,10 @@ try {
     exit;
 }
 
-// Flush output buffer to show debug messages
-ob_end_flush();
+// Discard any buffered output to ensure no output before header redirects
+if (ob_get_level() > 0) {
+    ob_end_clean();
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
