@@ -1,69 +1,58 @@
 # Dependencies
 /vendor/
-/node_modules/
+composer.phar
 
-# Environment variables
+# Environment files
 .env
 .env.local
 .env.production
-
-# Database
-*.sql
-*.db
 
 # Logs
 *.log
 logs/
 
-# Uploads and user data
-/uploads/
-/images/
-/logo/
+# Database
+*.sql
+*.db
 
-# IDE and editor files
+# Uploads (keep structure but ignore content)
+/uploads/*
+!/uploads/.gitkeep
+
+# Images (keep structure but ignore content)
+/images/*
+!/images/.gitkeep
+
+# Cache
+/cache/
+/tmp/
+
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-
-# Composer
-composer.phar
 
 # Firebase
 firebase-debug.log
 .firebase/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
+# Node modules (for Firebase functions)
+functions/node_modules/
 
-# Railway
-.railway/
-
-# Sensitive configuration files
-firebase/config.php
-includes/db_connect.php
+# Build files
+/dist/
+/build/
 
 # Backup files
 *.bak
 *.backup
+
+# Sensitive files
+config.local.php
+secrets.php
