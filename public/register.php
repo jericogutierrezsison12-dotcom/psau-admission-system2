@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/simple_email.php'; // Added for email fallback
+require_once '../includes/email_otp.php'; // Added for email OTP
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -95,8 +96,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => $password
             ];
             
-            // Move to OTP verification step
-            $step = 2;
+            // Generate and send email OTP
+            $otp_code = generate_otp_code();
+            $email_sent = send_otp_email($email, $otp_code, 'registration');
+            
+            if ($email_sent) {
+                // Store OTP in session
+                store_otp_session($email, $otp_code, 'registration');
+                $step = 2;
+            } else {
+                $errors['email'] = 'Failed to send verification email. Please try again.';
+            }
         }
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
         // Process OTP verification
@@ -104,10 +114,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($otp_code)) {
             $errors['otp'] = 'OTP code is required';
-        } elseif (!isset($_POST['firebase_verified']) || $_POST['firebase_verified'] !== 'true') {
-            $errors['otp'] = 'OTP verification failed. Please try again.';
         } else {
-            // OTP verified, create user account
+            // Verify email OTP
+            $registration = $_SESSION['registration'];
+            $verification_result = verify_otp_session($otp_code, $registration['email'], 'registration');
+            
+            if (!$verification_result['success']) {
+                $errors['otp'] = $verification_result['message'];
+            } else {
+                // OTP verified, create user account
             try {
                 $conn->beginTransaction();
                 
@@ -155,8 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $step = 1; // Go back to form
             }
         }
+            }
+        }
     }
-}
 
 // Include the HTML template
 include('html/register.html');

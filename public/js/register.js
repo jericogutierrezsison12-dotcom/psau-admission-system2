@@ -1,219 +1,13 @@
-// Firebase-related functionality 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8",
-    authDomain: "psau-admission-system.firebaseapp.com",
-    projectId: "psau-admission-system",
-    storageBucket: "psau-admission-system.appspot.com",
-    messagingSenderId: "522448258958",
-    appId: "1:522448258958:web:994b133a4f7b7f4c1b06df"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// Track reCAPTCHA verification state
-let isRecaptchaVerified = false;
-let recaptchaResponse = null;
-
+// Registration functionality - Email OTP Version
 document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
     
-    // OTP verification functionality
-    if (currentStep === '2') {
-        setupOtpVerification();
-    }
-    
-    // Password validation functionality
+    // Password validation functionality for Step 1
     if (currentStep === '1') {
         setupPasswordValidation();
+        setupStep1Recaptcha();
     }
 });
-
-// Setup OTP verification
-function setupOtpVerification() {
-    // Create RecaptchaVerifier with enterprise mode
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'normal',
-        'callback': (response) => {
-            // reCAPTCHA solved
-            isRecaptchaVerified = true;
-            recaptchaResponse = response;
-            
-            // Keep the check mark visible
-            const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
-            if (recaptchaIframe) {
-                const recaptchaElement = recaptchaIframe.parentElement;
-                recaptchaElement.setAttribute('data-verified', 'true');
-            }
-            
-            // Enable the verify button
-            document.getElementById('verify-otp').disabled = false;
-            
-            // Send OTP only if not already sent
-            if (!window.otpSent) {
-                sendOTP();
-            }
-        },
-        'expired-callback': () => {
-            // reCAPTCHA expired
-            isRecaptchaVerified = false;
-            recaptchaResponse = null;
-            document.getElementById('verify-otp').disabled = true;
-            
-            // Remove verified state
-            const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
-            if (recaptchaIframe) {
-                const recaptchaElement = recaptchaIframe.parentElement;
-                recaptchaElement.removeAttribute('data-verified');
-            }
-        }
-    });
-    
-    window.recaptchaVerifier.render().then(widgetId => {
-        window.recaptchaWidgetId = widgetId;
-        
-        // Add CSS to maintain check mark
-        const style = document.createElement('style');
-        style.textContent = `
-            #recaptcha-container[data-verified="true"] iframe {
-                pointer-events: none;
-            }
-            #recaptcha-container[data-verified="true"] .recaptcha-checkbox-checked {
-                display: block !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-    
-    // Initially disable verify button
-    document.getElementById('verify-otp').disabled = true;
-    
-    // Send OTP function
-    window.sendOTP = function() {
-        if (!isRecaptchaVerified) {
-            alert("Please complete the reCAPTCHA verification first");
-            return;
-        }
-
-        const phoneNumber = "+63" + document.getElementById('mobileNumber').value;
-        
-        signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
-            .then((confirmationResult) => {
-                // SMS sent. Store confirmationResult for later use
-                window.confirmationResult = confirmationResult;
-                window.otpSent = true;
-                document.getElementById('resend-otp').disabled = true;
-                
-                // Start countdown for resend button
-                let seconds = 60;
-                const countdown = setInterval(() => {
-                    document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
-                    seconds--;
-                    if (seconds < 0) {
-                        clearInterval(countdown);
-                        document.getElementById('resend-otp').innerText = 'Resend OTP';
-                        document.getElementById('resend-otp').disabled = false;
-                    }
-                }, 1000);
-            }).catch((error) => {
-                // Error; SMS not sent
-                console.error("Error sending OTP:", error);
-                alert("Error sending OTP: " + error.message);
-            });
-    };
-    
-    // Verify OTP button click
-    document.getElementById('verify-otp').addEventListener('click', function() {
-        if (!isRecaptchaVerified) {
-            alert("Please complete the reCAPTCHA verification first");
-            return;
-        }
-
-        const code = document.getElementById('otp_code').value;
-        if (!code || code.length !== 6) {
-            alert("Please enter a valid 6-digit OTP code");
-            return;
-        }
-        
-        // Show verification in progress
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
-        
-        // Confirm the OTP code
-        window.confirmationResult.confirm(code)
-            .then((result) => {
-                // User signed in successfully
-                document.getElementById('firebase_verified').value = 'true';
-                document.getElementById('otpForm').submit();
-            }).catch((error) => {
-                // Invalid code
-                alert("Invalid OTP code. Please try again.");
-                console.error("Error verifying OTP:", error);
-                
-                // Reset button
-                this.disabled = false;
-                this.innerHTML = 'Verify OTP';
-            });
-    });
-    
-    // Resend OTP button click
-    document.getElementById('resend-otp').addEventListener('click', function() {
-        if (!isRecaptchaVerified || !recaptchaResponse) {
-            // Only reset if reCAPTCHA is expired or invalid
-            if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear();
-                
-                // Remove verified state
-                const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
-                if (recaptchaIframe) {
-                    const recaptchaElement = recaptchaIframe.parentElement;
-                    recaptchaElement.removeAttribute('data-verified');
-                }
-            }
-            window.otpSent = false;
-            
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'normal',
-                'callback': (response) => {
-                    isRecaptchaVerified = true;
-                    recaptchaResponse = response;
-                    
-                    // Keep the check mark visible
-                    const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
-                    if (recaptchaIframe) {
-                        const recaptchaElement = recaptchaIframe.parentElement;
-                        recaptchaElement.setAttribute('data-verified', 'true');
-                    }
-                    
-                    document.getElementById('verify-otp').disabled = false;
-                    sendOTP();
-                },
-                'expired-callback': () => {
-                    isRecaptchaVerified = false;
-                    recaptchaResponse = null;
-                    document.getElementById('verify-otp').disabled = true;
-                    
-                    // Remove verified state
-                    const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
-                    if (recaptchaIframe) {
-                        const recaptchaElement = recaptchaIframe.parentElement;
-                        recaptchaElement.removeAttribute('data-verified');
-                    }
-                }
-            });
-            window.recaptchaVerifier.render().then(widgetId => {
-                window.recaptchaWidgetId = widgetId;
-            });
-        } else {
-            // If reCAPTCHA is still valid, just resend OTP using existing verification
-            sendOTP();
-        }
-    });
-}
 
 // Setup password validation
 function setupPasswordValidation() {
@@ -241,3 +35,71 @@ function setupPasswordValidation() {
             /[^A-Za-z0-9]/.test(password) ? 'green' : 'inherit';
     });
 }
+
+// Setup reCAPTCHA for Step 1
+function setupStep1Recaptcha() {
+    // Check if reCAPTCHA container exists
+    const recaptchaContainer = document.getElementById('recaptcha-container-step1');
+    if (!recaptchaContainer) return;
+    
+    // Load reCAPTCHA script if not already loaded
+    if (typeof grecaptcha === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+        
+        script.onload = function() {
+            renderRecaptcha();
+        };
+    } else {
+        renderRecaptcha();
+    }
+}
+
+// Render reCAPTCHA widget
+function renderRecaptcha() {
+    const recaptchaContainer = document.getElementById('recaptcha-container-step1');
+    if (!recaptchaContainer || typeof grecaptcha === 'undefined') return;
+    
+    grecaptcha.render(recaptchaContainer, {
+        'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
+        'callback': function(response) {
+            // reCAPTCHA solved
+            document.getElementById('recaptcha_token').value = response;
+            document.getElementById('continue-btn').disabled = false;
+        },
+        'expired-callback': function() {
+            // reCAPTCHA expired
+            document.getElementById('recaptcha_token').value = '';
+            document.getElementById('continue-btn').disabled = true;
+        }
+    });
+}
+
+// Auto-format OTP input (Step 2)
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otp_code');
+    if (otpInput) {
+        otpInput.addEventListener('input', function() {
+            // Remove non-numeric characters
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Limit to 6 digits
+            if (this.value.length > 6) {
+                this.value = this.value.substring(0, 6);
+            }
+        });
+        
+        // Auto-submit when 6 digits are entered
+        otpInput.addEventListener('input', function() {
+            if (this.value.length === 6) {
+                // Small delay to show the complete code
+                setTimeout(() => {
+                    document.getElementById('otpForm').submit();
+                }, 500);
+            }
+        });
+    }
+});
