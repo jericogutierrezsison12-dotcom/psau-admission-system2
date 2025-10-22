@@ -1,4 +1,4 @@
-// Registration functionality - Email OTP with reCAPTCHA
+// Registration JS for Email OTP + reCAPTCHA (no Firebase)
 document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
     if (currentStep === '1') {
@@ -10,82 +10,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Setup password validation
-function setupPasswordValidation() {
-    document.getElementById('password').addEventListener('input', function() {
-        const password = this.value;
-        
-        // Check length
-        document.getElementById('length').style.color = 
-            password.length >= 8 ? 'green' : 'inherit';
-        
-        // Check uppercase
-        document.getElementById('uppercase').style.color = 
-            /[A-Z]/.test(password) ? 'green' : 'inherit';
-        
-        // Check lowercase
-        document.getElementById('lowercase').style.color = 
-            /[a-z]/.test(password) ? 'green' : 'inherit';
-        
-        // Check number
-        document.getElementById('number').style.color = 
-            /[0-9]/.test(password) ? 'green' : 'inherit';
-        
-        // Check special character
-        document.getElementById('special').style.color = 
-            /[^A-Za-z0-9]/.test(password) ? 'green' : 'inherit';
-    });
-}
-
-// Setup reCAPTCHA for Step 1
 function setupStep1Recaptcha() {
-    // Check if reCAPTCHA container exists
-    const recaptchaContainer = document.getElementById('recaptcha-container-step1');
-    if (!recaptchaContainer) return;
-    
-    // Load reCAPTCHA script if not already loaded
+    const container = document.getElementById('recaptcha-container-step1');
+    if (!container) return;
     if (typeof grecaptcha === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://www.google.com/recaptcha/api.js';
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-        
-        script.onload = function() {
-            renderRecaptcha();
-        };
+        const s = document.createElement('script');
+        s.src = 'https://www.google.com/recaptcha/api.js';
+        s.async = true; s.defer = true;
+        s.onload = renderRecaptcha;
+        document.head.appendChild(s);
     } else {
         renderRecaptcha();
     }
 }
 
-// Render reCAPTCHA widget
 function renderRecaptcha() {
-    const recaptchaContainer = document.getElementById('recaptcha-container-step1');
-    if (!recaptchaContainer || typeof grecaptcha === 'undefined') return;
-    
-    grecaptcha.render(recaptchaContainer, {
-        'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
-        'callback': function(response) {
-            // reCAPTCHA solved
-            document.getElementById('recaptcha_token').value = response;
+    const container = document.getElementById('recaptcha-container-step1');
+    if (!container || typeof grecaptcha === 'undefined') return;
+    grecaptcha.render(container, {
+        sitekey: '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
+        callback: function(token) {
+            const field = document.getElementById('recaptcha_token');
+            if (field) field.value = token;
             const btn = document.querySelector('#registrationForm button[type="submit"]');
             if (btn) btn.disabled = false;
         },
         'expired-callback': function() {
-            // reCAPTCHA expired
-            document.getElementById('recaptcha_token').value = '';
+            const field = document.getElementById('recaptcha_token');
+            if (field) field.value = '';
             const btn = document.querySelector('#registrationForm button[type="submit"]');
             if (btn) btn.disabled = true;
         }
     });
 }
 
-// OTP input helpers for Step 2
 function setupOtpInput() {
     const otp = document.getElementById('otp_code');
     if (!otp) return;
     otp.addEventListener('input', function() {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+    });
+}
+
+function setupPasswordValidation() {
+    const pwd = document.getElementById('password');
+    if (!pwd) return;
+    pwd.addEventListener('input', function() {
+        const password = this.value;
+        const set = (id, ok) => { const el = document.getElementById(id); if (el) el.style.color = ok ? 'green' : 'inherit'; };
+        set('length', password.length >= 8);
+        set('uppercase', /[A-Z]/.test(password));
+        set('lowercase', /[a-z]/.test(password));
+        set('number', /[0-9]/.test(password));
+        set('special', /[^A-Za-z0-9]/.test(password));
     });
 }
