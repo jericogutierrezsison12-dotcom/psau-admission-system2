@@ -4,16 +4,50 @@
  * Sends OTP via email for password reset
  */
 
+// Start output buffering to prevent any output before JSON
+ob_start();
+
 // Disable error display to prevent HTML in JSON response
 error_reporting(0);
 ini_set('display_errors', 0);
 
 session_start();
-require_once '../includes/db_connect.php';
-require_once '../firebase/firebase_email.php'; // For sending emails
-require_once '../includes/security_functions.php'; // For reCAPTCHA verification
 
-header('Content-Type: application/json');
+// Temporarily disable error reporting for includes
+$old_error_reporting = error_reporting(0);
+$old_display_errors = ini_get('display_errors');
+ini_set('display_errors', 0);
+
+try {
+    require_once '../includes/db_connect.php';
+    require_once '../firebase/firebase_email.php'; // For sending emails
+    require_once '../includes/api_calls.php'; // For reCAPTCHA verification
+} catch (Exception $e) {
+    // Restore error reporting
+    error_reporting($old_error_reporting);
+    ini_set('display_errors', $old_display_errors);
+    
+    // Clean output buffer and return error
+    ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'System error. Please try again.']);
+    exit;
+}
+
+// Restore error reporting
+error_reporting($old_error_reporting);
+ini_set('display_errors', $old_display_errors);
+
+// Clean any output that might have been generated
+$output = ob_get_clean();
+if (!empty($output)) {
+    error_log("Unexpected output before JSON: " . $output);
+}
+
+// Set proper headers
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, must-revalidate');
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 
 $response = ['success' => false, 'message' => ''];
 
@@ -91,5 +125,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $response['message'] = 'Invalid request method.';
 }
 
-echo json_encode($response);
+// Ensure we only output JSON with proper error handling
+try {
+    // Remove any existing headers that might interfere
+    if (!headers_sent()) {
+        header_remove('Content-Type');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+    }
+
+    // Encode JSON with proper error handling
+    $json_response = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+    if ($json_response === false) {
+        error_log("JSON encoding error: " . json_last_error_msg());
+        // Return a safe error response
+        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+    } else {
+        echo $json_response;
+    }
+} catch (Exception $e) {
+    error_log("Error in JSON response: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+}
+exit;
 ?>
