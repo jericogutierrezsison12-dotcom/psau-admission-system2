@@ -38,6 +38,7 @@ function setupOtpVerification() {
     // Create RecaptchaVerifier with enterprise mode
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'normal',
+        'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
         'callback': (response) => {
             // reCAPTCHA solved
             isRecaptchaVerified = true;
@@ -178,6 +179,7 @@ function setupOtpVerification() {
             
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'normal',
+                'sitekey': '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
                 'callback': (response) => {
                     isRecaptchaVerified = true;
                     recaptchaResponse = response;
