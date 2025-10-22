@@ -1,67 +1,238 @@
-// Registration JS for Email OTP + reCAPTCHA (no Firebase)
+// Firebase-related functionality 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getAuth, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8",
+    authDomain: "psau-admission-system.firebaseapp.com",
+    projectId: "psau-admission-system",
+    storageBucket: "psau-admission-system.appspot.com",
+    messagingSenderId: "522448258958",
+    appId: "1:522448258958:web:994b133a4f7b7f4c1b06df"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Track reCAPTCHA verification state
+let isRecaptchaVerified = false;
+let recaptchaResponse = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
+    
+    // OTP verification functionality
+    if (currentStep === '2') {
+        setupOtpVerification();
+    }
+    
+    // Password validation functionality
     if (currentStep === '1') {
         setupPasswordValidation();
-        setupStep1Recaptcha();
-    }
-    if (currentStep === '2') {
-        setupOtpInput();
     }
 });
 
-function setupStep1Recaptcha() {
-    const container = document.getElementById('recaptcha-container-step1');
-    if (!container) return;
-    if (typeof grecaptcha === 'undefined') {
-        const s = document.createElement('script');
-        s.src = 'https://www.google.com/recaptcha/api.js';
-        s.async = true; s.defer = true;
-        s.onload = renderRecaptcha;
-        document.head.appendChild(s);
-    } else {
-        renderRecaptcha();
-    }
-}
-
-function renderRecaptcha() {
-    const container = document.getElementById('recaptcha-container-step1');
-    if (!container || typeof grecaptcha === 'undefined') return;
-    grecaptcha.render(container, {
-        sitekey: '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA',
-        callback: function(token) {
-            const field = document.getElementById('recaptcha_token');
-            if (field) field.value = token;
-            const btn = document.querySelector('#registrationForm button[type="submit"]');
-            if (btn) btn.disabled = false;
+// Setup OTP verification
+function setupOtpVerification() {
+    // Create RecaptchaVerifier with enterprise mode
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'normal',
+        'callback': (response) => {
+            // reCAPTCHA solved
+            isRecaptchaVerified = true;
+            recaptchaResponse = response;
+            
+            // Keep the check mark visible
+            const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+            if (recaptchaIframe) {
+                const recaptchaElement = recaptchaIframe.parentElement;
+                recaptchaElement.setAttribute('data-verified', 'true');
+            }
+            
+            // Enable the verify button
+            document.getElementById('verify-otp').disabled = false;
+            
+            // Send OTP only if not already sent
+            if (!window.otpSent) {
+                sendOTP();
+            }
         },
-        'expired-callback': function() {
-            const field = document.getElementById('recaptcha_token');
-            if (field) field.value = '';
-            const btn = document.querySelector('#registrationForm button[type="submit"]');
-            if (btn) btn.disabled = true;
+        'expired-callback': () => {
+            // reCAPTCHA expired
+            isRecaptchaVerified = false;
+            recaptchaResponse = null;
+            document.getElementById('verify-otp').disabled = true;
+            
+            // Remove verified state
+            const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+            if (recaptchaIframe) {
+                const recaptchaElement = recaptchaIframe.parentElement;
+                recaptchaElement.removeAttribute('data-verified');
+            }
+        }
+    });
+    
+    window.recaptchaVerifier.render().then(widgetId => {
+        window.recaptchaWidgetId = widgetId;
+        
+        // Add CSS to maintain check mark
+        const style = document.createElement('style');
+        style.textContent = `
+            #recaptcha-container[data-verified="true"] iframe {
+                pointer-events: none;
+            }
+            #recaptcha-container[data-verified="true"] .recaptcha-checkbox-checked {
+                display: block !important;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+    
+    // Initially disable verify button
+    document.getElementById('verify-otp').disabled = true;
+    
+    // Send OTP function (email-based)
+    window.sendOTP = function() {
+        if (!isRecaptchaVerified) {
+            alert("Please complete the reCAPTCHA verification first");
+            return;
+        }
+
+        const email = document.getElementById('registrationEmail').value;
+        const token = recaptchaResponse;
+
+        fetch('send_email_otp.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, recaptcha_token: token })
+        })
+        .then(async (res) => {
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || 'Failed to send OTP');
+            }
+            return res.json();
+        })
+        .then(() => {
+            window.otpSent = true;
+            document.getElementById('resend-otp').disabled = true;
+            let seconds = 60;
+            const countdown = setInterval(() => {
+                document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
+                seconds--;
+                if (seconds < 0) {
+                    clearInterval(countdown);
+                    document.getElementById('resend-otp').innerText = 'Resend OTP';
+                    document.getElementById('resend-otp').disabled = false;
+                }
+            }, 1000);
+        })
+        .catch((error) => {
+            console.error('Error sending OTP:', error);
+            alert('Error sending OTP: ' + error.message);
+        });
+    };
+    
+    // Verify OTP button click (server-side validation)
+    document.getElementById('verify-otp').addEventListener('click', function() {
+        if (!isRecaptchaVerified) {
+            alert("Please complete the reCAPTCHA verification first");
+            return;
+        }
+
+        const code = document.getElementById('otp_code').value;
+        if (!code || code.length !== 6) {
+            alert("Please enter a valid 6-digit OTP code");
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+
+        // For email OTP, just submit the form; PHP will validate session OTP
+        document.getElementById('recaptcha_verified').value = 'true';
+        document.getElementById('otpForm').submit();
+    });
+    
+    // Resend OTP button click
+    document.getElementById('resend-otp').addEventListener('click', function() {
+        if (!isRecaptchaVerified || !recaptchaResponse) {
+            // Only reset if reCAPTCHA is expired or invalid
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                
+                // Remove verified state
+                const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+                if (recaptchaIframe) {
+                    const recaptchaElement = recaptchaIframe.parentElement;
+                    recaptchaElement.removeAttribute('data-verified');
+                }
+            }
+            window.otpSent = false;
+            
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'normal',
+                'callback': (response) => {
+                    isRecaptchaVerified = true;
+                    recaptchaResponse = response;
+                    
+                    // Keep the check mark visible
+                    const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+                    if (recaptchaIframe) {
+                        const recaptchaElement = recaptchaIframe.parentElement;
+                        recaptchaElement.setAttribute('data-verified', 'true');
+                    }
+                    
+                    document.getElementById('verify-otp').disabled = false;
+                    sendOTP();
+                },
+                'expired-callback': () => {
+                    isRecaptchaVerified = false;
+                    recaptchaResponse = null;
+                    document.getElementById('verify-otp').disabled = true;
+                    
+                    // Remove verified state
+                    const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+                    if (recaptchaIframe) {
+                        const recaptchaElement = recaptchaIframe.parentElement;
+                        recaptchaElement.removeAttribute('data-verified');
+                    }
+                }
+            });
+            window.recaptchaVerifier.render().then(widgetId => {
+                window.recaptchaWidgetId = widgetId;
+            });
+        } else {
+            // If reCAPTCHA is still valid, just resend OTP using existing verification
+            sendOTP();
         }
     });
 }
 
-function setupOtpInput() {
-    const otp = document.getElementById('otp_code');
-    if (!otp) return;
-    otp.addEventListener('input', function() {
-        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
-    });
-}
-
+// Setup password validation
 function setupPasswordValidation() {
-    const pwd = document.getElementById('password');
-    if (!pwd) return;
-    pwd.addEventListener('input', function() {
+    document.getElementById('password').addEventListener('input', function() {
         const password = this.value;
-        const set = (id, ok) => { const el = document.getElementById(id); if (el) el.style.color = ok ? 'green' : 'inherit'; };
-        set('length', password.length >= 8);
-        set('uppercase', /[A-Z]/.test(password));
-        set('lowercase', /[a-z]/.test(password));
-        set('number', /[0-9]/.test(password));
-        set('special', /[^A-Za-z0-9]/.test(password));
+        
+        // Check length
+        document.getElementById('length').style.color = 
+            password.length >= 8 ? 'green' : 'inherit';
+        
+        // Check uppercase
+        document.getElementById('uppercase').style.color = 
+            /[A-Z]/.test(password) ? 'green' : 'inherit';
+        
+        // Check lowercase
+        document.getElementById('lowercase').style.color = 
+            /[a-z]/.test(password) ? 'green' : 'inherit';
+        
+        // Check number
+        document.getElementById('number').style.color = 
+            /[0-9]/.test(password) ? 'green' : 'inherit';
+        
+        // Check special character
+        document.getElementById('special').style.color = 
+            /[^A-Za-z0-9]/.test(password) ? 'green' : 'inherit';
     });
 }
