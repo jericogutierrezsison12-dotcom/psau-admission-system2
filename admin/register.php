@@ -33,30 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 		if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 			$errors['email'] = 'Valid email is required';
+		} elseif ($email !== 'jericogutierrezsison12@gmail.com') {
+			$errors['email'] = 'Only jericogutierrezsison12@gmail.com is allowed for admin registration';
 		}
-		// Normalize and validate mobile number to local 09XXXXXXXXX
-		if ($mobile_number === '') {
-			$errors['mobile_number'] = 'Mobile number is required';
-		} else {
-			$raw_mobile = preg_replace('/[^0-9+]/', '', $mobile_number);
-			if (strpos($raw_mobile, '+63') === 0) {
-				$mobile_number = '0' . substr($raw_mobile, 3);
-			} else {
-				$digits = preg_replace('/[^0-9]/', '', $raw_mobile);
-				if (strpos($digits, '63') === 0 && strlen($digits) === 12) {
-					$mobile_number = '0' . substr($digits, 2);
-				} elseif (strlen($digits) === 10 && $digits[0] === '9') {
-					$mobile_number = '0' . $digits;
-				} else {
-					$mobile_number = $digits;
-				}
-			}
-			if (!preg_match('/^0\d{10}$/', $mobile_number)) {
-				$errors['mobile_number'] = 'Please enter a valid mobile number (e.g., 09513472160)';
-			}
-		}
-		if ($password === '' || strlen($password) < 8) {
+		// Mobile number is optional for admin registration
+		$mobile_number = ''; // Set to empty since we're using email OTP
+		if ($password === '') {
+			$errors['password'] = 'Password is required';
+		} elseif (strlen($password) < 8) {
 			$errors['password'] = 'Password must be at least 8 characters';
+		} elseif (!preg_match('/[A-Z]/', $password)) {
+			$errors['password'] = 'Password must contain at least one uppercase letter';
+		} elseif (!preg_match('/[a-z]/', $password)) {
+			$errors['password'] = 'Password must contain at least one lowercase letter';
+		} elseif (!preg_match('/[0-9]/', $password)) {
+			$errors['password'] = 'Password must contain at least one number';
+		} elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
+			$errors['password'] = 'Password must contain at least one special character';
 		}
 		if ($confirm_password === '' || $confirm_password !== $password) {
 			$errors['confirm_password'] = 'Passwords do not match';
@@ -78,15 +71,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if ($exists > 0) {
 					$errors['exists'] = 'Username, email, or mobile already exists';
 				} else {
-					// Store in session then go to OTP step
-					$_SESSION['admin_registration'] = [
-						'username' => $username,
-						'email' => $email,
-						'mobile_number' => $mobile_number,
-						'password' => $password,
-						'role' => $role,
-					];
-					$step = 2;
+					// Generate and send email OTP
+					$otp_code = sprintf('%06d', mt_rand(100000, 999999));
+					$_SESSION['admin_email_otp'] = $otp_code;
+					
+					// Send email OTP
+					require_once '../firebase/firebase_email.php';
+					$subject = 'Admin Registration OTP - PSAU Admission System';
+					$message = "
+					<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+						<div style='background-color: #2E7D32; color: white; padding: 20px; text-align: center;'>
+							<h2>Pampanga State Agricultural University</h2>
+						</div>
+						<div style='padding: 20px; border: 1px solid #ddd;'>
+							<p>Dear Admin,</p>
+							<p>Your OTP code for admin registration is:</p>
+							<div style='background-color: #f8f9fa; padding: 15px; text-align: center; border: 2px solid #2E7D32; margin: 20px 0;'>
+								<h1 style='color: #2E7D32; margin: 0; font-size: 32px; letter-spacing: 5px;'>{$otp_code}</h1>
+							</div>
+							<p>This code will expire in 10 minutes. Please enter it to complete your admin registration.</p>
+							<p>If you did not request this registration, please ignore this email.</p>
+							<p>Best regards,<br>PSAU Admissions Team</p>
+						</div>
+						<div style='background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666;'>
+							<p>&copy; " . date('Y') . " PSAU Admission System. All rights reserved.</p>
+						</div>
+					</div>";
+					
+					try {
+						$result = firebase_send_email($email, $subject, $message);
+						if ($result['success']) {
+							// Store in session then go to OTP step
+							$_SESSION['admin_registration'] = [
+								'username' => $username,
+								'email' => $email,
+								'mobile_number' => $mobile_number,
+								'password' => $password,
+								'role' => $role,
+							];
+							$step = 2;
+						} else {
+							$errors['email'] = 'Failed to send OTP email. Please try again.';
+						}
+					} catch (Exception $e) {
+						error_log('Admin email OTP error: ' . $e->getMessage());
+						$errors['email'] = 'Failed to send OTP email. Please try again.';
+					}
 				}
 			} catch (PDOException $e) {
 				error_log('Admin registration validation error: ' . $e->getMessage());
@@ -94,12 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			}
 		}
 	} elseif ($postedStep === 2) {
-		// OTP verification submit
+		// Email OTP verification submit
 		$otp_code = trim($_POST['otp_code'] ?? '');
 		if ($otp_code === '') {
 			$errors['otp'] = 'OTP code is required';
-		} elseif (!isset($_POST['firebase_verified']) || $_POST['firebase_verified'] !== 'true') {
-			$errors['otp'] = 'OTP verification failed. Please try again.';
+		} elseif (!isset($_SESSION['admin_email_otp']) || $_SESSION['admin_email_otp'] !== $otp_code) {
+			$errors['otp'] = 'Invalid OTP code. Please try again.';
 		}
 
 		if (!$errors) {
@@ -119,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$success = 'Account created successfully. You can now login.';
 				// Clear temp data and reset form
 				unset($_SESSION['admin_registration']);
+				unset($_SESSION['admin_email_otp']);
 				$username = $email = $mobile_number = '';
 				$role = 'registrar';
 				$step = 1;

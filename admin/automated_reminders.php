@@ -32,6 +32,7 @@ function sendEntranceExamReminders($conn) {
             JOIN users u ON a.user_id = u.id
             JOIN exam_schedules es ON e.exam_schedule_id = es.id
             WHERE DATE(es.exam_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+              AND TIME(es.exam_time) >= TIME(NOW())
               AND NOT EXISTS (
                 SELECT 1 FROM reminder_logs r 
                 WHERE r.user_id = u.id 
@@ -44,7 +45,7 @@ function sendEntranceExamReminders($conn) {
         $stmt->execute();
         $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        error_log("Found " . count($exams) . " entrance exams scheduled for tomorrow");
+        error_log("Found " . count($exams) . " entrance exams scheduled for tomorrow (24-hour reminder)");
         
         foreach ($exams as $exam) {
             // Format date and time
@@ -61,7 +62,7 @@ function sendEntranceExamReminders($conn) {
                 <div style='padding: 20px; border: 1px solid #ddd;'>
                     <p>Dear " . htmlspecialchars($exam['first_name']) . ",</p>
                     
-                    <p style='color: #d32f2f; font-weight: bold;'>This is a reminder that your entrance examination is scheduled for tomorrow.</p>
+                    <p style='color: #d32f2f; font-weight: bold;'>This is a 24-hour reminder that your entrance examination is scheduled for tomorrow.</p>
                     
                     <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #2E7D32; margin: 20px 0;'>
                         <h3 style='margin-top: 0; color: #2E7D32;'>Exam Details</h3>
@@ -131,6 +132,7 @@ function sendEnrollmentReminders($conn) {
             JOIN courses c ON ea.student_id = u.id AND c.id = ea.schedule_id /* fallback join, adjust if needed */
             JOIN enrollment_schedules es ON ea.schedule_id = es.id
             WHERE DATE(es.enrollment_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+              AND TIME(es.start_time) >= TIME(NOW())
               AND NOT EXISTS (
                 SELECT 1 FROM reminder_logs r 
                 WHERE r.user_id = u.id 
@@ -143,7 +145,7 @@ function sendEnrollmentReminders($conn) {
         $stmt->execute();
         $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        error_log("Found " . count($enrollments) . " enrollments scheduled for tomorrow");
+        error_log("Found " . count($enrollments) . " enrollments scheduled for tomorrow (24-hour reminder)");
         
         foreach ($enrollments as $enrollment) {
             // Format date and time
@@ -160,7 +162,7 @@ function sendEnrollmentReminders($conn) {
                 <div style='padding: 20px; border: 1px solid #ddd;'>
                     <p>Dear " . htmlspecialchars($enrollment['first_name']) . ",</p>
                     
-                    <p style='color: #d32f2f; font-weight: bold;'>This is a reminder that your enrollment is scheduled for tomorrow.</p>
+                    <p style='color: #d32f2f; font-weight: bold;'>This is a 24-hour reminder that your enrollment is scheduled for tomorrow.</p>
                     
                     <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #2E7D32; margin: 20px 0;'>
                         <h3 style='margin-top: 0; color: #2E7D32;'>Enrollment Details</h3>

@@ -167,9 +167,9 @@ function cleanup_expired_blocks() {
 function track_admin_login_attempt($device_id, $success = false) {
     global $conn;
     $current_time = time();
-    $block_duration = 3 * 60 * 60; // 3 hours in seconds
+    $block_duration = 5 * 60 * 60; // 5 hours in seconds
     $monitoring_period = 60 * 60; // 1 hour in seconds
-    $max_attempts = 5; // Maximum allowed attempts within monitoring period
+    $max_attempts = 3; // Maximum allowed attempts within monitoring period
     
     try {
         // Check if device is currently blocked

@@ -9,7 +9,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/security_functions.php';
 require_once '../includes/api_calls.php';
-require_once '../includes/functions.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -18,7 +17,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Redirect if already logged in as admin
 if (isset($_SESSION['admin_id'])) {
-    safe_redirect('dashboard.php');
+    header('Location: dashboard.php');
+    exit;
 }
 
 // Initialize variables
@@ -59,8 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
+    $recaptcha_token = $_POST['recaptcha_token'] ?? '';
     
-    error_log('Form data - Username: ' . $username . ', Password length: ' . strlen($password));
+    error_log('Form data - Username: ' . $username . ', Password length: ' . strlen($password) . ', reCAPTCHA token: ' . (empty($recaptcha_token) ? 'empty' : 'present'));
     
     // Check if device is blocked before processing
     if ($block_info && $block_info['blocked']) {
@@ -76,6 +77,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($password)) {
             $errors['password'] = 'Password is required';
             error_log('Password validation failed: empty');
+        }
+        
+        // Verify the reCAPTCHA token
+        if (!empty($recaptcha_token)) {
+            error_log('Verifying reCAPTCHA token...');
+            if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
+                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
+                error_log('reCAPTCHA verification failed');
+            } else {
+                error_log('reCAPTCHA verification successful');
+            }
+        } else {
+            // Check if we're on localhost
+            $is_localhost = (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1');
+            if ($is_localhost) {
+                error_log('Localhost detected, allowing login without reCAPTCHA token');
+                // On localhost, we can proceed without reCAPTCHA token
+            } else {
+                $errors['recaptcha'] = 'CAPTCHA verification is required';
+                error_log('reCAPTCHA token required but not provided');
+            }
         }
         
         // If no validation errors, attempt to login
@@ -109,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     
                     // Redirect to admin dashboard
-                    safe_redirect('dashboard.php');
+                    header('Location: dashboard.php');
                     exit;
                 } else {
                     error_log('Admin login failed - Invalid credentials for username: ' . $username);
@@ -121,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $block_check = track_admin_login_attempt($device_id, false);
                     if ($block_check['blocked']) {
                         if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
-                            $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
+                            $errors['blocked'] = 'Your device has been blocked for 5 hours due to too many failed login attempts.';
                         } else {
                             $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
                         }
