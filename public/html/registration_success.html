@@ -20,9 +20,19 @@
             <h2>Registration Successful!</h2>
             <p class="lead">Your account has been created and verified successfully.</p>
             
-            <p>Your control number is:</p>
-            <div class="control-number" id="control-number-value"><?php echo htmlspecialchars($control_number); ?></div>
-            <p class="text-muted">Please keep this number for future reference. It will be used throughout your application process.</p>
+            <div class="registration-details">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Registration Date:</strong></p>
+                        <p class="text-muted"><?php echo date('F j, Y \a\t g:i A', strtotime($user['created_at'])); ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Application Control Number:</strong></p>
+                        <div class="control-number" id="control-number-value"><?php echo htmlspecialchars($control_number); ?></div>
+                    </div>
+                </div>
+                <p class="text-muted mt-3">Please keep your control number for future reference. It will be used throughout your application process.</p>
+            </div>
             
             <div class="next-steps">
                 <h5>Next Steps:</h5>
