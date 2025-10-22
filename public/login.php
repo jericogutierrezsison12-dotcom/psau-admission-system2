@@ -10,6 +10,7 @@ require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/security_functions.php';
 require_once '../includes/functions.php'; // Added for remember me functions
+require_once '../includes/simple_email.php'; // Added for email fallback
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -71,36 +72,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_identifier = trim($_POST['login_identifier'] ?? '');
     $password = $_POST['password'] ?? '';
     $remember_me = isset($_POST['remember_me']);
-    $recaptcha_token = $_POST['recaptcha_token'] ?? '';
-    
     // Check if device is blocked before processing
     if ($block_info && $block_info['blocked']) {
         $errors['blocked'] = 'Your device has been temporarily blocked due to multiple failed login attempts.';
     } else {
         // Validate form data
         if (empty($login_identifier)) {
-            $errors['login_identifier'] = 'Email is required';
+            $errors['login_identifier'] = 'Email or mobile number is required';
         }
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
         }
         
-        // Verify the reCAPTCHA token
-        if (!empty($recaptcha_token)) {
-            if (!verify_recaptcha($recaptcha_token, 'login')) {
-                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
-            }
-        } else {
-            $errors['recaptcha'] = 'CAPTCHA verification is required';
-        }
-        
         // If no validation errors, attempt to login
         if (empty($errors)) {
             try {
-                // Check if user exists with the provided email
-                $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND is_verified = 1");
-                $stmt->execute([$login_identifier]);
+                // Check if user exists with the provided email or mobile number
+                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
+                $stmt->execute([$login_identifier, $login_identifier]);
                 $user = $stmt->fetch();
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
@@ -131,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 } else {
                     // Invalid credentials
-                    $errors['login'] = 'Invalid credentials. Please check your email and password.';
+                    $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
                     
                     // Record failed login attempt
                     $block_check = track_login_attempt($device_id, false);

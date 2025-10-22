@@ -1,9 +1,9 @@
 /**
  * PSAU Admission System - Forgot Password OTP Verification
- * Contains code for step 2 (OTP verification) using email OTP
+ * Contains code for step 2 (OTP verification)
  */
 
-// Import Firebase modules
+// Import Firebase modules for reCAPTCHA only
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
@@ -77,32 +77,32 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(style);
     });
     
-    // Send OTP function (email-based)
+    // Send OTP function
     window.sendOTP = function() {
         if (!isRecaptchaVerified) {
             alert("Please complete the reCAPTCHA verification first");
             return;
         }
 
-        const email = document.getElementById('passwordResetEmail').value;
-        const token = recaptchaResponse;
-
+        const userEmail = document.querySelector('strong').textContent;
+        
+        // AJAX call to send_forgot_password_otp.php
         fetch('send_forgot_password_otp.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, recaptchaResponse: token })
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: userEmail,
+                recaptchaResponse: recaptchaResponse
+            }),
         })
-        .then(async (res) => {
-            if (!res.ok) {
-                const txt = await res.text();
-                throw new Error(txt || 'Failed to send OTP');
-            }
-            return res.json();
-        })
-        .then((data) => {
+        .then(response => response.json())
+        .then(data => {
             if (data.success) {
                 window.otpSent = true;
                 document.getElementById('resend-otp').disabled = true;
+                // Start countdown for resend button
                 let seconds = 60;
                 const countdown = setInterval(() => {
                     document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
@@ -113,17 +113,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('resend-otp').disabled = false;
                     }
                 }, 1000);
+                alert("OTP sent to your email!");
             } else {
-                throw new Error(data.message || 'Failed to send OTP');
+                alert("Error sending OTP: " + data.message);
+                console.error("Error sending OTP:", data.message);
             }
         })
         .catch((error) => {
-            console.error('Error sending OTP:', error);
-            alert('Error sending OTP: ' + error.message);
+            console.error("Error sending OTP:", error);
+            alert("Error sending OTP: " + error.message);
         });
     };
     
-    // Verify OTP button click (server-side validation)
+    // Verify OTP button click
     document.getElementById('verify-otp').addEventListener('click', function() {
         if (!isRecaptchaVerified) {
             alert("Please complete the reCAPTCHA verification first");
@@ -136,12 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show verification in progress
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
-        
-        // For email OTP, just submit the form; PHP will validate session OTP
-        document.getElementById('recaptcha_verified').value = 'true';
+        // Submit the form for server-side OTP verification
+        document.getElementById('firebase_verified').value = 'true'; // Keep this for server-side check
         document.getElementById('otpForm').submit();
     });
     
