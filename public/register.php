@@ -7,7 +7,9 @@
 // Include the database connection and other required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/simple_email.php'; // Added for email fallback
+require_once '../includes/simple_email.php'; // Email fallback (kept for other mails)
+require_once '../includes/api_calls.php'; // reCAPTCHA server-side verify
+require_once '../includes/email_otp.php'; // 6-digit email OTP helpers
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -69,26 +71,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($password !== $confirm_password) {
             $errors['confirm_password'] = 'Passwords do not match';
         }
-
-        // If no errors, proceed to email verification
+        
+        // If no errors, verify reCAPTCHA and send OTP
         if (empty($errors)) {
-            // Store form data in session for later use
-            $_SESSION['registration'] = [
-                'first_name' => $first_name,
-                'last_name' => $last_name,
-                'email' => $email,
-                'password' => $password
-            ];
-            
-            // Move to email verification step (Firebase will handle sending the email)
-            $step = 2;
+            $recaptcha_token = trim($_POST['recaptcha_token'] ?? '');
+            if (empty($recaptcha_token)) {
+                $errors['recaptcha'] = 'Please complete the reCAPTCHA verification.';
+            } elseif (!verify_recaptcha($recaptcha_token)) {
+                $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
+            } else {
+                // Store form data in session for later use
+                $_SESSION['registration'] = [
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'email' => $email,
+                    'password' => $password
+                ];
+
+                // Generate and send 6-digit OTP via email
+                $otp_code = generate_otp_code();
+                $email_sent = send_otp_email($email, $otp_code, 'registration');
+
+                if ($email_sent) {
+                    // Store OTP in session with expiry
+                    store_otp_session($email, $otp_code, 'registration');
+                    $step = 2;
+                } else {
+                    $errors['email'] = 'Failed to send verification email. Please try again.';
+                }
+            }
         }
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
-        // Process Firebase email verification
-        if (!isset($_POST['firebase_verified']) || $_POST['firebase_verified'] !== 'true') {
-            $errors['otp'] = 'Email verification failed. Please try again.';
+    // Process OTP verification (6-digit code)
+    $otp_code = trim($_POST['otp_code'] ?? '');
+    if (empty($otp_code)) {
+        $errors['otp'] = 'OTP code is required';
+    } else {
+        $registration = $_SESSION['registration'] ?? null;
+        if (!$registration) {
+            $errors['registration'] = 'Session expired. Please start again.';
+            $step = 1;
         } else {
-            // Firebase email verified, create user account
+            $verify = verify_otp_session($otp_code, $registration['email'], 'registration');
+            if (!$verify['success']) {
+                $errors['otp'] = $verify['message'];
+            } else {
+                // OTP verified, create user account
             try {
                 $conn->beginTransaction();
                 
@@ -112,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $registration['last_name'],
                     $registration['email'],
                     $hashed_password,
-                    1 // Verified through Firebase email
+                    1 // Verified through email OTP
                 ]);
                 
                 $user_id = $conn->lastInsertId();
@@ -136,8 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    }
 }
 
 // Include the HTML template
+}
 include('html/register.html');
 ?> 
