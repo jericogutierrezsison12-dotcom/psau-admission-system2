@@ -142,7 +142,11 @@ function setupOTPVerification() {
  * Setup password validation functionality
  */
 function setupPasswordValidation() {
-    document.getElementById('password').addEventListener('input', function() {
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    
+    // Password strength validation
+    passwordField.addEventListener('input', function() {
         const password = this.value;
         
         // Check length
@@ -164,5 +168,54 @@ function setupPasswordValidation() {
         // Check special character
         document.getElementById('special').style.color = 
             /[^A-Za-z0-9]/.test(password) ? 'green' : 'inherit';
+        
+        // Update confirm password validation
+        validatePasswordMatch();
     });
+    
+    // Password confirmation validation
+    if (confirmPasswordField) {
+        confirmPasswordField.addEventListener('input', validatePasswordMatch);
+    }
+    
+    // Form submission validation
+    const form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validatePasswordStrength() || !validatePasswordMatch()) {
+                e.preventDefault();
+                alert('Please ensure your password meets all requirements and passwords match.');
+                return false;
+            }
+        });
+    }
+}
+
+/**
+ * Validate password strength
+ */
+function validatePasswordStrength() {
+    const password = document.getElementById('password').value;
+    
+    return password.length >= 8 &&
+           /[A-Z]/.test(password) &&
+           /[a-z]/.test(password) &&
+           /[0-9]/.test(password) &&
+           /[^A-Za-z0-9]/.test(password);
+}
+
+/**
+ * Validate password match
+ */
+function validatePasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (confirmPassword && password !== confirmPassword) {
+        document.getElementById('confirm_password').classList.add('is-invalid');
+        return false;
+    } else {
+        document.getElementById('confirm_password').classList.remove('is-invalid');
+        return true;
+    }
 } 

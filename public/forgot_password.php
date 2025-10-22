@@ -125,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Success message
                 $success = true;
+                $step = 4; // Move to success step
                 
                 // Unset password reset session
                 unset($_SESSION['password_reset']);
