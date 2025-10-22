@@ -118,6 +118,7 @@
                         <button type="submit" class="btn btn-psau g-recaptcha" 
                             data-sitekey="<?php echo htmlspecialchars($recaptcha_site_key); ?>"
                             data-callback="onLoginSubmit"
+                            data-error-callback="onRecaptchaError"
                             data-action="login">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Login
                         </button>

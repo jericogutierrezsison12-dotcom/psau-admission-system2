@@ -87,6 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If no validation errors, attempt to login
         if (empty($errors)) {
+            // Verify reCAPTCHA token
+            $recaptcha_token = $_POST['recaptcha_token'] ?? '';
+            if (!verify_recaptcha($recaptcha_token, 'login')) {
+                $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
+            }
+        }
+        
+        // If no validation errors after reCAPTCHA check, attempt to login
+        if (empty($errors)) {
             try {
                 // Check if user exists with the provided email or mobile number
                 $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");

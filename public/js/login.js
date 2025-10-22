@@ -47,6 +47,23 @@ function startCountdown() {
     }
 }
 
+// reCAPTCHA callback function
+function onLoginSubmit(token) {
+    console.log('reCAPTCHA token received:', token);
+    
+    // Set the reCAPTCHA token in the hidden field
+    document.getElementById('recaptchaToken').value = token;
+    
+    // Submit the form
+    document.getElementById('loginForm').submit();
+}
+
+// Global function for reCAPTCHA error handling
+function onRecaptchaError(error) {
+    console.error('reCAPTCHA error:', error);
+    alert('reCAPTCHA verification failed. Please try again.');
+}
+
 // Document ready handler
 document.addEventListener('DOMContentLoaded', function() {
     // Generate device fingerprint
@@ -54,4 +71,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Start countdown if blocked
     startCountdown();
+    
+    // Add form validation
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            // Check if reCAPTCHA token exists
+            const recaptchaToken = document.getElementById('recaptchaToken').value;
+            if (!recaptchaToken) {
+                e.preventDefault();
+                alert('Please complete the reCAPTCHA verification.');
+                return false;
+            }
+        });
+    }
 }); 
