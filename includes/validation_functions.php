@@ -139,3 +139,79 @@ function validate_pdf($pdf_path) {
         ];
     }
 }
+
+/**
+ * Detect if OCR text represents a report card
+ * 
+ * @param string $text The OCR extracted text
+ * @return array [boolean, string] - [is_report_card, message]
+ */
+function detect_report_card_from_text($text) {
+    if (empty($text)) {
+        return [false, 'No text found in document'];
+    }
+    
+    $text = strtolower($text);
+    
+    // Keywords that indicate a report card
+    $report_card_keywords = [
+        'report card',
+        'grade',
+        'semester',
+        'quarter',
+        'final grade',
+        'gpa',
+        'grade point average',
+        'subject',
+        'units',
+        'credits',
+        'academic year',
+        'school year',
+        'student id',
+        'student number',
+        'enrollment',
+        'transcript',
+        'academic record',
+        'marks',
+        'scores',
+        'percentage',
+        'pass',
+        'fail',
+        'incomplete',
+        'withdrawn'
+    ];
+    
+    // Count matching keywords
+    $matches = 0;
+    foreach ($report_card_keywords as $keyword) {
+        if (strpos($text, $keyword) !== false) {
+            $matches++;
+        }
+    }
+    
+    // Check for grade patterns (e.g., "A+", "B-", "85%", "3.5")
+    $grade_patterns = [
+        '/\b[a-f][+-]?\b/i',  // Letter grades like A+, B-, C
+        '/\b\d{1,3}%\b/',     // Percentage grades like 85%, 92%
+        '/\b\d\.\d\b/',       // GPA like 3.5, 2.8
+        '/\b\d{1,2}\/\d{1,2}\b/', // Fraction grades like 85/100
+    ];
+    
+    $pattern_matches = 0;
+    foreach ($grade_patterns as $pattern) {
+        if (preg_match($pattern, $text)) {
+            $pattern_matches++;
+        }
+    }
+    
+    // Determine if it's likely a report card
+    $is_report_card = ($matches >= 3) || ($matches >= 2 && $pattern_matches >= 2);
+    
+    if ($is_report_card) {
+        $message = 'Document appears to be a valid report card';
+    } else {
+        $message = 'Document does not appear to be a report card. Please upload a clear image of your report card or transcript.';
+    }
+    
+    return [$is_report_card, $message];
+}
