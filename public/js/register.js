@@ -100,28 +100,13 @@ function setupOtpVerification() {
         }
 
         const phoneNumber = "+63" + document.getElementById('mobileNumber').value;
-        console.log("Attempting to send OTP to:", phoneNumber);
-        
-        // Show loading state
-        const verifyBtn = document.getElementById('verify-otp');
-        const originalText = verifyBtn.innerHTML;
-        verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending OTP...';
         
         signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
             .then((confirmationResult) => {
-                console.log("OTP sent successfully!");
                 // SMS sent. Store confirmationResult for later use
                 window.confirmationResult = confirmationResult;
                 window.otpSent = true;
                 document.getElementById('resend-otp').disabled = true;
-                
-                // Reset button
-                verifyBtn.disabled = false;
-                verifyBtn.innerHTML = originalText;
-                
-                // Show success message
-                alert("OTP sent successfully! Please check your phone for the verification code.");
                 
                 // Start countdown for resend button
                 let seconds = 60;
@@ -137,23 +122,7 @@ function setupOtpVerification() {
             }).catch((error) => {
                 // Error; SMS not sent
                 console.error("Error sending OTP:", error);
-                console.error("Error code:", error.code);
-                console.error("Error message:", error.message);
-                
-                // Reset button
-                verifyBtn.disabled = false;
-                verifyBtn.innerHTML = originalText;
-                
-                // Show detailed error message
-                let errorMessage = "Error sending OTP: " + error.message;
-                if (error.code === 'auth/invalid-phone-number') {
-                    errorMessage = "Invalid phone number format. Please check your mobile number.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = "Too many requests. Please try again later.";
-                } else if (error.code === 'auth/captcha-check-failed') {
-                    errorMessage = "reCAPTCHA verification failed. Please try again.";
-                }
-                alert(errorMessage);
+                alert("Error sending OTP: " + error.message);
             });
     };
     
