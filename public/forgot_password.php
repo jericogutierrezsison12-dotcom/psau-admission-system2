@@ -1,7 +1,7 @@
 <?php
 /**
  * PSAU Admission System - Forgot Password Page
- * Allows users to reset their password using OTP sent via SMS
+ * Allows users to reset their password using OTP sent via email
  */
 
 // Include required files
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['email'] = 'Please enter a valid email address';
         } else {
             // Check if user exists with this email
-            $stmt = $conn->prepare("SELECT id, first_name, last_name, email FROM users WHERE email = ? AND is_verified = 1");
+            $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE email = ? AND is_verified = 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             
@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email' => $user['email'],
                     'first_name' => $user['first_name'],
                     'last_name' => $user['last_name'],
+                    'mobile_number' => $user['mobile_number'],
                     'timestamp' => time()
                 ];
                 
@@ -57,12 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($otp_code)) {
             $errors['otp'] = 'OTP code is required';
-        } elseif (!isset($_SESSION['password_reset']['otp_code']) || $_SESSION['password_reset']['otp_code'] !== $otp_code) {
-            $errors['otp'] = 'Invalid OTP code. Please try again.';
-        } elseif (isset($_SESSION['password_reset']['otp_expires']) && time() > $_SESSION['password_reset']['otp_expires']) {
-            $errors['otp'] = 'OTP code has expired. Please request a new one.';
-            unset($_SESSION['password_reset']['otp_code']);
-            unset($_SESSION['password_reset']['otp_expires']);
+        } elseif (!preg_match('/^\d{6}$/', $otp_code)) {
+            $errors['otp'] = 'Invalid OTP format';
+        } elseif (!isset($_SESSION['password_reset']['otp_code'], $_SESSION['password_reset']['otp_expires'])) {
+            $errors['otp'] = 'No OTP found. Please resend the code.';
+        } elseif (time() > (int)$_SESSION['password_reset']['otp_expires']) {
+            $errors['otp'] = 'OTP has expired. Please resend the code.';
+        } elseif ($otp_code !== (string)$_SESSION['password_reset']['otp_code']) {
+            $errors['otp'] = 'Incorrect OTP. Please try again.';
         } else {
             // OTP verified, move to password reset step
             $step = 3;

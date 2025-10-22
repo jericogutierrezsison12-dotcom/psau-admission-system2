@@ -2,6 +2,7 @@
 /**
  * Firebase Configuration
  * Centralized configuration for Firebase services
+ * Supports both local development and production deployment (Render)
  */
 
 // Detect environment
@@ -19,7 +20,7 @@ if ($is_production) {
     ini_set('display_errors', 1);
 }
 
-// Firebase project configuration - use environment variables if available
+// Firebase project configuration
 $firebase_config = [
     'apiKey' => getenv('FIREBASE_API_KEY') ?: 'AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8',
     'authDomain' => getenv('FIREBASE_AUTH_DOMAIN') ?: 'psau-admission-system.firebaseapp.com',
@@ -27,20 +28,15 @@ $firebase_config = [
     'storageBucket' => getenv('FIREBASE_STORAGE_BUCKET') ?: 'psau-admission-system.appspot.com',
     'messagingSenderId' => getenv('FIREBASE_MESSAGING_SENDER_ID') ?: '522448258958',
     'appId' => getenv('FIREBASE_APP_ID') ?: '1:522448258958:web:994b133a4f7b7f4c1b06df',
-    'email_function_url' => getenv('FIREBASE_EMAIL_FUNCTION_URL') ?: 'https://sendemail-alsstt22ha-uc.a.run.app',
-    'allowed_domains' => [
-        'localhost',
-        '127.0.0.1',
-        'psau-admission-system.onrender.com'
-    ]
+    'email_function_url' => getenv('FIREBASE_EMAIL_FUNCTION_URL') ?: 'https://sendemail-alsstt22ha-uc.a.run.app'
 ];
 
 // Validate required configuration
 if (empty($firebase_config['apiKey']) || empty($firebase_config['email_function_url'])) {
     error_log("Firebase configuration error: Missing required fields");
     if ($is_production) {
-        // In production, don't throw exceptions that might break JSON responses
-        error_log("Firebase configuration incomplete in production");
+        // In production, don't throw exceptions that might expose sensitive info
+        error_log("Firebase configuration incomplete in production environment");
     } else {
         throw new Exception("Firebase configuration error: Missing required fields");
     }
@@ -50,6 +46,9 @@ if (empty($firebase_config['apiKey']) || empty($firebase_config['email_function_
 if (!$is_production) {
     error_log("Firebase configuration loaded successfully");
     error_log("Email function URL: " . $firebase_config['email_function_url']);
+    error_log("Environment: Development");
+} else {
+    error_log("Firebase configuration loaded for production environment");
 }
 
 // Firebase SDK version

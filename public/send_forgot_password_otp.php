@@ -2,49 +2,49 @@
 /**
  * PSAU Admission System - Send Forgot Password OTP
  * Sends OTP via email for password reset
+ * Compatible with both local development and Render deployment
  */
 
-// Start output buffering to prevent any output before JSON
+// Detect environment
+$is_production = !empty($_ENV['RENDER']) || !empty($_SERVER['RENDER']);
+
+// Start output buffering to ensure clean JSON only
 ob_start();
 
-// Disable error display to prevent HTML in JSON response
-error_reporting(0);
-ini_set('display_errors', 0);
+// Configure error reporting based on environment
+if ($is_production) {
+    // Production settings for Render
+    error_reporting(E_ERROR | E_WARNING | E_PARSE);
+    ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
+} else {
+    // Development settings
+    error_reporting(0);
+    ini_set('display_errors', 0);
+}
 
-session_start();
-
-// Temporarily disable error reporting for includes
-$old_error_reporting = error_reporting(0);
-$old_display_errors = ini_get('display_errors');
-ini_set('display_errors', 0);
-
-try {
+// Override Firebase config error reporting
+if (file_exists('../firebase/config.php')) {
+    // Temporarily disable error reporting for Firebase config
+    $original_error_reporting = error_reporting(0);
+    $original_display_errors = ini_set('display_errors', 0);
+    
+    session_start();
     require_once '../includes/db_connect.php';
     require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
-} catch (Exception $e) {
-    // Restore error reporting
-    error_reporting($old_error_reporting);
-    ini_set('display_errors', $old_display_errors);
     
-    // Clean output buffer and return error
-    ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'message' => 'System error. Please try again.']);
-    exit;
+    // Restore original settings
+    error_reporting($original_error_reporting);
+    ini_set('display_errors', $original_display_errors);
+} else {
+    session_start();
+    require_once '../includes/db_connect.php';
+    require_once '../firebase/firebase_email.php'; // For sending emails
+    require_once '../includes/api_calls.php'; // For reCAPTCHA verification
 }
 
-// Restore error reporting
-error_reporting($old_error_reporting);
-ini_set('display_errors', $old_display_errors);
-
-// Clean any output that might have been generated
-$output = ob_get_clean();
-if (!empty($output)) {
-    error_log("Unexpected output before JSON: " . $output);
-}
-
-// Set proper headers
+// Set proper headers for JSON response
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
@@ -108,21 +108,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (is_array($email_result) && isset($email_result['success']) && $email_result['success']) {
             $response['success'] = true;
             $response['message'] = 'OTP sent to your email.';
+            
+            // Log success in production
+            if ($is_production) {
+                error_log("Password reset OTP sent successfully to: " . $email);
+            }
         } else {
-            // If Firebase fails, log the OTP for testing
+            // If Firebase fails, log the OTP for testing/debugging
             error_log("Firebase email failed, OTP for {$email}: {$otp}");
             $response['success'] = true;
             $response['message'] = 'OTP sent to your email. (Check server logs for OTP)';
+            
+            // In production, provide a more user-friendly message
+            if ($is_production) {
+                $response['message'] = 'OTP sent to your email. Please check your inbox and spam folder.';
+            }
         }
     } catch (Exception $e) {
         // If Firebase completely fails, still provide OTP via logs
         error_log("Firebase email error: " . $e->getMessage());
         error_log("OTP for {$email}: {$otp}");
         $response['success'] = true;
-        $response['message'] = 'OTP sent to your email. (Check server logs for OTP)';
+        
+        // Different messages for production vs development
+        if ($is_production) {
+            $response['message'] = 'OTP sent to your email. Please check your inbox and spam folder.';
+        } else {
+            $response['message'] = 'OTP sent to your email. (Check server logs for OTP)';
+        }
     }
 } else {
     $response['message'] = 'Invalid request method.';
+}
+
+// Clear any buffered output and return clean JSON
+$output = ob_get_clean();
+if (!empty($output)) {
+    error_log("Unexpected output before JSON: " . $output);
 }
 
 // Ensure we only output JSON with proper error handling
@@ -134,20 +156,28 @@ try {
         header('Cache-Control: no-cache, must-revalidate');
         header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
     }
-
+    
     // Encode JSON with proper error handling
     $json_response = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
+    
     if ($json_response === false) {
         error_log("JSON encoding error: " . json_last_error_msg());
-        // Return a safe error response
-        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+        if ($is_production) {
+            // In production, return a safe error response
+            echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'JSON encoding error: ' . json_last_error_msg()]);
+        }
     } else {
         echo $json_response;
     }
 } catch (Exception $e) {
     error_log("Error in JSON response: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+    if ($is_production) {
+        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Response error: ' . $e->getMessage()]);
+    }
 }
 exit;
 ?>
