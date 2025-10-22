@@ -4,9 +4,18 @@
  * Centralized configuration for Firebase services
  */
 
-// Enable error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Environment detection
+$is_production = (getenv('RENDER') === 'true' || strpos($_SERVER['SERVER_NAME'] ?? '', 'onrender.com') !== false);
+
+// Configure error reporting based on environment
+if ($is_production) {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
 
 // Firebase project configuration
 $firebase_config = [
@@ -27,7 +36,12 @@ $firebase_config = [
 // Validate required configuration
 if (empty($firebase_config['apiKey']) || empty($firebase_config['email_function_url'])) {
     error_log("Firebase configuration error: Missing required fields");
-    throw new Exception("Firebase configuration error: Missing required fields");
+    if ($is_production) {
+        // In production, log error but don't throw exception to prevent server errors
+        error_log("Firebase configuration incomplete - email service may not work");
+    } else {
+        throw new Exception("Firebase configuration error: Missing required fields");
+    }
 }
 
 // Log configuration status

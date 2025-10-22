@@ -61,6 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 		if (!$errors) {
 			try {
+				// Debug: Log the registration attempt
+				error_log("Admin registration attempt - Username: $username, Email: $email, Role: $role");
+				
 				// Ensure admins table has mobile_number column (MariaDB supports IF NOT EXISTS)
 				$conn->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS mobile_number varchar(20) NOT NULL AFTER email");
 
@@ -76,7 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$_SESSION['admin_email_otp'] = $otp_code;
 					
 					// Send email OTP
+					error_log("Attempting to include firebase_email.php");
 					require_once '../firebase/firebase_email.php';
+					error_log("Firebase email file included successfully");
+					
 					$subject = 'Admin Registration OTP - PSAU Admission System';
 					$message = "
 					<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -100,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					
 					try {
 						$result = firebase_send_email($email, $subject, $message);
-						if ($result['success']) {
+						if (is_array($result) && isset($result['success']) && $result['success']) {
 							// Store in session then go to OTP step
 							$_SESSION['admin_registration'] = [
 								'username' => $username,
@@ -111,10 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 							];
 							$step = 2;
 						} else {
+							error_log('Firebase email failed: ' . json_encode($result));
 							$errors['email'] = 'Failed to send OTP email. Please try again.';
 						}
 					} catch (Exception $e) {
 						error_log('Admin email OTP error: ' . $e->getMessage());
+						$errors['email'] = 'Failed to send OTP email. Please try again.';
+					} catch (Error $e) {
+						error_log('Admin email OTP fatal error: ' . $e->getMessage());
 						$errors['email'] = 'Failed to send OTP email. Please try again.';
 					}
 				}
