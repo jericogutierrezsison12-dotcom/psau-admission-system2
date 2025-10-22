@@ -5,73 +5,7 @@
  */
 
 /**
- * OCR API client using https://ocr-1-hej5.onrender.com
- * Extracts text from PDF files using advanced OCR technology
- */
-function ocr_extract_text($pdf_path) {
-    if (!file_exists($pdf_path)) {
-        return ['success' => false, 'text' => '', 'raw' => null, 'message' => 'File not found'];
-    }
-
-    $url = 'https://ocr-1-hej5.onrender.com/api/extract';
-
-    // Prepare multipart/form-data
-    $post_fields = [
-        'file' => new CURLFile($pdf_path, mime_content_type($pdf_path), basename($pdf_path))
-    ];
-
-    // Keep a bounded script time to avoid long waits
-    @set_time_limit(120); // Increased timeout for processing
-
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-    // Timeouts for OCR processing (can take up to 2 minutes)
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-    curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1024);
-    curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 30);
-
-    $response = curl_exec($ch);
-
-    if (curl_errno($ch)) {
-        $err = curl_error($ch);
-        curl_close($ch);
-        error_log('OCR API Error: ' . $err);
-        $msg = (stripos($err, 'Operation timed out') !== false) ? 'OCR timed out. Please upload a clearer or smaller PDF and try again.' : 'OCR service error';
-        return ['success' => false, 'text' => '', 'raw' => null, 'message' => $msg];
-    }
-
-    curl_close($ch);
-
-    $decoded = json_decode($response, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log('OCR API JSON parse error');
-        return ['success' => false, 'text' => '', 'raw' => $response, 'message' => 'Invalid OCR response'];
-    }
-
-    // Check for error in response
-    if (!empty($decoded['error'])) {
-        $msg = $decoded['error'] ?? 'OCR processing error';
-        error_log('OCR API reported error: ' . $msg);
-        return ['success' => false, 'text' => '', 'raw' => $decoded, 'message' => $msg];
-    }
-
-    // Extract text from response
-    $text = '';
-    if (!empty($decoded['text'])) {
-        $text = $decoded['text'];
-    } elseif (!empty($decoded['extracted_text'])) {
-        $text = $decoded['extracted_text'];
-    }
-
-    return ['success' => true, 'text' => $text, 'raw' => $decoded, 'message' => 'OK'];
-}
-
-/**
- * Legacy OCR.Space API client (kept for fallback)
+ * OCR.Space API client
  * Uses OCR.Space Free API to extract text from PDFs/images
  */
 function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
@@ -251,43 +185,6 @@ function validate_required_text_from_ocr($text) {
     return [true, 'PDF contains both 1st Grading and 2nd Grading information.'];
 }
 
-function detect_report_card_from_text($text) {
-	// Empty text cannot be a valid report card
-	if ($text === '' || $text === null) {
-		return [false, 'No text extracted from document.'];
-	}
-
-	// Strong report card indicators (DepEd forms, report card labels)
-	$strong_indicators = [
-		'/\bForm\s*138\b/i',
-		'/\bForm\s*137\b/i',
-		'/\bReport\s*Card\b/i',
-		"/Learner'?s\s*Progress\s*Report\s*Card/i",
-		'/\bGeneral\s*Average\b/i'
-	];
-	foreach ($strong_indicators as $rx) {
-		if (preg_match($rx, $text)) {
-			return [true, 'Report card indicators detected.'];
-		}
-	}
-
-	// Grading period cues (allows OCR mistakes)
-	list($has_req,) = validate_required_text_from_ocr($text);
-
-	// Common subject keywords increase likelihood
-	$subjects = ['Math', 'Mathematics', 'English', 'Science', 'Filipino', 'Araling', 'MAPEH', 'TLE', 'ESP'];
-	$subject_hits = 0;
-	foreach ($subjects as $word) {
-		if (preg_match('/\b' . preg_quote($word, '/') . '\b/i', $text)) { $subject_hits++; }
-	}
-
-	if ($has_req && $subject_hits >= 2) {
-		return [true, 'Grading periods and subjects detected.'];
-	}
-
-	return [false, 'The uploaded document does not appear to be a report card.'];
-}
-
 function validate_grades_from_ocr($text) {
     if ($text === '' || $text === null) {
         return [true, 'No specific grades were detected in the document.'];
@@ -367,8 +264,16 @@ function validate_grades_from_ocr($text) {
         }
     }
 
-    // Grade threshold checks are disabled; do not fail based on numeric grades
-    return [true, 'Grade threshold check disabled; proceeding without enforcing minimum grade.'];
+    // If nothing found for Q1/Q2, still pass; we only fail on explicit <=74
+    $low_q1 = array_filter($q1_grades, function($g){ return $g < 75; });
+    $low_q2 = array_filter($q2_grades, function($g){ return $g < 75; });
+
+    $fail_count = count($low_q1) + count($low_q2);
+    if ($fail_count > 0) {
+        return [false, 'Found ' . $fail_count . ' grade(s) below 75 in 1st/2nd grading. Minimum required grade is 75.'];
+    }
+
+    return [true, 'No grades below 75 detected for 1st and 2nd grading.'];
 }
 
 /**
@@ -549,17 +454,17 @@ function validate_pdf_via_firebase($control_number, $pdf_path) {
  * @return bool True if verification successful, false otherwise
  */
 function verify_recaptcha($token, $action = null) {
-    $secret_key = '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N';
+    $secret_key = getenv('RECAPTCHA_SECRET_KEY') ?: '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N';
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     
-    // Check if running on localhost or production domain
+    // Check if running on localhost - special handling
     $server_name = strtolower($_SERVER['SERVER_NAME'] ?? 'localhost');
     $is_localhost = ($server_name === 'localhost' || $server_name === '127.0.0.1' || strpos($server_name, '192.168.') === 0);
-    $is_production = ($server_name === 'psau-admission-system.onrender.com');
     
     // If this is localhost and we're in development mode, we can bypass strict validation
-    // For production, always verify
-    $dev_mode = $is_localhost; // Only bypass on localhost
+    // Controlled via APP_ENV env var (production disables bypass)
+    $app_env = strtolower(getenv('APP_ENV') ?: 'development');
+    $dev_mode = ($app_env !== 'production');
     if ($is_localhost && $dev_mode && !empty($token)) {
         // For localhost in dev mode, just log the attempt but allow it
         error_log('reCAPTCHA on localhost: Verification bypassed in development mode');
@@ -655,36 +560,34 @@ function analyze_document($application_id) {
             return ['success' => false, 'message' => 'PDF file not found'];
         }
         
-        // Extract OCR text via new OCR API
-        $ocr = ocr_extract_text($pdf_path);
+        // Extract OCR text via OCR.Space
+        $ocr = ocrspace_extract_text($pdf_path);
         if (!$ocr['success']) {
-            // Fallback to OCR.Space if new API fails
-            $ocr = ocrspace_extract_text($pdf_path);
-            if (!$ocr['success']) {
-                return ['success' => false, 'message' => 'OCR failed: ' . ($ocr['message'] ?? 'Unknown error')];
-            }
+            return ['success' => false, 'message' => 'OCR failed: ' . ($ocr['message'] ?? 'Unknown error')];
         }
 
         $text = $ocr['text'] ?? '';
 
-        // Validation using PHP helpers: detect report card (no grade threshold checks)
-        list($is_report_card, $report_msg) = detect_report_card_from_text($text);
+        // Validation using PHP helpers (grading periods and grades)
+        list($has_required_text, $required_msg) = validate_required_text_from_ocr($text);
+        list($grades_ok, $grades_msg) = validate_grades_from_ocr($text);
 
         // Without image processing, we skip blur checks; treat as OK
         $quality_ok = true;
         $quality_msg = 'Document quality check skipped (no local image processing).';
 
-        $is_valid = ($is_report_card && $quality_ok);
+        $is_valid = ($has_required_text && $grades_ok && $quality_ok);
 
         // Build analysis structure similar to previous output
         $analysis = [
             'success' => true,
             'isValid' => $is_valid,
             'message' => $is_valid
-                ? 'PDF validated successfully as a report card.'
-                : $report_msg,
+                ? 'PDF validated successfully. Contains both grading periods, all grades are 75+.'
+                : trim(($has_required_text ? '' : $required_msg . ' ') . ($grades_ok ? '' : $grades_msg . ' ')),
             'details' => [
-                'reportCard' => [ 'ok' => $is_report_card, 'message' => $report_msg ],
+                'requiredText' => [ 'ok' => $has_required_text, 'message' => $required_msg ],
+                'grades' => [ 'ok' => $grades_ok, 'message' => $grades_msg ],
                 'quality' => [ 'ok' => $quality_ok, 'message' => $quality_msg ]
             ]
         ];
@@ -767,13 +670,9 @@ function extract_document_information($pdf_path) {
     
     try {
         // OCR the PDF and parse fields from the text
-        $ocr = ocr_extract_text($pdf_path);
+        $ocr = ocrspace_extract_text($pdf_path);
         if (!$ocr['success']) {
-            // Fallback to OCR.Space if new API fails
-            $ocr = ocrspace_extract_text($pdf_path);
-            if (!$ocr['success']) {
-                return $fields;
-            }
+            return $fields;
         }
 
         $text_content = $ocr['text'] ?? '';
