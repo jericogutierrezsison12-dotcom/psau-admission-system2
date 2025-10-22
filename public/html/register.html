@@ -73,17 +73,6 @@
                             <?php endif; ?>
                         </div>
                         
-                        <div class="col-md-6">
-                            <label for="mobile_number" class="form-label">Mobile Number <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">+63</span>
-                                <input type="tel" class="form-control <?php echo isset($errors['mobile_number']) ? 'is-invalid' : ''; ?>" id="mobile_number" name="mobile_number" value="<?php echo htmlspecialchars($mobile_number); ?>" placeholder="9XXXXXXXXX" required>
-                                <?php if (isset($errors['mobile_number'])): ?>
-                                    <div class="invalid-feedback"><?php echo $errors['mobile_number']; ?></div>
-                                <?php endif; ?>
-                            </div>
-                            <small class="text-muted">Format: 9XXXXXXXXX</small>
-                        </div>
                         
                         <div class="col-md-6">
                             <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
@@ -149,18 +138,18 @@
                     
                     <form method="POST" action="register.php" id="otpForm">
                         <input type="hidden" name="step" value="2">
+                        <input type="hidden" name="firebase_verified" id="firebase_verified" value="false">
+                        <input type="hidden" name="userEmail" id="userEmail" value="<?php echo htmlspecialchars($_SESSION['registration']['email']); ?>">
                         
-                        <div class="mb-3">
-                            <label for="otp_code" class="form-label">Enter OTP Code</label>
-                            <input type="text" class="form-control form-control-lg text-center <?php echo isset($errors['otp']) ? 'is-invalid' : ''; ?>" id="otp_code" name="otp_code" placeholder="Enter 6-digit code" maxlength="6" required>
-                            <?php if (isset($errors['otp'])): ?>
-                                <div class="invalid-feedback"><?php echo $errors['otp']; ?></div>
-                            <?php endif; ?>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Check your email!</strong><br>
+                            We've sent a verification link to <strong><?php echo htmlspecialchars($_SESSION['registration']['email']); ?></strong><br>
+                            Click the link in the email to verify your account.
                         </div>
                         
                         <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-psau">Verify OTP</button>
-                            <a href="register.php" class="btn btn-outline-secondary">Resend OTP</a>
+                            <button type="button" id="resend-otp" class="btn btn-outline-secondary">Resend Verification Email</button>
                             <a href="register.php" class="btn btn-light">Go Back</a>
                         </div>
                     </form>

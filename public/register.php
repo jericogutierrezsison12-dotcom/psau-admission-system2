@@ -8,7 +8,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/simple_email.php'; // Added for email fallback
-require_once '../includes/email_otp.php'; // Added for email OTP
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -17,9 +16,8 @@ redirect_if_logged_in('dashboard.php');
 $first_name = '';
 $last_name = '';
 $email = '';
-$mobile_number = '';
 $errors = [];
-$step = 1; // Step 1: Form, Step 2: OTP Verification
+$step = 1; // Step 1: Form, Step 2: Email Verification
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -28,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $mobile_number = trim($_POST['mobile_number'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         
@@ -54,18 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        if (empty($mobile_number)) {
-            $errors['mobile_number'] = 'Mobile number is required';
-        } elseif (!preg_match('/^\+?[0-9]{10,15}$/', $mobile_number)) {
-            $errors['mobile_number'] = 'Please enter a valid mobile number';
-        } else {
-            // Check if mobile number already exists
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
-            $stmt->execute([$mobile_number]);
-            if ($stmt->fetchColumn() > 0) {
-                $errors['mobile_number'] = 'Mobile number is already registered';
-            }
-        }
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
@@ -85,44 +70,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['confirm_password'] = 'Passwords do not match';
         }
 
-        // If no errors, proceed to OTP verification
+        // If no errors, proceed to email verification
         if (empty($errors)) {
             // Store form data in session for later use
             $_SESSION['registration'] = [
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
-                'mobile_number' => $mobile_number,
                 'password' => $password
             ];
             
-            // Generate and send email OTP
-            $otp_code = generate_otp_code();
-            $email_sent = send_otp_email($email, $otp_code, 'registration');
-            
-            if ($email_sent) {
-                // Store OTP in session
-                store_otp_session($email, $otp_code, 'registration');
-                $step = 2;
-            } else {
-                $errors['email'] = 'Failed to send verification email. Please try again.';
-            }
+            // Move to email verification step (Firebase will handle sending the email)
+            $step = 2;
         }
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
-        // Process OTP verification
-        $otp_code = trim($_POST['otp_code'] ?? '');
-        
-        if (empty($otp_code)) {
-            $errors['otp'] = 'OTP code is required';
+        // Process Firebase email verification
+        if (!isset($_POST['firebase_verified']) || $_POST['firebase_verified'] !== 'true') {
+            $errors['otp'] = 'Email verification failed. Please try again.';
         } else {
-            // Verify email OTP
-            $registration = $_SESSION['registration'];
-            $verification_result = verify_otp_session($otp_code, $registration['email'], 'registration');
-            
-            if (!$verification_result['success']) {
-                $errors['otp'] = $verification_result['message'];
-            } else {
-                // OTP verified, create user account
+            // Firebase email verified, create user account
             try {
                 $conn->beginTransaction();
                 
@@ -139,15 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
                 // Insert user into database
-                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, password, is_verified) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
                     $registration['first_name'],
                     $registration['last_name'],
                     $registration['email'],
-                    $registration['mobile_number'],
                     $hashed_password,
-                    1 // Verified through OTP
+                    1 // Verified through Firebase email
                 ]);
                 
                 $user_id = $conn->lastInsertId();
@@ -170,9 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $step = 1; // Go back to form
             }
         }
-            }
-        }
     }
+}
 
 // Include the HTML template
 include('html/register.html');
