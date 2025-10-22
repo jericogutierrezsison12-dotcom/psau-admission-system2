@@ -6,7 +6,7 @@
 
 session_start();
 require_once '../includes/db_connect.php';
-// require_once '../firebase/firebase_email.php'; // For sending emails - disabled for now
+require_once '../firebase/firebase_email.php'; // For sending emails
 require_once '../includes/security_functions.php'; // For reCAPTCHA verification
 
 header('Content-Type: application/json');
@@ -65,22 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>";
 
     try {
-        // For now, just simulate successful email sending
-        // In production, you would use a real email service
-        $response['success'] = true;
-        $response['message'] = 'OTP sent to your email.';
-        
-        // Log the OTP for testing (remove in production)
-        error_log("Forgot Password OTP for {$email}: {$otp}");
-        
-        // TODO: Replace with actual email sending service
-        // $email_result = firebase_send_email($email, $subject, $message);
-        // if ($email_result['success']) {
-        //     $response['success'] = true;
-        //     $response['message'] = 'OTP sent to your email.';
-        // } else {
-        //     $response['message'] = 'Failed to send OTP email: ' . ($email_result['message'] ?? 'Unknown error');
-        // }
+        $email_result = firebase_send_email($email, $subject, $message);
+        if ($email_result['success']) {
+            $response['success'] = true;
+            $response['message'] = 'OTP sent to your email.';
+        } else {
+            $response['message'] = 'Failed to send OTP email: ' . ($email_result['message'] ?? 'Unknown error');
+        }
     } catch (Exception $e) {
         $response['message'] = 'Error sending OTP email: ' . $e->getMessage();
         error_log("Error in send_forgot_password_otp.php: " . $e->getMessage());
