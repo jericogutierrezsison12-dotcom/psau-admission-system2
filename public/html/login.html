@@ -8,9 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <!-- reCAPTCHA v3 -->
-    <script src="https://www.google.com/recaptcha/api.js"></script>
-    <?php $recaptcha_site_key = getenv('RECAPTCHA_SITE_KEY') ?: '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA'; ?>
     <!-- Fingerprint JS for device ID -->
     <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
     <!-- Custom CSS -->
@@ -57,29 +54,14 @@
                 </div>
             <?php endif; ?>
             
-            <!-- PHP: reCAPTCHA Error -->
-            <?php if (isset($errors['recaptcha'])): ?>
-                <div class="alert alert-danger">
-                    <i class="bi bi-shield-exclamation me-2"></i>
-                    <?php echo htmlspecialchars($errors['recaptcha']); ?>
-                    <?php if (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1'): ?>
-                        <div class="mt-2 small">
-                            <strong>Localhost Notice:</strong> reCAPTCHA may have limited functionality on localhost.
-                            <?php if (empty($_POST['recaptcha_token'])): ?>
-                                The reCAPTCHA token was not generated.
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
             
             <!-- PHP: Login Form (only displayed if not blocked) -->
             <?php if (!isset($block_info) || !$block_info['blocked']): ?>
                 <form method="POST" action="login.php" id="loginForm">
                     <div class="mb-3">
-                        <label for="login_identifier" class="form-label">Email Address</label>
-                        <input type="email" class="form-control <?php echo isset($errors['login_identifier']) ? 'is-invalid' : ''; ?>" 
-                            id="login_identifier" name="login_identifier" value="<?php echo htmlspecialchars($login_identifier); ?>" placeholder="Enter your email address">
+                        <label for="login_identifier" class="form-label">Email or Mobile Number</label>
+                        <input type="text" class="form-control <?php echo isset($errors['login_identifier']) ? 'is-invalid' : ''; ?>" 
+                            id="login_identifier" name="login_identifier" value="<?php echo htmlspecialchars($login_identifier); ?>" placeholder="Enter your email or mobile number">
                         <?php if (isset($errors['login_identifier'])): ?>
                             <div class="invalid-feedback">
                                 <?php echo htmlspecialchars($errors['login_identifier']); ?>
@@ -108,32 +90,15 @@
                         <label class="form-check-label" for="rememberMe">Remember Me</label>
                     </div>
                     
-                    <!-- Hidden reCAPTCHA token field -->
-                    <input type="hidden" id="recaptchaToken" name="recaptcha_token">
-                    
                     <!-- Hidden device fingerprint field -->
                     <input type="hidden" id="deviceFingerprint" name="device_fingerprint">
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-psau g-recaptcha" 
-                            data-sitekey="<?php echo htmlspecialchars($recaptcha_site_key); ?>"
-                            data-callback="onLoginSubmit"
-                            data-action="login">
+                        <button type="submit" class="btn btn-psau">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Login
                         </button>
                     </div>
                     
-                    <div class="recaptcha-info mt-2">
-                        <small>
-                            <i class="bi bi-shield-check me-1"></i>
-                            This site is protected by reCAPTCHA and the Google 
-                            <a href="https://policies.google.com/privacy">Privacy Policy</a> and
-                            <a href="https://policies.google.com/terms">Terms of Service</a> apply.
-                            <?php if (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1'): ?>
-                                <br><strong class="text-primary">Running on localhost:</strong> reCAPTCHA validation has been relaxed for development.
-                            <?php endif; ?>
-                        </small>
-                    </div>
                     
                     <div class="login-footer">
                         <div class="mb-2">
