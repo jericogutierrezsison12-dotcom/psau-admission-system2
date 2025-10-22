@@ -13,57 +13,30 @@ require_once '../includes/functions.php';
 redirect_if_logged_in('dashboard.php');
 
 // Initialize variables
-$mobile_number = '';
+$email = '';
 $errors = [];
-$step = 1; // Step 1: Mobile Number, Step 2: OTP Verification, Step 3: New Password
+$step = 1; // Step 1: Email, Step 2: OTP Verification, Step 3: New Password
 $success = false;
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['step']) && $_POST['step'] == 1) {
-        // Get mobile number from form
-        $mobile_number = trim($_POST['mobile_number'] ?? '');
+        // Get email from form
+        $email = trim($_POST['email'] ?? '');
         
-        // Validate mobile number
-        if (empty($mobile_number)) {
-            $errors['mobile_number'] = 'Mobile number is required';
-        } elseif (!preg_match('/^\d{9,15}$/', $mobile_number)) {
-            $errors['mobile_number'] = 'Please enter a valid mobile number (9-15 digits)';
+        // Validate email
+        if (empty($email)) {
+            $errors['email'] = 'Email address is required';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Please enter a valid email address';
         } else {
-            // Format mobile number for search - remove any potential formatting
-            $search_mobile = preg_replace('/[^0-9]/', '', $mobile_number);
-            
-            // If the number starts with a '0', also try without it
-            if (strlen($search_mobile) > 0 && $search_mobile[0] === '0') {
-                $search_mobile_no_zero = substr($search_mobile, 1);
-            } else {
-                $search_mobile_no_zero = $search_mobile;
-            }
-            
-            // Try different formats (with and without leading digits)
-            $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users 
-                                   WHERE mobile_number = ? 
-                                   OR mobile_number = ? 
-                                   OR mobile_number = ? 
-                                   OR mobile_number = ? 
-                                   OR mobile_number = ? 
-                                   OR mobile_number LIKE ? 
-                                   OR mobile_number LIKE ?");
-            
-            $stmt->execute([
-                $search_mobile,               // Exactly as entered
-                '+63'.$search_mobile,         // With +63 prefix
-                '+63'.$search_mobile_no_zero, // With +63 but no leading zero
-                '0'.$search_mobile_no_zero,   // With leading zero
-                $search_mobile_no_zero,       // Without leading zero
-                '%'.$search_mobile_no_zero,   // Ends with number without zero
-                '%'.$search_mobile           // Ends with number as entered
-            ]);
-            
+            // Check if user exists with this email
+            $stmt = $conn->prepare("SELECT id, first_name, last_name, email FROM users WHERE email = ? AND is_verified = 1");
+            $stmt->execute([$email]);
             $user = $stmt->fetch();
             
             if (!$user) {
-                $errors['mobile_number'] = 'No account found with this mobile number';
+                $errors['email'] = 'No verified account found with this email address';
             } else {
                 // Store user data in session for later use
                 $_SESSION['password_reset'] = [
@@ -71,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email' => $user['email'],
                     'first_name' => $user['first_name'],
                     'last_name' => $user['last_name'],
-                    'mobile_number' => $user['mobile_number'],
                     'timestamp' => time()
                 ];
                 
@@ -85,8 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($otp_code)) {
             $errors['otp'] = 'OTP code is required';
-        } elseif (!isset($_POST['firebase_verified']) || $_POST['firebase_verified'] !== 'true') {
-            $errors['otp'] = 'OTP verification failed. Please try again.';
+        } elseif (!isset($_SESSION['password_reset']['otp_code']) || $_SESSION['password_reset']['otp_code'] !== $otp_code) {
+            $errors['otp'] = 'Invalid OTP code. Please try again.';
+        } elseif (isset($_SESSION['password_reset']['otp_expires']) && time() > $_SESSION['password_reset']['otp_expires']) {
+            $errors['otp'] = 'OTP code has expired. Please request a new one.';
+            unset($_SESSION['password_reset']['otp_code']);
+            unset($_SESSION['password_reset']['otp_expires']);
         } else {
             // OTP verified, move to password reset step
             $step = 3;

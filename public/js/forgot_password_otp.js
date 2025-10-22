@@ -3,9 +3,9 @@
  * Contains code for step 2 (OTP verification)
  */
 
-// Import Firebase modules
+// Import Firebase modules for reCAPTCHA only
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { getAuth, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -84,16 +84,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const mobileNumber = document.querySelector('strong').textContent.replace('+63', '');
-        const phoneNumber = "+63" + mobileNumber;
+        const userEmail = document.querySelector('strong').textContent;
         
-        signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
-            .then((confirmationResult) => {
-                window.confirmationResult = confirmationResult;
+        // AJAX call to send_forgot_password_otp.php
+        fetch('send_forgot_password_otp.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: userEmail,
+                recaptchaResponse: recaptchaResponse
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 window.otpSent = true;
-                
-                // Start countdown for resend button
                 document.getElementById('resend-otp').disabled = true;
+                // Start countdown for resend button
                 let seconds = 60;
                 const countdown = setInterval(() => {
                     document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
@@ -104,16 +113,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('resend-otp').disabled = false;
                     }
                 }, 1000);
-            }).catch((error) => {
-                console.error("Error sending OTP:", error);
-                alert("Error sending OTP: " + error.message);
-                
-                // Reset reCAPTCHA on error
-                if (window.recaptchaVerifier) {
-                    window.recaptchaVerifier.clear();
-                    window.recaptchaVerifier.render();
-                }
-            });
+                alert("OTP sent to your email!");
+            } else {
+                alert("Error sending OTP: " + data.message);
+                console.error("Error sending OTP:", data.message);
+            }
+        })
+        .catch((error) => {
+            console.error("Error sending OTP:", error);
+            alert("Error sending OTP: " + error.message);
+        });
     };
     
     // Verify OTP button click
@@ -129,25 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show verification in progress
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
-        
-        // Confirm the OTP code
-        window.confirmationResult.confirm(code)
-            .then((result) => {
-                // User signed in successfully
-                document.getElementById('firebase_verified').value = 'true';
-                document.getElementById('otpForm').submit();
-            }).catch((error) => {
-                // Invalid code
-                alert("Invalid OTP code. Please try again.");
-                console.error("Error verifying OTP:", error);
-                
-                // Reset button
-                this.disabled = false;
-                this.innerHTML = 'Verify OTP';
-            });
+        // Submit the form for server-side OTP verification
+        document.getElementById('firebase_verified').value = 'true'; // Keep this for server-side check
+        document.getElementById('otpForm').submit();
     });
     
     // Resend OTP button click
