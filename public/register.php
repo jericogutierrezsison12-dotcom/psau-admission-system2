@@ -102,20 +102,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['otp'] = 'Invalid OTP format';
         }
 
-        // If basic validation passes, verify OTP with database
+        // Check OTP from session (same logic as admin registration)
         if (empty($errors['otp']) && empty($errors['recaptcha'])) {
-            $email = $_SESSION['registration']['email'] ?? '';
-            $otp_result = check_otp_attempts($email, 'registration', $otp_code);
-            
-            if (!$otp_result['success']) {
-                $errors['otp'] = $otp_result['message'];
-                
-                // If attempts exceeded, clear session and require new OTP
-                if (strpos($otp_result['message'], 'Too many failed attempts') !== false) {
-                    unset($_SESSION['email_otp']);
-                    $errors['otp_limit'] = true; // Flag to show limit message
-                }
-            } else {
+            if (!isset($_SESSION['email_otp']['code'], $_SESSION['email_otp']['expires'])) {
+                $errors['otp'] = 'No OTP found. Please resend the code.';
+            } elseif (time() > (int)$_SESSION['email_otp']['expires']) {
+                $errors['otp'] = 'OTP has expired. Please resend the code.';
+            } elseif ($otp_code !== (string)$_SESSION['email_otp']['code']) {
+                $errors['otp'] = 'Incorrect OTP. Please try again.';
+            }
+        }
+
+        if (empty($errors['otp']) && empty($errors['recaptcha'])) {
                 // OTP verified, create user account
                 try {
                 $conn->beginTransaction();
@@ -184,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $step = 2; // Stay on OTP verification step if there are errors
         }
     }
-}
 
 // Include the HTML template
 include('html/register.html');
