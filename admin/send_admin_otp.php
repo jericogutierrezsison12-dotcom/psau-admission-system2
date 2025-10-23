@@ -32,10 +32,8 @@ try {
         throw new Exception('Valid email is required');
     }
     
-    // Ensure only the restricted admin email is allowed
-    if ($email !== 'jericogutierrezsison12@gmail.com') {
-        throw new Exception('Only jericogutierrezsison12@gmail.com is allowed for admin registration');
-    }
+    // This endpoint is for sending OTP to user's own email during admin registration
+    // The restricted email validation is handled in send_restricted_email_otp.php
     
     // reCAPTCHA validation (required for admin registration)
     if ($recaptcha_token === '') {
