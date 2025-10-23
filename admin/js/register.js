@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
     
     // OTP verification functionality
-    if (currentStep === '2') {
+    if (currentStep === '1' || currentStep === '3') {
         setupOtpVerification();
     }
 });
@@ -94,13 +94,31 @@ function setupOtpVerification() {
             return;
         }
 
-        const email = document.getElementById('emailAddress').value;
+        const currentStep = document.getElementById('currentStep')?.value;
         const token = recaptchaResponse;
+        let endpoint = '';
 
-        fetch('send_admin_otp.php', {
+        // Determine which OTP endpoint to use based on step
+        if (currentStep === '1') {
+            // Step 1: Send to restricted email
+            endpoint = 'send_restricted_email_otp.php';
+        } else if (currentStep === '3') {
+            // Step 3: Send to user's email
+            endpoint = 'send_admin_otp.php';
+            const email = document.getElementById('emailAddress').value;
+            if (!email) {
+                alert('Email address not found');
+                return;
+            }
+        }
+
+        fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, recaptcha_token: token })
+            body: JSON.stringify({ 
+                recaptcha_token: token,
+                email: currentStep === '3' ? document.getElementById('emailAddress').value : undefined
+            })
         })
         .then(async (res) => {
             if (!res.ok) {
@@ -147,7 +165,8 @@ function setupOtpVerification() {
 
         // For email OTP, just submit the form; PHP will validate session OTP
         document.getElementById('recaptcha_verified').value = 'true';
-        document.getElementById('otpForm').submit();
+        document.getElementById('restrictedOtpForm')?.submit();
+        document.getElementById('otpForm')?.submit();
     });
     
     // Resend OTP button click
@@ -204,5 +223,3 @@ function setupOtpVerification() {
         }
     });
 }
-
-
