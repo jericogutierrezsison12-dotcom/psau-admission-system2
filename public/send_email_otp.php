@@ -2,7 +2,6 @@
 // Minimal endpoint to send 6-digit OTP to the registration email
 
 require_once '../includes/db_connect.php';
-require_once '../includes/otp_rate_limiting.php';
 if (session_status() === PHP_SESSION_NONE) {
 	session_start();
 }
@@ -31,25 +30,8 @@ try {
 		throw new Exception('Registration session not found for this email');
 	}
 
-	// Check OTP rate limiting
-	$rate_limit = check_otp_rate_limit($email, 'registration');
-	if (!$rate_limit['can_send']) {
-		throw new Exception($rate_limit['message']);
-	}
-
 	// Generate 6-digit OTP and set 10-minute expiry
 	$otp = random_int(100000, 999999);
-	
-	// Store OTP in database for attempt tracking
-	$stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, NOW())");
-	$stmt->execute([
-		$email,
-		'registration_' . $otp, // Store OTP code in purpose field
-		$_SERVER['REMOTE_ADDR'] ?? 'unknown',
-		$_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-	]);
-	
-	// Also store in session for backward compatibility
 	$_SESSION['email_otp'] = [
 		'code' => (string)$otp,
 		'expires' => time() + (10 * 60),
@@ -73,19 +55,10 @@ try {
 		. date('Y') . " PSAU Admission System</div>"
 		."</div>";
 
-    try {
-        $result = firebase_send_email($email, $subject, $message);
-        if (!$result || (is_array($result) && empty($result['success']))) {
-            // Log failure but still allow flow; OTP stored in DB
-            error_log("Registration OTP email send failed for {$email}");
-        }
-    } catch (Throwable $mailErr) {
-        // Log and continue; client can still verify using code received later or after resend
-        error_log('Registration OTP mail error: ' . $mailErr->getMessage());
-    }
-
-	// Record OTP request for rate limiting
-	record_otp_request($email, 'registration');
+	$result = firebase_send_email($email, $subject, $message);
+	if (!$result || (is_array($result) && empty($result['success']))) {
+		throw new Exception('Failed to send OTP email');
+	}
 
 	echo json_encode(['ok' => true]);
 } catch (Throwable $e) {

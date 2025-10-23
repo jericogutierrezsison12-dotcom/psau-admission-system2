@@ -150,16 +150,6 @@
                         </div>
                         
                         <div id="recaptcha-container"></div>
-                        <?php if (isset($errors['recaptcha'])): ?>
-                            <div class="text-danger small mt-1"><?php echo $errors['recaptcha']; ?></div>
-                        <?php endif; ?>
-                        
-                        <?php if (isset($errors['otp_limit'])): ?>
-                            <div class="alert alert-warning mt-3">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>OTP Limit Reached:</strong> Too many failed attempts. Please request a new OTP and complete reCAPTCHA verification.
-                            </div>
-                        <?php endif; ?>
                         
                         <div class="d-grid gap-2 mt-4">
                             <button type="button" id="verify-otp" class="btn btn-psau">Verify OTP</button>
