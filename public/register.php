@@ -112,10 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['otp'] = 'Incorrect OTP. Please try again.';
             }
         }
+        
+        // Debug: Log session data to see what's happening
+        error_log("OTP verification - Session data: " . json_encode($_SESSION));
+        error_log("OTP verification - Step: " . $step . ", Errors: " . json_encode($errors));
 
         if (empty($errors['otp']) && empty($errors['recaptcha'])) {
-                // OTP verified, create user account
-                try {
+            // OTP verified, create user account
+            try {
                 $conn->beginTransaction();
                 
                 // Get registration data from session
@@ -180,6 +184,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $step = 2; // Stay on OTP verification step if there are errors
+            // Debug: Log the error to see what's happening
+            error_log("OTP verification failed. Errors: " . json_encode($errors));
         }
     }
 

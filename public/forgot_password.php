@@ -80,12 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['otp'] = 'Incorrect OTP. Please try again.';
             }
         }
+        
+        // Debug: Log session data to see what's happening
+        error_log("OTP verification - Session data: " . json_encode($_SESSION));
+        error_log("OTP verification - Step: " . $step . ", Errors: " . json_encode($errors));
 
         if (empty($errors['otp']) && empty($errors['recaptcha'])) {
             // OTP verified, move to password reset step
             $step = 3;
         } else {
             $step = 2; // Stay on OTP verification step if there are errors
+            // Debug: Log the error to see what's happening
+            error_log("OTP verification failed. Errors: " . json_encode($errors));
         }
     } elseif (isset($_POST['step']) && $_POST['step'] == 3) {
         // Process password reset
