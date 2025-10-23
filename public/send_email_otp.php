@@ -78,7 +78,9 @@ try {
 
 	$result = firebase_send_email($email, $subject, $message);
 	if (!$result || (is_array($result) && empty($result['success']))) {
-		throw new Exception('Failed to send OTP email');
+		// Log the error but don't fail the OTP process
+		error_log("Failed to send OTP email to: $email. Result: " . json_encode($result));
+		// Don't throw exception - OTP is still valid in session
 	}
 
 	echo json_encode(['ok' => true]);

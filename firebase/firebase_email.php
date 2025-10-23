@@ -106,8 +106,10 @@ function firebase_send_email($to, $subject, $message, $options = []) {
     $status_code = $info['http_code'];
     $total_time = round(($end_time - $start_time) * 1000); // in milliseconds
     
-    // Log request timing
+    // Log request timing and response
     error_log("Request timing: {$total_time}ms, Connect: {$info['connect_time']}s, Total: {$info['total_time']}s");
+    error_log("HTTP Status: $status_code");
+    error_log("Response: " . substr($result, 0, 500));
     
     // Close cURL handle
     curl_close($ch);
