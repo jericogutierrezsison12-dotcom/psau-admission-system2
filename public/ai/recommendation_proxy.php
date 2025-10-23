@@ -33,13 +33,10 @@ if (trim($stanine) === '' || trim($gwa) === '' || trim($strand) === '') {
     exit;
 }
 
-// Use the same base URL as chatbot
-$base = 'https://flaskbot-4g2h.onrender.com';
+// Use the new recommendation API URL
+$base = 'https://recommender-np4e.onrender.com';
 $endpoints = [
-    $base . '/api/predict',
-    $base . '/predict',
-    $base . '/get_course_recommendations',
-    $base . '/course_recommendations'
+    $base . '/api/get_recommendations'
 ];
 
 function forward_json($url, $stanine, $gwa, $strand, $hobbies){
@@ -48,20 +45,13 @@ function forward_json($url, $stanine, $gwa, $strand, $hobbies){
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    // Use named parameters for /get_course_recommendations, array format for /predict
-    if (strpos($url, '/get_course_recommendations') !== false || strpos($url, '/course_recommendations') !== false) {
-        $payload = [
-            'stanine' => strval($stanine),
-            'gwa' => strval($gwa),
-            'strand' => strval($strand),
-            'hobbies' => strval($hobbies)
-        ];
-    } else {
-        $payload = [
-            'data' => [strval($stanine), strval($gwa), strval($strand), strval($hobbies)],
-            'fn_index' => 0
-        ];
-    }
+    // Use named parameters for the new API
+    $payload = [
+        'stanine' => strval($stanine),
+        'gwa' => strval($gwa),
+        'strand' => strval($strand),
+        'hobbies' => strval($hobbies)
+    ];
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
@@ -72,61 +62,10 @@ function forward_json($url, $stanine, $gwa, $strand, $hobbies){
     return [$code, $body, $err];
 }
 
-function forward_form($url, $stanine, $gwa, $strand, $hobbies){
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-        'stanine' => strval($stanine),
-        'gwa' => strval($gwa),
-        'strand' => strval($strand),
-        'hobbies' => strval($hobbies)
-    ]));
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err = curl_error($ch);
-    curl_close($ch);
-    return [$code, $body, $err];
-}
 
-function forward_get($url, $stanine, $gwa, $strand, $hobbies){
-    $qs = http_build_query([
-        'stanine' => strval($stanine),
-        'gwa' => strval($gwa),
-        'strand' => strval($strand),
-        'hobbies' => strval($hobbies)
-    ]);
-    $full = strpos($url, '?') !== false ? $url . '&' . $qs : $url . '?' . $qs;
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $full);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err = curl_error($ch);
-    curl_close($ch);
-    return [$code, $body, $err];
-}
-
-// Try each endpoint with JSON POST; on 405, try form POST, then GET
-$status = null; $response = null; $err = null;
-foreach ($endpoints as $url) {
-    list($status, $response, $err) = forward_json($url, $stanine, $gwa, $strand, $hobbies);
-    if ($status === 405) {
-        list($status, $response, $err) = forward_form($url, $stanine, $gwa, $strand, $hobbies);
-        if ($status === 405) {
-            list($status, $response, $err) = forward_get($url, $stanine, $gwa, $strand, $hobbies);
-        }
-    }
-    if ($response !== false && $status && $status !== 404) {
-        break; // success or non-404 result
-    }
-}
+// Call the new recommendation API
+$url = $endpoints[0];
+list($status, $response, $err) = forward_json($url, $stanine, $gwa, $strand, $hobbies);
 
 if ($response === false) {
     http_response_code(502);
@@ -136,17 +75,38 @@ if ($response === false) {
 
 http_response_code($status ?: 200);
 
-// Normalize response to JSON with a common shape
+// Handle response from the new API
 $decoded = json_decode($response, true);
 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-    // Gradio returns data in 'data' field
-    $recommendations = $decoded['data'] ?? $decoded['recommendations'] ?? $decoded['message'] ?? $decoded['response'] ?? null;
-    if ($recommendations !== null) {
-        echo json_encode(['recommendations' => $recommendations, 'raw' => $decoded]);
+    // Check if the API returned success and recommendations
+    if (isset($decoded['success']) && $decoded['success'] === true && isset($decoded['recommendations'])) {
+        $apiRecommendations = $decoded['recommendations'];
+        
+        // Convert the object format to an array format that the frontend expects
+        $recommendationsArray = [];
+        if (isset($apiRecommendations['course1'])) {
+            $recommendationsArray[] = $apiRecommendations['course1'];
+        }
+        if (isset($apiRecommendations['course2'])) {
+            $recommendationsArray[] = $apiRecommendations['course2'];
+        }
+        if (isset($apiRecommendations['course3'])) {
+            $recommendationsArray[] = $apiRecommendations['course3'];
+        }
+        
+        // Return in the format the frontend expects
+        echo json_encode([
+            'success' => true,
+            'recommendations' => $recommendationsArray,
+            'raw' => $decoded
+        ]);
     } else {
-        echo json_encode(['raw' => $decoded]);
+        // Fallback to original logic
+        $recommendations = $decoded['recommendations'] ?? $decoded['data'] ?? $decoded['message'] ?? $decoded['response'] ?? $decoded;
+        echo json_encode(['recommendations' => $recommendations, 'raw' => $decoded]);
     }
 } else {
+    // If response is not JSON, return as plain text
     echo json_encode(['recommendations' => trim(strip_tags($response)), 'raw' => $response]);
 }
 ?>
