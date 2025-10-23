@@ -31,6 +31,7 @@ if (file_exists('../firebase/config.php')) {
     
     session_start();
     require_once '../includes/db_connect.php';
+require_once '../includes/otp_rate_limiting.php';
     require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
     
@@ -40,6 +41,7 @@ if (file_exists('../firebase/config.php')) {
 } else {
     session_start();
     require_once '../includes/db_connect.php';
+require_once '../includes/otp_rate_limiting.php';
     require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
 }
@@ -76,6 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Check OTP rate limiting
+    $rate_limit = check_otp_rate_limit($email, 'forgot_password');
+    if (!$rate_limit['can_send']) {
+        $response['message'] = $rate_limit['message'];
+        echo json_encode($response);
+        exit;
+    }
+
     // Generate a 6-digit OTP
     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
@@ -108,6 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (is_array($email_result) && isset($email_result['success']) && $email_result['success']) {
             $response['success'] = true;
             $response['message'] = 'OTP sent to your email.';
+            
+            // Record OTP request for rate limiting
+            record_otp_request($email, 'forgot_password');
             
             // Log success in production
             if ($is_production) {

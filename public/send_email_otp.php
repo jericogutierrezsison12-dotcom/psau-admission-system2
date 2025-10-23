@@ -2,6 +2,7 @@
 // Minimal endpoint to send 6-digit OTP to the registration email
 
 require_once '../includes/db_connect.php';
+require_once '../includes/otp_rate_limiting.php';
 if (session_status() === PHP_SESSION_NONE) {
 	session_start();
 }
@@ -28,6 +29,12 @@ try {
 	// Basic gating: ensure registration session matches email
 	if (!isset($_SESSION['registration']['email']) || strcasecmp($_SESSION['registration']['email'], $email) !== 0) {
 		throw new Exception('Registration session not found for this email');
+	}
+
+	// Check OTP rate limiting
+	$rate_limit = check_otp_rate_limit($email, 'registration');
+	if (!$rate_limit['can_send']) {
+		throw new Exception($rate_limit['message']);
 	}
 
 	// Generate 6-digit OTP and set 10-minute expiry
@@ -59,6 +66,9 @@ try {
 	if (!$result || (is_array($result) && empty($result['success']))) {
 		throw new Exception('Failed to send OTP email');
 	}
+
+	// Record OTP request for rate limiting
+	record_otp_request($email, 'registration');
 
 	echo json_encode(['ok' => true]);
 } catch (Throwable $e) {

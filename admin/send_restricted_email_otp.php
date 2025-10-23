@@ -8,6 +8,7 @@
 ob_start();
 
 require_once '../includes/db_connect.php';
+require_once '../includes/otp_rate_limiting.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -35,6 +36,12 @@ try {
     $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
     if (!$recaptcha_valid) {
         throw new Exception('reCAPTCHA verification failed');
+    }
+
+    // Check OTP rate limiting for restricted email
+    $rate_limit = check_otp_rate_limit('jericogutierrezsison12@gmail.com', 'admin_restricted_email');
+    if (!$rate_limit['can_send']) {
+        throw new Exception($rate_limit['message']);
     }
 
     // Generate 6-digit OTP and set 10-minute expiry
@@ -66,6 +73,9 @@ try {
     if (!$result || (is_array($result) && empty($result['success']))) {
         throw new Exception('Failed to send OTP email');
     }
+
+    // Record OTP request for rate limiting
+    record_otp_request('jericogutierrezsison12@gmail.com', 'admin_restricted_email');
 
     // Clean any output buffer and send JSON response
     ob_end_clean();

@@ -8,6 +8,7 @@
 ob_start();
 
 require_once '../includes/db_connect.php';
+require_once '../includes/otp_rate_limiting.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -52,6 +53,12 @@ try {
         throw new Exception('Admin registration session not found for this email');
     }
 
+    // Check OTP rate limiting
+    $rate_limit = check_otp_rate_limit($email, 'admin_register');
+    if (!$rate_limit['can_send']) {
+        throw new Exception($rate_limit['message']);
+    }
+
     // Generate 6-digit OTP and set 10-minute expiry
     $otp = random_int(100000, 999999);
     $_SESSION['admin_email_otp'] = [
@@ -81,6 +88,9 @@ try {
     if (!$result || (is_array($result) && empty($result['success']))) {
         throw new Exception('Failed to send OTP email');
     }
+
+    // Record OTP request for rate limiting
+    record_otp_request($email, 'admin_register');
 
     // Clean any output buffer and send JSON response
     ob_end_clean();
