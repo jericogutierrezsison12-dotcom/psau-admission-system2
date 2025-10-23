@@ -36,13 +36,15 @@ try {
         throw new Exception('Only jericogutierrezsison12@gmail.com is allowed for admin registration');
     }
     
-    // reCAPTCHA validation (optional for admin registration but recommended)
-    if ($recaptcha_token !== '') {
-        require_once '../includes/api_calls.php';
-        $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
-        if (!$recaptcha_valid) {
-            throw new Exception('reCAPTCHA verification failed');
-        }
+    // reCAPTCHA validation (required for admin registration)
+    if ($recaptcha_token === '') {
+        throw new Exception('reCAPTCHA token is required');
+    }
+    
+    require_once '../includes/api_calls.php';
+    $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
+    if (!$recaptcha_valid) {
+        throw new Exception('reCAPTCHA verification failed');
     }
 
     // Basic gating: ensure registration session matches email
