@@ -64,11 +64,6 @@ try {
         'expires' => time() + (10 * 60),
     ];
 
-    // Log OTP request
-    $log_details = "OTP sent for admin registration - Email: " . $email . ", OTP: " . $otp . ", IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->execute([null, 'otp_sent_admin_registration', $log_details, $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
-
     // Build email content
     require_once '../firebase/firebase_email.php';
     $subject = 'PSAU Admin Registration: Your Verification Code';
@@ -89,9 +84,7 @@ try {
 
     $result = firebase_send_email($email, $subject, $message);
     if (!$result || (is_array($result) && empty($result['success']))) {
-        // Log the error but don't fail the OTP process
-        error_log("Failed to send OTP email to: $email. Result: " . json_encode($result));
-        // Don't throw exception - OTP is still valid in session
+        throw new Exception('Failed to send OTP email');
     }
 
     // Record OTP request for rate limiting

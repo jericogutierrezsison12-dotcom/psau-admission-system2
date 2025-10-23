@@ -101,11 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SERVER['HTTP_USER_AGENT'] ?? ''
     ]);
 
-    // Log OTP request
-    $log_details = "OTP sent for password reset - Email: " . $email . ", OTP: " . $otp . ", IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->execute([null, 'otp_sent_forgot_password', $log_details, $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
-
     // Send OTP via email
     $subject = "PSAU Admission System: Password Reset OTP";
     $message = "
