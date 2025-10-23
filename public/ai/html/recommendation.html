@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<base href="../">
+	<title>Course Recommendation - PSAU Admission System</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+	<?php include __DIR__ . '/../../templates/mobile.html'; ?>
+	<div class="desktop-nav">
+		<?php include __DIR__ . '/../../templates/navbar.html'; ?>
+		<?php include __DIR__ . '/../../templates/sidebar.html'; ?>
+	</div>
+
+	<div class="main-content container py-4">
+		<div class="page-title mb-3">
+			<h2><i class="bi bi-stars me-2"></i>Course Recommendation</h2>
+			<p class="text-muted">Personalized course suggestions based on your profile.</p>
+		</div>
+
+		<div class="form-container">
+			<div class="card-body p-0">
+				<form id="recommendation-form" class="row g-3">
+					<div class="col-md-3">
+						<label class="form-label">Stanine (1-9)</label>
+						<input type="number" step="1" min="1" max="9" class="form-control" name="stanine" placeholder="e.g., 7">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">GWA (75-100)</label>
+						<input type="number" step="0.01" min="75" max="100" class="form-control" name="gwa" placeholder="e.g., 92.5">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Strand</label>
+						<input type="text" class="form-control" name="strand" placeholder="e.g., STEM, ABM, HUMSS">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Hobbies</label>
+						<input type="text" class="form-control" name="hobbies" placeholder="e.g., programming, business">
+					</div>
+					<div class="col-12">
+						<button type="button" id="get-recommendations" class="btn btn-psau">
+							<i class="bi bi-magic"></i> Get Recommendations
+						</button>
+					</div>
+				</form>
+
+				<hr>
+				<div id="recommendation-results" class="mt-3">
+					<!-- Results will render here by JS -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="js/common.js"></script>
+	<script>
+		// Configure Flask API base (adjust if Flask runs on a different host/port)
+		window.RECO_API_BASE = window.CHATBOT_API_BASE || 'http://127.0.0.1:5000';
+		
+		// Working rating interface function
+		function renderRecommendationsWithRatings(recommendations) {
+			console.log('Rendering recommendations with ratings:', recommendations);
+			const results = document.getElementById('recommendation-results');
+			if (!results) return;
+			
+			const items = recommendations.map((item, index) => {
+				const courseNumber = index + 1;
+				return `
+					<div class="list-group-item">
+						<div class="d-flex justify-content-between align-items-start">
+							<div class="ms-2 me-auto">
+								<div class="fw-semibold">${item}</div>
+							</div>
+							<div class="rating-buttons" data-course="${courseNumber}">
+								<button type="button" class="btn btn-outline-success btn-sm me-1 rating-btn" data-rating="👍 Like" data-course="${courseNumber}">👍 Like</button>
+								<button type="button" class="btn btn-outline-danger btn-sm rating-btn" data-rating="👎 Dislike" data-course="${courseNumber}">👎 Dislike</button>
+							</div>
+						</div>
+					</div>
+				`;
+			}).join('');
+			
+			const submitButton = `
+				<div class="mt-3 text-center">
+					<button type="button" id="submit-ratings" class="btn btn-primary" disabled>Submit Ratings</button>
+				</div>
+			`;
+			
+			results.innerHTML = `
+				<div class="card fade-in">
+					<div class="card-body">
+						<div class="d-flex align-items-center mb-2">
+							<span class="section-icon me-2"><i class="bi bi-stars"></i></span>
+							<h5 class="card-title mb-0">Recommended Courses</h5>
+						</div>
+						<div class="list-group">${items}</div>
+						${submitButton}
+					</div>
+				</div>
+			`;
+			
+			// Add click handlers for rating buttons
+			document.querySelectorAll('.rating-btn').forEach(btn => {
+				btn.addEventListener('click', function() {
+					const course = this.dataset.course;
+					const rating = this.dataset.rating;
+					console.log('Rating button clicked:', course, rating);
+					
+					// Update selected rating
+					selectedRatings[`course${course}_rating`] = rating;
+					
+					// Update button states
+					updateRatingButtons(course, rating);
+					
+					// Enable submit button if all ratings are selected
+					updateSubmitButton();
+				});
+			});
+			
+			// Add click handler for submit button
+			document.getElementById('submit-ratings').addEventListener('click', submitRatings);
+		}
+		
+		// Update rating button visual states
+		function updateRatingButtons(course, selectedRating) {
+			const courseButtons = document.querySelectorAll(`[data-course="${course}"] .rating-btn`);
+			courseButtons.forEach(btn => {
+				if (btn.dataset.rating === selectedRating) {
+					btn.classList.remove('btn-outline-success', 'btn-outline-danger');
+					btn.classList.add(selectedRating === '👍 Like' ? 'btn-success' : 'btn-danger');
+				} else {
+					btn.classList.remove('btn-success', 'btn-danger');
+					btn.classList.add(selectedRating === '👍 Like' ? 'btn-outline-danger' : 'btn-outline-success');
+				}
+			});
+		}
+		
+		// Update submit button state
+		function updateSubmitButton() {
+			const submitBtn = document.getElementById('submit-ratings');
+			if (submitBtn) {
+				const hasAllRatings = selectedRatings.course1_rating && 
+									  selectedRatings.course2_rating && 
+									  selectedRatings.course3_rating;
+				submitBtn.disabled = !hasAllRatings;
+			}
+		}
+		
+		// Submit ratings to API
+		async function submitRatings() {
+			const submitBtn = document.getElementById('submit-ratings');
+			if (submitBtn) {
+				submitBtn.disabled = true;
+				submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Submitting...';
+			}
+			
+			try {
+				console.log('Submitting ratings:', selectedRatings);
+				
+				const response = await fetch('ai/rating_proxy.php', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(selectedRatings)
+				});
+				
+				if (!response.ok) {
+					throw new Error('HTTP ' + response.status);
+				}
+				
+				const data = await response.json();
+				console.log('Rating submission response:', data);
+				
+				if (data.success) {
+					// Show success message
+					const results = document.getElementById('recommendation-results');
+					let messageClass = 'alert-success';
+					let iconClass = 'bi-check-circle';
+					
+					// Check if there's a note about database issues
+					if (data.note) {
+						messageClass = 'alert-warning';
+						iconClass = 'bi-exclamation-triangle';
+					}
+					
+					results.innerHTML = `
+						<div class="alert ${messageClass} fade-in">
+							<i class="bi ${iconClass} me-2"></i>
+							${data.feedback || 'Thank you for your feedback! Your ratings have been submitted successfully.'}
+							${data.note ? '<div class="mt-2"><small>' + data.note + '</small></div>' : ''}
+						</div>
+					`;
+				} else {
+					throw new Error(data.error || 'Failed to submit ratings');
+				}
+			} catch (err) {
+				console.error('Error submitting ratings:', err);
+				alert('Failed to submit ratings: ' + err.message);
+			} finally {
+				if (submitBtn) {
+					submitBtn.disabled = false;
+					submitBtn.innerHTML = 'Submit Ratings';
+				}
+			}
+		}
+		
+		// Rating functionality
+		let selectedRatings = {};
+		
+		// Add event listener to the Get Recommendations button
+		document.addEventListener('DOMContentLoaded', function() {
+			const getRecBtn = document.getElementById('get-recommendations');
+			if (getRecBtn) {
+				getRecBtn.addEventListener('click', async function() {
+					console.log('Get Recommendations button clicked');
+					
+					// Reset ratings for new recommendations
+					selectedRatings = {};
+					
+					// Get form data
+					const form = document.getElementById('recommendation-form');
+					const formData = new FormData(form);
+					const stanine = formData.get('stanine');
+					const gwa = formData.get('gwa');
+					const strand = formData.get('strand');
+					const hobbies = formData.get('hobbies');
+					
+					if (!stanine || !gwa || !strand) {
+						alert('Please provide stanine, GWA, and strand.');
+						return;
+					}
+					
+					try {
+						// Show loading
+						const results = document.getElementById('recommendation-results');
+						results.innerHTML = '<div class="alert alert-info">Fetching recommendations...</div>';
+						
+						// Call the API
+						const payload = {
+							stanine: Number(stanine),
+							gwa: Number(gwa),
+							strand: String(strand).trim(),
+							hobbies: String(hobbies || '').trim()
+						};
+						
+						const response = await fetch('ai/recommendation_proxy.php', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload)
+						});
+						
+						const data = await response.json();
+						console.log('API Response:', data);
+						
+						// Handle response
+						if (data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+							renderRecommendationsWithRatings(data.recommendations);
+						} else if (data.raw && data.raw.recommendations) {
+							// Fallback for object format
+							const rawRecs = data.raw.recommendations;
+							const fallbackArray = [];
+							if (rawRecs.course1) fallbackArray.push(rawRecs.course1);
+							if (rawRecs.course2) fallbackArray.push(rawRecs.course2);
+							if (rawRecs.course3) fallbackArray.push(rawRecs.course3);
+							if (fallbackArray.length > 0) {
+								renderRecommendationsWithRatings(fallbackArray);
+							} else {
+								results.innerHTML = '<div class="alert alert-warning">No recommendations found.</div>';
+							}
+						} else {
+							results.innerHTML = '<div class="alert alert-warning">No recommendations returned by the API.</div>';
+						}
+					} catch (err) {
+						console.error('Error:', err);
+						results.innerHTML = '<div class="alert alert-danger">Failed to fetch recommendations: ' + err.message + '</div>';
+					}
+				});
+			}
+		});
+		
+	</script>
+</body>
+</html>
+
+
