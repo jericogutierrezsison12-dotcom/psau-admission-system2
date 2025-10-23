@@ -87,19 +87,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
         // Process OTP verification
         $otp_code = trim($_POST['otp_code'] ?? '');
+        $recaptcha_verified = $_POST['recaptcha_verified'] ?? '';
 
-        // Validate OTP (6 digits) against session-stored code
+        // Check reCAPTCHA verification
+        if ($recaptcha_verified !== 'true') {
+            $errors['recaptcha'] = 'reCAPTCHA verification is required';
+        }
+
+        // Validate OTP format
         if ($otp_code === '') {
             $errors['otp'] = 'OTP code is required';
         } elseif (!preg_match('/^\d{6}$/', $otp_code)) {
             $errors['otp'] = 'Invalid OTP format';
-        } elseif (!isset($_SESSION['email_otp']['code'], $_SESSION['email_otp']['expires'])) {
-            $errors['otp'] = 'No OTP found. Please resend the code.';
-        } elseif (time() > (int)$_SESSION['email_otp']['expires']) {
-            $errors['otp'] = 'OTP has expired. Please resend the code.';
-        } elseif ($otp_code !== (string)$_SESSION['email_otp']['code']) {
-            $errors['otp'] = 'Incorrect OTP. Please try again.';
-        } else {
+        }
+
+        // If basic validation passes, verify OTP with database
+        if (empty($errors['otp']) && empty($errors['recaptcha'])) {
+            $email = $_SESSION['registration']['email'] ?? '';
+            $otp_result = check_otp_attempts($email, 'registration', $otp_code);
+            
+            if (!$otp_result['success']) {
+                $errors['otp'] = $otp_result['message'];
+                
+                // If attempts exceeded, clear session and require new OTP
+                if (strpos($otp_result['message'], 'Too many failed attempts') !== false) {
+                    unset($_SESSION['email_otp']);
+                    $errors['otp_limit'] = true; // Flag to show limit message
+                }
+            } else {
             // OTP verified, create user account
             try {
                 $conn->beginTransaction();
@@ -163,6 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['registration'] = 'An error occurred during registration. Please try again.';
                 $step = 1; // Go back to form
             }
+        } else {
+            $step = 2; // Stay on OTP verification step if there are errors
         }
     }
 }

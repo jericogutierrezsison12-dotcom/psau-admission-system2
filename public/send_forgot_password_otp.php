@@ -33,6 +33,7 @@ if (file_exists('../firebase/config.php')) {
     require_once '../includes/db_connect.php';
     require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
+    require_once '../includes/otp_rate_limiting_enhanced.php';
     
     // Restore original settings
     error_reporting($original_error_reporting);
@@ -72,6 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check if password reset session exists and email matches
     if (!isset($_SESSION['password_reset']) || $_SESSION['password_reset']['email'] !== $email) {
         $response['message'] = 'Invalid password reset session. Please start the process again.';
+        echo json_encode($response);
+        exit;
+    }
+
+    // Check enhanced OTP rate limiting (5 OTPs per hour, reset every 3 hours)
+    $rate_limit = check_otp_rate_limit_enhanced($email, 'forgot_password');
+    if (!$rate_limit['can_send']) {
+        $response['message'] = $rate_limit['message'];
         echo json_encode($response);
         exit;
     }
