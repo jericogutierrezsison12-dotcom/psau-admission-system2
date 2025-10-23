@@ -39,6 +39,11 @@ try {
 
 	// Generate 6-digit OTP and set 10-minute expiry
 	$otp = random_int(100000, 999999);
+	
+	// Store OTP using the proper session structure for attempt tracking
+	store_otp_session($email, (string)$otp, 'registration', 10);
+	
+	// Also store in the old format for backward compatibility
 	$_SESSION['email_otp'] = [
 		'code' => (string)$otp,
 		'expires' => time() + (10 * 60),
