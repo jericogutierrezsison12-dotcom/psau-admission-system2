@@ -19,7 +19,6 @@ $step = 1; // 1: form, 2: OTP verify
 // Form fields
 $username = trim($_POST['username'] ?? '');
 $email = trim($_POST['email'] ?? '');
-$mobile_number = trim($_POST['mobile_number'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm_password = $_POST['confirm_password'] ?? '';
 $role = $_POST['role'] ?? 'registrar';
@@ -36,8 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		} elseif ($email !== 'jericogutierrezsison12@gmail.com') {
 			$errors['email'] = 'Only jericogutierrezsison12@gmail.com is allowed for admin registration';
 		}
-		// Mobile number is optional for admin registration
-		$mobile_number = ''; // Set to empty since we're using email OTP
 		if ($password === '') {
 			$errors['password'] = 'Password is required';
 		} elseif (strlen($password) < 8) {
@@ -64,10 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				// Debug: Log the registration attempt
 				error_log("Admin registration attempt - Username: $username, Email: $email, Role: $role");
 				
-				// Ensure admins table has mobile_number column (MariaDB supports IF NOT EXISTS)
-				$conn->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS mobile_number varchar(20) NOT NULL AFTER email");
-
-				// Check unique username/email (mobile_number is empty for admin registration)
+				// Check unique username/email
 				$chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email = ?');
 				$chk->execute([$username, $email]);
 				$exists = (int)$chk->fetchColumn();
@@ -78,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$_SESSION['admin_registration'] = [
 						'username' => $username,
 						'email' => $email,
-						'mobile_number' => $mobile_number,
 						'password' => $password,
 						'role' => $role,
 					];
@@ -119,11 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				
 				$hash = password_hash($reg['password'], PASSWORD_DEFAULT);
 
-				// Ensure mobile column still exists
-				$conn->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS mobile_number varchar(20) NOT NULL AFTER email");
-
-				$ins = $conn->prepare('INSERT INTO admins (username, email, mobile_number, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
-				$ins->execute([$reg['username'], $reg['email'], $reg['mobile_number'], $hash, $reg['role']]);
+				$ins = $conn->prepare('INSERT INTO admins (username, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())');
+				$ins->execute([$reg['username'], $reg['email'], $hash, $reg['role']]);
 
 				// Commit transaction
 				$conn->commit();
@@ -132,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				// Clear temp data and reset form
 				unset($_SESSION['admin_registration']);
 				unset($_SESSION['admin_email_otp']);
-				$username = $email = $mobile_number = '';
+				$username = $email = '';
 				$role = 'registrar';
 				$step = 1;
 			} catch (PDOException $e) {
