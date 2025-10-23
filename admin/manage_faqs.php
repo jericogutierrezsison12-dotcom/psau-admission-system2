@@ -1,7 +1,7 @@
 <?php
 /**
- * PSAU Admission System - FAQ Management
- * Handles managing frequently asked questions without AJAX
+ * PSAU Admission System - Comprehensive FAQ Management
+ * Handles managing FAQs and unanswered questions in one interface
  */
 
 // Start session if not already started
@@ -157,6 +157,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['message_type'] = 'error';
         header('Location: manage_faqs.php');
         exit;
+    }
+}
+
+// Handle GET actions (edit and resolve)
+$edit_faq = null;
+$resolve_question = null;
+
+if (isset($_GET['action'])) {
+    switch ($_GET['action']) {
+        case 'edit':
+            $id = (int)($_GET['id'] ?? 0);
+            if ($id > 0) {
+                $stmt = $conn->prepare("SELECT * FROM faqs WHERE id = ?");
+                $stmt->execute([$id]);
+                $edit_faq = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            break;
+            
+        case 'resolve':
+            $id = (int)($_GET['id'] ?? 0);
+            if ($id > 0) {
+                $stmt = $conn->prepare("SELECT * FROM unanswered_questions WHERE id = ?");
+                $stmt->execute([$id]);
+                $resolve_question = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            break;
     }
 }
 
