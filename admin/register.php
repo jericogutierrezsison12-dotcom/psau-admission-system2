@@ -74,59 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if ($exists > 0) {
 					$errors['exists'] = 'Username, email, or mobile already exists';
 				} else {
-					// Generate and send email OTP
-					$otp_code = sprintf('%06d', mt_rand(100000, 999999));
-					$_SESSION['admin_email_otp'] = $otp_code;
-					
-					// Send email OTP
-					error_log("Attempting to include firebase_email.php");
-					require_once '../firebase/firebase_email.php';
-					error_log("Firebase email file included successfully");
-					
-					$subject = 'Admin Registration OTP - PSAU Admission System';
-					$message = "
-					<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
-						<div style='background-color: #2E7D32; color: white; padding: 20px; text-align: center;'>
-							<h2>Pampanga State Agricultural University</h2>
-						</div>
-						<div style='padding: 20px; border: 1px solid #ddd;'>
-							<p>Dear Admin,</p>
-							<p>Your OTP code for admin registration is:</p>
-							<div style='background-color: #f8f9fa; padding: 15px; text-align: center; border: 2px solid #2E7D32; margin: 20px 0;'>
-								<h1 style='color: #2E7D32; margin: 0; font-size: 32px; letter-spacing: 5px;'>{$otp_code}</h1>
-							</div>
-							<p>This code will expire in 10 minutes. Please enter it to complete your admin registration.</p>
-							<p>If you did not request this registration, please ignore this email.</p>
-							<p>Best regards,<br>PSAU Admissions Team</p>
-						</div>
-						<div style='background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666;'>
-							<p>&copy; " . date('Y') . " PSAU Admission System. All rights reserved.</p>
-						</div>
-					</div>";
-					
-					try {
-						$result = firebase_send_email($email, $subject, $message);
-						if (is_array($result) && isset($result['success']) && $result['success']) {
-							// Store in session then go to OTP step
-							$_SESSION['admin_registration'] = [
-								'username' => $username,
-								'email' => $email,
-								'mobile_number' => $mobile_number,
-								'password' => $password,
-								'role' => $role,
-							];
-							$step = 2;
-						} else {
-							error_log('Firebase email failed: ' . json_encode($result));
-							$errors['email'] = 'Failed to send OTP email. Please try again.';
-						}
-					} catch (Exception $e) {
-						error_log('Admin email OTP error: ' . $e->getMessage());
-						$errors['email'] = 'Failed to send OTP email. Please try again.';
-					} catch (Error $e) {
-						error_log('Admin email OTP fatal error: ' . $e->getMessage());
-						$errors['email'] = 'Failed to send OTP email. Please try again.';
-					}
+					// Store in session and move to OTP step
+					$_SESSION['admin_registration'] = [
+						'username' => $username,
+						'email' => $email,
+						'mobile_number' => $mobile_number,
+						'password' => $password,
+						'role' => $role,
+					];
+					$step = 2;
 				}
 			} catch (PDOException $e) {
 				error_log('Admin registration validation error: ' . $e->getMessage());
@@ -138,8 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$otp_code = trim($_POST['otp_code'] ?? '');
 		if ($otp_code === '') {
 			$errors['otp'] = 'OTP code is required';
-		} elseif (!isset($_SESSION['admin_email_otp']) || $_SESSION['admin_email_otp'] !== $otp_code) {
-			$errors['otp'] = 'Invalid OTP code. Please try again.';
+		} elseif (!preg_match('/^\d{6}$/', $otp_code)) {
+			$errors['otp'] = 'Invalid OTP format';
+		} elseif (!isset($_SESSION['admin_email_otp']['code'], $_SESSION['admin_email_otp']['expires'])) {
+			$errors['otp'] = 'No OTP found. Please resend the code.';
+		} elseif (time() > (int)$_SESSION['admin_email_otp']['expires']) {
+			$errors['otp'] = 'OTP has expired. Please resend the code.';
+		} elseif ($otp_code !== (string)$_SESSION['admin_email_otp']['code']) {
+			$errors['otp'] = 'Incorrect OTP. Please try again.';
 		}
 
 		if (!$errors) {
