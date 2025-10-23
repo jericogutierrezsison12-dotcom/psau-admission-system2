@@ -18,7 +18,20 @@ $last_name = '';
 $email = '';
 $mobile_number = '';
 $errors = [];
-$step = 1; // Step 1: Form, Step 2: OTP Verification
+
+// Determine current step based on session data
+if (isset($_SESSION['registration']) && isset($_SESSION['email_otp'])) {
+    $step = 2; // OTP verification step
+    // Debug: Log session detection
+    error_log("Registration - Detected step 2 from session data");
+} else {
+    $step = 1; // Form step
+    // Debug: Log session detection
+    error_log("Registration - Detected step 1, session data: " . json_encode([
+        'has_registration' => isset($_SESSION['registration']),
+        'has_email_otp' => isset($_SESSION['email_otp'])
+    ]));
+}
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -186,6 +199,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $step = 2; // Stay on OTP verification step if there are errors
             // Debug: Log the error to see what's happening
             error_log("OTP verification failed. Errors: " . json_encode($errors));
+            error_log("OTP verification failed. Step set to: " . $step);
+            error_log("OTP verification failed. Session data after error: " . json_encode([
+                'has_registration' => isset($_SESSION['registration']),
+                'has_email_otp' => isset($_SESSION['email_otp']),
+                'registration_data' => $_SESSION['registration'] ?? null,
+                'email_otp_data' => $_SESSION['email_otp'] ?? null
+            ]));
         }
     }
 
