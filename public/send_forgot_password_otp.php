@@ -56,7 +56,7 @@ $response = ['success' => false, 'message' => ''];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     $email = $input['email'] ?? '';
-    $recaptchaResponse = $input['recaptchaResponse'] ?? '';
+    $recaptcha_token = $input['recaptcha_token'] ?? '';
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $response['message'] = 'Invalid email address.';
@@ -65,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Verify reCAPTCHA
-    if (!verify_recaptcha($recaptchaResponse)) {
+    $recaptcha_valid = verify_recaptcha($recaptcha_token, 'forgot_password');
+    if (!$recaptcha_valid) {
         $response['message'] = 'reCAPTCHA verification failed. Please try again.';
         echo json_encode($response);
         exit;

@@ -31,6 +31,13 @@ try {
 		throw new Exception('Registration session not found for this email');
 	}
 
+	// Verify reCAPTCHA
+	require_once '../includes/api_calls.php';
+	$recaptcha_valid = verify_recaptcha($recaptcha_token, 'registration');
+	if (!$recaptcha_valid) {
+		throw new Exception('reCAPTCHA verification failed');
+	}
+
 	// Check OTP rate limiting
 	$rate_limit = check_otp_rate_limit($email, 'registration');
 	if (!$rate_limit['can_send']) {
