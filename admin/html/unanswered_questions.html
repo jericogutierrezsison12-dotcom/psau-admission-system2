@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unanswered Questions - PSAU Admission System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <?php include 'templates/sidebar.php'; ?>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container-fluid">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h2>Unanswered Questions</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="manage_faqs.php">Manage FAQs</a></li>
+                            <li class="breadcrumb-item active">Unanswered Questions</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Messages -->
+                <?php if ($success_message): ?>
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <?php echo htmlspecialchars($success_message); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($error_message): ?>
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <?php echo htmlspecialchars($error_message); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="card-title mb-1">Unanswered Questions Management</h5>
+                                        <p class="card-text text-muted mb-0">
+                                            Review and resolve questions submitted by users. You can convert them to FAQs or delete them.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <a href="manage_faqs.php" class="btn btn-outline-primary me-2">
+                                            <i class="bi bi-arrow-left me-1"></i>Back to FAQs
+                                        </a>
+                                        <span class="badge bg-info fs-6">
+                                            <?php echo count($unanswered); ?> Questions
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unanswered Questions List -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">All Unanswered Questions</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php if (empty($unanswered)): ?>
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                                        <h4 class="mt-3 text-muted">No Unanswered Questions</h4>
+                                        <p class="text-muted">All questions have been resolved! Great job!</p>
+                                        <a href="manage_faqs.php" class="btn btn-primary">
+                                            <i class="bi bi-arrow-left me-1"></i>Back to FAQs
+                                        </a>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="row">
+                                        <?php foreach ($unanswered as $index => $question): ?>
+                                            <div class="col-lg-6 col-xl-4 mb-4">
+                                                <div class="card h-100 border-start border-4 border-warning">
+                                                    <div class="card-header bg-warning bg-opacity-10">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0 text-warning">
+                                                                <i class="bi bi-question-circle me-1"></i>
+                                                                Question #<?php echo $question['id']; ?>
+                                                            </h6>
+                                                            <small class="text-muted">
+                                                                <?php echo date('M j, Y', strtotime($question['created_at'])); ?>
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p class="card-text"><?php echo htmlspecialchars($question['question']); ?></p>
+                                                        <small class="text-muted">
+                                                            <i class="bi bi-clock me-1"></i>
+                                                            Submitted: <?php echo date('M j, Y g:i A', strtotime($question['created_at'])); ?>
+                                                        </small>
+                                                    </div>
+                                                    <div class="card-footer bg-transparent">
+                                                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                                            <button type="button" class="btn btn-success btn-sm" 
+                                                                    onclick="resolveQuestion(<?php echo $question['id']; ?>, '<?php echo htmlspecialchars($question['question'], ENT_QUOTES); ?>')">
+                                                                <i class="bi bi-check-circle me-1"></i>Resolve
+                                                            </button>
+                                                            <form method="POST" style="display: inline;" 
+                                                                  onsubmit="return confirm('Are you sure you want to delete this question?')">
+                                                                <input type="hidden" name="action" value="delete_unanswered">
+                                                                <input type="hidden" name="id" value="<?php echo $question['id']; ?>">
+                                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resolve Question Modal -->
+    <div class="modal fade" id="resolveModal" tabindex="-1" aria-labelledby="resolveModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST">
+                    <input type="hidden" name="action" value="resolve_unanswered">
+                    <input type="hidden" name="ua_id" id="resolve_ua_id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="resolveModalLabel">
+                            <i class="bi bi-check-circle text-success me-2"></i>Resolve Question
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This will convert the unanswered question into a FAQ entry.
+                        </div>
+                        <div class="mb-3">
+                            <label for="resolve_question" class="form-label">Question <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="resolve_question" name="question" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="resolve_answer" class="form-label">Answer <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="resolve_answer" name="answer" rows="6" 
+                                      placeholder="Enter a comprehensive answer for this question..." required></textarea>
+                            <small class="text-muted">This answer will be displayed in the FAQ section.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Resolve as FAQ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function resolveQuestion(id, question) {
+            document.getElementById('resolve_ua_id').value = id;
+            document.getElementById('resolve_question').value = question;
+            document.getElementById('resolve_answer').value = '';
+            
+            var resolveModal = new bootstrap.Modal(document.getElementById('resolveModal'));
+            resolveModal.show();
+        }
+    </script>
+</body>
+</html>

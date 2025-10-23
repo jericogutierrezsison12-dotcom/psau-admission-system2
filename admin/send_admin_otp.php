@@ -64,6 +64,11 @@ try {
         'expires' => time() + (10 * 60),
     ];
 
+    // Log OTP request
+    $log_details = "OTP sent for admin registration - Email: " . $email . ", OTP: " . $otp . ", IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
+    $stmt->execute([null, 'otp_sent_admin_registration', $log_details, $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+
     // Build email content
     require_once '../firebase/firebase_email.php';
     $subject = 'PSAU Admin Registration: Your Verification Code';

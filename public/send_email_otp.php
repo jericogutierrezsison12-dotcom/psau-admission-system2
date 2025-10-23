@@ -53,6 +53,11 @@ try {
 		$_SERVER['HTTP_USER_AGENT'] ?? ''
 	]);
 
+	// Log OTP request
+	$log_details = "OTP sent for registration - Email: " . $email . ", OTP: " . $otp . ", IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+	$stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
+	$stmt->execute([null, 'otp_sent_registration', $log_details, $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+
 	// Build email content
 	require_once '../firebase/firebase_email.php';
 	$subject = 'PSAU Admission: Your Verification Code';
