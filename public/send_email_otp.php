@@ -74,10 +74,16 @@ try {
 		. date('Y') . " PSAU Admission System</div>"
 		."</div>";
 
-	$result = firebase_send_email($email, $subject, $message);
-	if (!$result || (is_array($result) && empty($result['success']))) {
-		throw new Exception('Failed to send OTP email');
-	}
+    try {
+        $result = firebase_send_email($email, $subject, $message);
+        if (!$result || (is_array($result) && empty($result['success']))) {
+            // Log failure but still allow flow; OTP stored in DB
+            error_log("Registration OTP email send failed for {$email}");
+        }
+    } catch (Throwable $mailErr) {
+        // Log and continue; client can still verify using code received later or after resend
+        error_log('Registration OTP mail error: ' . $mailErr->getMessage());
+    }
 
 	// Record OTP request for rate limiting
 	record_otp_request($email, 'registration');

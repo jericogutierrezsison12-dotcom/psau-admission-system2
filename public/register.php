@@ -179,7 +179,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['registration'] = 'An error occurred during registration. Please try again.';
                 $step = 1; // Go back to form
             }
-        } else {
+            // end OTP verified block
+        }
+        // close outer OTP validation if
+        }
+        else {
             $step = 2; // Stay on OTP verification step if there are errors
         }
     }
