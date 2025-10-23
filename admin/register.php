@@ -88,6 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	} elseif ($postedStep === 2) {
 		// Email OTP verification submit
 		$otp_code = trim($_POST['otp_code'] ?? '');
+		$recaptcha_verified = $_POST['recaptcha_verified'] ?? '';
+		
+		// Check reCAPTCHA verification
+		if ($recaptcha_verified !== 'true') {
+			$errors['recaptcha'] = 'reCAPTCHA verification is required';
+		}
+		
 		if ($otp_code === '') {
 			$errors['otp'] = 'OTP code is required';
 		} elseif (!preg_match('/^\d{6}$/', $otp_code)) {
@@ -130,7 +137,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$conn->rollBack();
 				}
 				error_log('Admin registration database error: ' . $e->getMessage());
-				$errors['server'] = 'Server error. Please try again later.';
+				error_log('Admin registration database error code: ' . $e->getCode());
+				error_log('Admin registration database error info: ' . print_r($e->errorInfo, true));
+				
+				// Check for specific database errors
+				if ($e->getCode() == 23000) { // Duplicate entry
+					if (strpos($e->getMessage(), 'username') !== false) {
+						$errors['username'] = 'Username already exists';
+					} elseif (strpos($e->getMessage(), 'email') !== false) {
+						$errors['email'] = 'Email already exists';
+					} else {
+						$errors['server'] = 'Duplicate entry error. Please try again.';
+					}
+				} else {
+					$errors['server'] = 'Database error. Please try again later.';
+				}
 				$step = 1;
 			} catch (Exception $e) {
 				if ($conn->inTransaction()) {
