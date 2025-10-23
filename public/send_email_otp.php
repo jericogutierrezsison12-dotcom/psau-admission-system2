@@ -31,13 +31,6 @@ try {
 		throw new Exception('Registration session not found for this email');
 	}
 
-	// Verify reCAPTCHA
-	require_once '../includes/api_calls.php';
-	$recaptcha_valid = verify_recaptcha($recaptcha_token, 'registration');
-	if (!$recaptcha_valid) {
-		throw new Exception('reCAPTCHA verification failed');
-	}
-
 	// Check OTP rate limiting
 	$rate_limit = check_otp_rate_limit($email, 'registration');
 	if (!$rate_limit['can_send']) {
@@ -46,11 +39,6 @@ try {
 
 	// Generate 6-digit OTP and set 10-minute expiry
 	$otp = random_int(100000, 999999);
-	
-	// Store OTP using the proper session structure for attempt tracking
-	store_otp_session($email, (string)$otp, 'registration', 10);
-	
-	// Also store in the old format for backward compatibility
 	$_SESSION['email_otp'] = [
 		'code' => (string)$otp,
 		'expires' => time() + (10 * 60),

@@ -56,7 +56,7 @@ $response = ['success' => false, 'message' => ''];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     $email = $input['email'] ?? '';
-    $recaptcha_token = $input['recaptcha_token'] ?? '';
+    $recaptchaResponse = $input['recaptchaResponse'] ?? '';
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $response['message'] = 'Invalid email address.';
@@ -65,8 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Verify reCAPTCHA
-    $recaptcha_valid = verify_recaptcha($recaptcha_token, 'forgot_password');
-    if (!$recaptcha_valid) {
+    if (!verify_recaptcha($recaptchaResponse)) {
         $response['message'] = 'reCAPTCHA verification failed. Please try again.';
         echo json_encode($response);
         exit;
@@ -90,10 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate a 6-digit OTP
     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // Store OTP using the proper session structure for attempt tracking
-    store_otp_session($email, $otp, 'forgot_password', 5);
-    
-    // Also store in the old format for backward compatibility
+    // Store OTP in session for verification
     $_SESSION['password_reset']['otp_code'] = $otp;
     $_SESSION['password_reset']['otp_expires'] = time() + (5 * 60); // OTP valid for 5 minutes
 

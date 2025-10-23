@@ -7,8 +7,6 @@
 // Include the database connection and other required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/email_otp.php';
-require_once '../includes/otp_attempt_tracking.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -89,100 +87,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
         // Process OTP verification
         $otp_code = trim($_POST['otp_code'] ?? '');
-        $recaptcha_verified = $_POST['recaptcha_verified'] ?? '';
 
-        // Check reCAPTCHA verification
-        if ($recaptcha_verified !== 'true') {
-            $errors['recaptcha'] = 'reCAPTCHA verification is required';
-        }
-
-        // Validate OTP format
+        // Validate OTP (6 digits) against session-stored code
         if ($otp_code === '') {
             $errors['otp'] = 'OTP code is required';
         } elseif (!preg_match('/^\d{6}$/', $otp_code)) {
             $errors['otp'] = 'Invalid OTP format';
-        }
-
-        // If basic validation passes, verify OTP with database attempt tracking
-        if (empty($errors['otp']) && empty($errors['recaptcha'])) {
-            $email = $_SESSION['registration']['email'] ?? '';
-            $otp_result = check_otp_attempts($email, 'registration', $otp_code);
-            
-            if (!$otp_result['success']) {
-                $errors['otp'] = $otp_result['message'];
-                
-                // If attempts exceeded, clear session and require new OTP
-                if (strpos($otp_result['message'], 'Too many failed attempts') !== false) {
-                    unset($_SESSION['email_otp']);
-                    $errors['otp_limit'] = true; // Flag to show limit message
-                }
-            } else {
-                // OTP verified, create user account
-                try {
-                    $conn->beginTransaction();
-                    
-                    // Get registration data from session
-                    $registration = $_SESSION['registration'];
-                    
-                    // Include control number generator
-                    require_once '../includes/generate_control_number.php';
-                    
-                    // Generate control number
-                    $control_number = generate_control_number($conn);
-
-                    // Generate a unique placeholder mobile number to satisfy NOT NULL + UNIQUE constraint
-                    $generated_mobile = null;
-                    for ($i = 0; $i < 5; $i++) {
-                        $candidate = '999' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); // 10 digits starting with 999
-                        $check = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
-                        $check->execute([$candidate]);
-                        if ($check->fetchColumn() == 0) {
-                            $generated_mobile = $candidate;
-                            break;
-                        }
-                    }
-                    if ($generated_mobile === null) {
-                        throw new Exception('Failed to generate unique placeholder mobile number');
-                    }
-                    
-                    // Hash password
-                    $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
-                    
-                    // Insert user into database
-                    $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([
-                        $control_number,
-                        $registration['first_name'],
-                        $registration['last_name'],
-                        $registration['email'],
-                        $generated_mobile,
-                        $hashed_password,
-                        1 // Verified through OTP
-                    ]);
-                    
-                    $user_id = $conn->lastInsertId();
-                    
-                    $conn->commit();
-                    
-                    // Set session for the new user
-                    $_SESSION['user_id'] = $user_id;
-                    
-                    // Unset temporary registration data
-                    unset($_SESSION['registration']);
-                    unset($_SESSION['email_otp']);
-                    
-                    // Redirect to success page
-                    header('Location: registration_success.php?control_number=' . $control_number);
-                    exit;
-                } catch (PDOException $e) {
-                    $conn->rollBack();
-                    error_log("Registration Error: " . $e->getMessage());
-                    $errors['registration'] = 'An error occurred during registration. Please try again.';
-                    $step = 1; // Go back to form
-                }
-            }
+        } elseif (!isset($_SESSION['email_otp']['code'], $_SESSION['email_otp']['expires'])) {
+            $errors['otp'] = 'No OTP found. Please resend the code.';
+        } elseif (time() > (int)$_SESSION['email_otp']['expires']) {
+            $errors['otp'] = 'OTP has expired. Please resend the code.';
+        } elseif ($otp_code !== (string)$_SESSION['email_otp']['code']) {
+            $errors['otp'] = 'Incorrect OTP. Please try again.';
         } else {
-            $step = 2; // Stay on OTP verification step if there are errors
+            // OTP verified, create user account
+            try {
+                $conn->beginTransaction();
+                
+                // Get registration data from session
+                $registration = $_SESSION['registration'];
+                
+                // Include control number generator
+                require_once '../includes/generate_control_number.php';
+                
+                // Generate control number
+                $control_number = generate_control_number($conn);
+
+                // Generate a unique placeholder mobile number to satisfy NOT NULL + UNIQUE constraint
+                $generated_mobile = null;
+                for ($i = 0; $i < 5; $i++) {
+                    $candidate = '999' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); // 10 digits starting with 999
+                    $check = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
+                    $check->execute([$candidate]);
+                    if ($check->fetchColumn() == 0) {
+                        $generated_mobile = $candidate;
+                        break;
+                    }
+                }
+                if ($generated_mobile === null) {
+                    throw new Exception('Failed to generate unique placeholder mobile number');
+                }
+                
+                // Hash password
+                $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
+                
+                // Insert user into database
+                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $control_number,
+                    $registration['first_name'],
+                    $registration['last_name'],
+                    $registration['email'],
+                    $generated_mobile,
+                    $hashed_password,
+                    1 // Verified through OTP
+                ]);
+                
+                $user_id = $conn->lastInsertId();
+                
+                $conn->commit();
+                
+                // Set session for the new user
+                $_SESSION['user_id'] = $user_id;
+                
+                // Unset temporary registration data
+                unset($_SESSION['registration']);
+                unset($_SESSION['email_otp']);
+                
+                // Redirect to success page
+                header('Location: registration_success.php?control_number=' . $control_number);
+                exit;
+            } catch (PDOException $e) {
+                $conn->rollBack();
+                error_log("Registration Error: " . $e->getMessage());
+                $errors['registration'] = 'An error occurred during registration. Please try again.';
+                $step = 1; // Go back to form
+            }
         }
     }
 }

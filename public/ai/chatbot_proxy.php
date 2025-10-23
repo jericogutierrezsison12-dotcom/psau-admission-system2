@@ -29,7 +29,7 @@ if (trim($message) === '') {
 }
 
 // Prefer /chat based on upstream HTML; fallback to /chatbot
-$base = 'https://flaskbot-1.onrender.com';
+$base = 'https://flaskbot-4g2h.onrender.com';
 $endpoints = [$base . '/chat', $base . '/chatbot'];
 
 function forward_json($url, $message){
@@ -81,29 +81,12 @@ function forward_get($url, $message){
 
 // Try each endpoint with JSON POST; on 405, try form POST, then GET
 $status = null; $response = null; $err = null;
-$debug_mode = isset($_GET['debug']) && $_GET['debug'] === '1';
-
 foreach ($endpoints as $url) {
-    if ($debug_mode) {
-        error_log("Trying endpoint: $url");
-    }
-    
     list($status, $response, $err) = forward_json($url, $message);
-    if ($debug_mode) {
-        error_log("JSON POST result - Status: $status, Response: " . substr($response, 0, 200));
-    }
-    
     if ($status === 405) {
         list($status, $response, $err) = forward_form($url, $message);
-        if ($debug_mode) {
-            error_log("Form POST result - Status: $status, Response: " . substr($response, 0, 200));
-        }
-        
         if ($status === 405) {
             list($status, $response, $err) = forward_get($url, $message);
-            if ($debug_mode) {
-                error_log("GET result - Status: $status, Response: " . substr($response, 0, 200));
-            }
         }
     }
     if ($response !== false && $status && $status !== 404) {
@@ -122,8 +105,7 @@ http_response_code($status ?: 200);
 // Normalize response to JSON with a common shape
 $decoded = json_decode($response, true);
 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-    // The new API returns 'response' key with the AI reply
-    $reply = $decoded['response'] ?? $decoded['reply'] ?? $decoded['message'] ?? null;
+    $reply = $decoded['reply'] ?? $decoded['message'] ?? $decoded['response'] ?? null;
     if ($reply !== null) {
         echo json_encode(['reply' => $reply, 'raw' => $decoded]);
     } else {
