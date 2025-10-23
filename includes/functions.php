@@ -23,7 +23,7 @@ function create_remember_token($conn, $user_id) {
         
         // Generate a random token (to verify)
         $token = random_bytes(32);
-        $hashed_token = password_hash($token, PASSWORD_DEFAULT);
+        $hashed_token = password_hash(bin2hex($token), PASSWORD_DEFAULT);
         
         // Set expiration (30 days from now)
         $expires = new DateTime();
@@ -72,9 +72,7 @@ function verify_remember_token($conn, $selector, $token) {
         }
         
         // Verify the token
-        $token_bin = hex2bin($token);
-        
-        if (!$token_bin || !password_verify($token_bin, $remember['token'])) {
+        if (!password_verify($token, $remember['token'])) {
             return false; // Invalid token
         }
         
