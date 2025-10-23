@@ -19,6 +19,43 @@ const auth = getAuth(app);
 let isRecaptchaVerified = false;
 let recaptchaResponse = null;
 
+// Function to show messages with proper styling
+function showMessage(message, type = 'info') {
+    // Remove any existing message
+    const existingMessage = document.querySelector('.otp-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create message element
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `otp-message alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        font-size: 14px;
+        line-height: 1.4;
+    `;
+    messageDiv.innerHTML = message;
+    
+    // Add to page
+    document.body.appendChild(messageDiv);
+    
+    // Auto-remove after 5 seconds for success messages, 10 seconds for errors
+    const timeout = type === 'error' ? 10000 : 5000;
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.remove();
+        }
+    }, timeout);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
     
@@ -114,7 +151,7 @@ function setupOtpVerification() {
             }
             return res.json();
         })
-        .then(() => {
+        .then((data) => {
             window.otpSent = true;
             document.getElementById('resend-otp').disabled = true;
             let seconds = 60;
@@ -127,10 +164,25 @@ function setupOtpVerification() {
                     document.getElementById('resend-otp').disabled = false;
                 }
             }, 1000);
+            
+            // Show success message with remaining requests
+            if (data.message) {
+                showMessage(data.message, 'success');
+            }
         })
         .catch((error) => {
             console.error('Error sending OTP:', error);
-            alert('Error sending OTP: ' + error.message);
+            // Try to parse error message for better display
+            try {
+                const errorData = JSON.parse(error.message);
+                if (errorData.error) {
+                    showMessage(errorData.error, 'error');
+                } else {
+                    showMessage('Error sending OTP: ' + error.message, 'error');
+                }
+            } catch (e) {
+                showMessage('Error sending OTP: ' + error.message, 'error');
+            }
         });
     };
     

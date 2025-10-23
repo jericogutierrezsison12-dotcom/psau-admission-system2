@@ -1,6 +1,6 @@
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { getAuth, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 /**
  * PSAU Admission System - Forgot Password Page JavaScript
@@ -19,6 +19,47 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Track reCAPTCHA verification state
+let isRecaptchaVerified = false;
+let recaptchaResponse = null;
+
+// Function to show messages with proper styling
+function showMessage(message, type = 'info') {
+    // Remove any existing message
+    const existingMessage = document.querySelector('.otp-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create message element
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `otp-message alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        font-size: 14px;
+        line-height: 1.4;
+    `;
+    messageDiv.innerHTML = message;
+    
+    // Add to page
+    document.body.appendChild(messageDiv);
+    
+    // Auto-remove after 5 seconds for success messages, 10 seconds for errors
+    const timeout = type === 'error' ? 10000 : 5000;
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.remove();
+        }
+    }, timeout);
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if we're on step 2 (OTP verification)
@@ -41,100 +82,123 @@ function setupOTPVerification() {
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'normal',
         'callback': (response) => {
-            // reCAPTCHA solved, send OTP
-            sendOTP();
+            // reCAPTCHA solved
+            isRecaptchaVerified = true;
+            recaptchaResponse = response;
+            
+            // Keep the check mark visible
+            const recaptchaIframe = document.querySelector('iframe[title="reCAPTCHA"]');
+            if (recaptchaIframe) {
+                const recaptchaElement = recaptchaIframe.parentElement;
+                recaptchaElement.setAttribute('data-verified', 'true');
+            }
+            
+            // Enable verify button
+            document.getElementById('verify-otp').disabled = false;
         }
     });
     
     window.recaptchaVerifier.render();
     
-    // Send OTP function
+    // Initially disable verify button
+    document.getElementById('verify-otp').disabled = true;
+    
+    // Send OTP function (email-based)
     window.sendOTP = function() {
-        let phoneNumber = document.querySelector('p strong').textContent; // Get number from the displayed text
-        
-        console.log("Sending OTP to:", phoneNumber);
-        
-        // Show sending indicator
-        document.getElementById('verify-otp').disabled = true;
-        document.getElementById('verify-otp').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending OTP...';
-        
-        signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
-            .then((confirmationResult) => {
-                // SMS sent. Store confirmationResult for later use
-                window.confirmationResult = confirmationResult;
-                
-                // Reset button text
-                document.getElementById('verify-otp').disabled = false;
-                document.getElementById('verify-otp').innerHTML = 'Verify OTP';
-                
-                // Disable resend button and start countdown
-                document.getElementById('resend-otp').disabled = true;
-                
-                // Start countdown for resend button
-                let seconds = 60;
-                const countdown = setInterval(() => {
-                    document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
-                    seconds--;
-                    if (seconds < 0) {
-                        clearInterval(countdown);
-                        document.getElementById('resend-otp').innerText = 'Resend OTP';
-                        document.getElementById('resend-otp').disabled = false;
-                    }
-                }, 1000);
-            }).catch((error) => {
-                // Error; SMS not sent
-                console.error("Error sending OTP:", error);
-                alert("Error sending OTP: " + error.message);
-                
-                // Reset button
-                document.getElementById('verify-otp').disabled = false;
-                document.getElementById('verify-otp').innerHTML = 'Verify OTP';
-            });
-    };
-    
-    // Automatically send OTP on page load
-    sendOTP();
-    
-    // Verify OTP button click
-    document.getElementById('verify-otp').addEventListener('click', function() {
-        const code = document.getElementById('otp_code').value;
-        if (!code || code.length !== 6) {
-            alert("Please enter a valid 6-digit OTP code");
+        if (!isRecaptchaVerified) {
+            showMessage("Please complete the reCAPTCHA verification first", 'error');
             return;
         }
+
+        const email = document.getElementById('passwordResetEmail').value;
+        const token = recaptchaResponse;
+
+        fetch('send_forgot_password_otp.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, recaptcha_token: token })
+        })
+        .then(async (res) => {
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || 'Failed to send OTP');
+            }
+            return res.json();
+        })
+        .then((data) => {
+            document.getElementById('resend-otp').disabled = true;
+            let seconds = 60;
+            const countdown = setInterval(() => {
+                document.getElementById('resend-otp').innerText = `Resend OTP (${seconds}s)`;
+                seconds--;
+                if (seconds < 0) {
+                    clearInterval(countdown);
+                    document.getElementById('resend-otp').innerText = 'Resend OTP';
+                    document.getElementById('resend-otp').disabled = false;
+                }
+            }, 1000);
+            
+            // Show success message with remaining requests
+            if (data.message) {
+                showMessage(data.message, 'success');
+            }
+        })
+        .catch((error) => {
+            console.error('Error sending OTP:', error);
+            // Try to parse error message for better display
+            try {
+                const errorData = JSON.parse(error.message);
+                if (errorData.error) {
+                    showMessage(errorData.error, 'error');
+                } else {
+                    showMessage('Error sending OTP: ' + error.message, 'error');
+                }
+            } catch (e) {
+                showMessage('Error sending OTP: ' + error.message, 'error');
+            }
+        });
+    };
+    
+    // Verify OTP button click (server-side validation)
+    document.getElementById('verify-otp').addEventListener('click', function() {
+        if (!isRecaptchaVerified) {
+            showMessage("Please complete the reCAPTCHA verification first", 'error');
+            return;
+        }
+
+        const otpCode = document.getElementById('otp_code').value;
+        if (!otpCode || otpCode.length !== 6) {
+            showMessage("Please enter a valid 6-digit OTP code", 'error');
+            return;
+        }
+
+        // Set reCAPTCHA verified flag
+        document.getElementById('recaptcha_verified').value = 'true';
         
-        // Show verification in progress
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
-        
-        // Confirm the OTP code
-        window.confirmationResult.confirm(code)
-            .then((result) => {
-                // User signed in successfully
-                document.getElementById('firebase_verified').value = 'true';
-                document.getElementById('otpForm').submit();
-            }).catch((error) => {
-                // Invalid code
-                alert("Invalid OTP code. Please try again.");
-                console.error("Error verifying OTP:", error);
-                
-                // Reset button
-                document.getElementById('verify-otp').disabled = false;
-                document.getElementById('verify-otp').innerHTML = 'Verify OTP';
-            });
+        // Submit the form
+        document.getElementById('otpForm').submit();
     });
     
     // Resend OTP button click
     document.getElementById('resend-otp').addEventListener('click', function() {
         // Reset reCAPTCHA
         window.recaptchaVerifier.clear();
+        isRecaptchaVerified = false;
+        recaptchaResponse = null;
+        
+        // Re-render reCAPTCHA
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'normal',
             'callback': (response) => {
+                isRecaptchaVerified = true;
+                recaptchaResponse = response;
                 sendOTP();
             }
         });
         window.recaptchaVerifier.render();
+        
+        // Disable verify button until reCAPTCHA is solved
+        document.getElementById('verify-otp').disabled = true;
     });
 }
 
@@ -142,80 +206,55 @@ function setupOTPVerification() {
  * Setup password validation functionality
  */
 function setupPasswordValidation() {
-    const passwordField = document.getElementById('password');
-    const confirmPasswordField = document.getElementById('confirm_password');
-    
-    // Password strength validation
-    passwordField.addEventListener('input', function() {
-        const password = this.value;
-        
-        // Check length
-        document.getElementById('length').style.color = 
-            password.length >= 8 ? 'green' : 'inherit';
-        
-        // Check uppercase
-        document.getElementById('uppercase').style.color = 
-            /[A-Z]/.test(password) ? 'green' : 'inherit';
-        
-        // Check lowercase
-        document.getElementById('lowercase').style.color = 
-            /[a-z]/.test(password) ? 'green' : 'inherit';
-        
-        // Check number
-        document.getElementById('number').style.color = 
-            /[0-9]/.test(password) ? 'green' : 'inherit';
-        
-        // Check special character
-        document.getElementById('special').style.color = 
-            /[^A-Za-z0-9]/.test(password) ? 'green' : 'inherit';
-        
-        // Update confirm password validation
-        validatePasswordMatch();
-    });
-    
-    // Password confirmation validation
-    if (confirmPasswordField) {
-        confirmPasswordField.addEventListener('input', validatePasswordMatch);
-    }
-    
-    // Form submission validation
-    const form = document.querySelector('form[method="POST"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!validatePasswordStrength() || !validatePasswordMatch()) {
-                e.preventDefault();
-                alert('Please ensure your password meets all requirements and passwords match.');
-                return false;
-            }
-        });
-    }
-}
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const lengthIndicator = document.getElementById('length');
+    const uppercaseIndicator = document.getElementById('uppercase');
+    const lowercaseIndicator = document.getElementById('lowercase');
+    const numberIndicator = document.getElementById('number');
+    const specialIndicator = document.getElementById('special');
+    const matchIndicator = document.getElementById('match');
 
-/**
- * Validate password strength
- */
-function validatePasswordStrength() {
-    const password = document.getElementById('password').value;
-    
-    return password.length >= 8 &&
-           /[A-Z]/.test(password) &&
-           /[a-z]/.test(password) &&
-           /[0-9]/.test(password) &&
-           /[^A-Za-z0-9]/.test(password);
-}
+    function validatePassword() {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
 
-/**
- * Validate password match
- */
-function validatePasswordMatch() {
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
-    
-    if (confirmPassword && password !== confirmPassword) {
-        document.getElementById('confirm_password').classList.add('is-invalid');
-        return false;
-    } else {
-        document.getElementById('confirm_password').classList.remove('is-invalid');
-        return true;
+        // Length check
+        const hasLength = password.length >= 8;
+        lengthIndicator.className = hasLength ? 'text-success' : 'text-danger';
+
+        // Uppercase check
+        const hasUppercase = /[A-Z]/.test(password);
+        uppercaseIndicator.className = hasUppercase ? 'text-success' : 'text-danger';
+
+        // Lowercase check
+        const hasLowercase = /[a-z]/.test(password);
+        lowercaseIndicator.className = hasLowercase ? 'text-success' : 'text-danger';
+
+        // Number check
+        const hasNumber = /\d/.test(password);
+        numberIndicator.className = hasNumber ? 'text-success' : 'text-danger';
+
+        // Special character check
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        specialIndicator.className = hasSpecial ? 'text-success' : 'text-danger';
+
+        // Match check
+        const passwordsMatch = password === confirmPassword && password.length > 0;
+        matchIndicator.className = passwordsMatch ? 'text-success' : 'text-danger';
+
+        // Enable/disable submit button
+        const isValid = hasLength && hasUppercase && hasLowercase && hasNumber && hasSpecial && passwordsMatch;
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = !isValid;
+        }
     }
-} 
+
+    // Add event listeners
+    passwordInput.addEventListener('input', validatePassword);
+    confirmPasswordInput.addEventListener('input', validatePassword);
+
+    // Initial validation
+    validatePassword();
+}

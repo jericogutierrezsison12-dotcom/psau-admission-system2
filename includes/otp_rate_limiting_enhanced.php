@@ -58,19 +58,38 @@ function check_otp_rate_limit_enhanced($email, $purpose) {
             $next_allowed = strtotime($first_request) + (3 * 60 * 60);
             $time_remaining = $next_allowed - time();
             
+            $hours_remaining = floor($time_remaining / 3600);
+            $minutes_remaining = floor(($time_remaining % 3600) / 60);
+            
+            if ($hours_remaining > 0) {
+                $time_message = $hours_remaining . " hour" . ($hours_remaining > 1 ? "s" : "") . 
+                               ($minutes_remaining > 0 ? " and " . $minutes_remaining . " minute" . ($minutes_remaining > 1 ? "s" : "") : "");
+            } else {
+                $time_message = $minutes_remaining . " minute" . ($minutes_remaining > 1 ? "s" : "");
+            }
+            
             return [
                 'can_send' => false,
-                'message' => "Rate limit exceeded. You can request a new OTP in " . 
-                           gmdate("H:i:s", $time_remaining) . " hours.",
+                'message' => "🚫 OTP Limit Reached! You have already requested 5 OTPs in the last hour. Please wait " . $time_message . " before requesting another OTP.",
                 'remaining_requests' => 0,
                 'reset_time' => date('Y-m-d H:i:s', $next_allowed)
             ];
         }
         
+        $remaining = 5 - $request_count;
+        $message = "✅ OTP sent successfully! ";
+        if ($remaining > 1) {
+            $message .= "You have " . $remaining . " more OTP requests remaining this hour.";
+        } elseif ($remaining == 1) {
+            $message .= "You have 1 more OTP request remaining this hour.";
+        } else {
+            $message .= "This is your last OTP request for this hour.";
+        }
+        
         return [
             'can_send' => true,
-            'message' => 'OTP request allowed.',
-            'remaining_requests' => 5 - $request_count,
+            'message' => $message,
+            'remaining_requests' => $remaining,
             'reset_time' => null
         ];
         
@@ -78,7 +97,7 @@ function check_otp_rate_limit_enhanced($email, $purpose) {
         error_log("OTP rate limiting error: " . $e->getMessage());
         return [
             'can_send' => false,
-            'message' => 'Server error. Please try again later.',
+            'message' => '⚠️ System Error: Unable to process OTP request. Please try again later.',
             'remaining_requests' => 0,
             'reset_time' => null
         ];
