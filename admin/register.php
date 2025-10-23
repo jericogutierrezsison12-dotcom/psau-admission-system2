@@ -61,12 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				// Debug: Log the registration attempt
 				error_log("Admin registration attempt - Username: $username, Email: $email, Role: $role");
 				
-				// Check unique username/email
-				$chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email = ?');
-				$chk->execute([$username, $email]);
+				// Check unique username only (email can be reused since only one email is allowed)
+				$chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ?');
+				$chk->execute([$username]);
 				$exists = (int)$chk->fetchColumn();
 				if ($exists > 0) {
-					$errors['exists'] = 'Username or email already exists';
+					$errors['exists'] = 'Username already exists';
 				} else {
 					// Store in session and move to OTP step
 					$_SESSION['admin_registration'] = [
