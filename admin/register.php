@@ -67,12 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				// Ensure admins table has mobile_number column (MariaDB supports IF NOT EXISTS)
 				$conn->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS mobile_number varchar(20) NOT NULL AFTER email");
 
-				// Check unique username/email/mobile
-				$chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email = ? OR mobile_number = ?');
-				$chk->execute([$username, $email, $mobile_number]);
+				// Check unique username/email (mobile_number is empty for admin registration)
+				$chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email = ?');
+				$chk->execute([$username, $email]);
 				$exists = (int)$chk->fetchColumn();
 				if ($exists > 0) {
-					$errors['exists'] = 'Username, email, or mobile already exists';
+					$errors['exists'] = 'Username or email already exists';
 				} else {
 					// Store in session and move to OTP step
 					$_SESSION['admin_registration'] = [
@@ -86,6 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				}
 			} catch (PDOException $e) {
 				error_log('Admin registration validation error: ' . $e->getMessage());
+				$errors['server'] = 'Server error. Please try again later.';
+			} catch (Exception $e) {
+				error_log('Admin registration error: ' . $e->getMessage());
 				$errors['server'] = 'Server error. Please try again later.';
 			}
 		}
@@ -110,6 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if (!$reg) {
 					throw new Exception('Registration session expired.');
 				}
+				
+				// Start transaction for data integrity
+				$conn->beginTransaction();
+				
 				$hash = password_hash($reg['password'], PASSWORD_DEFAULT);
 
 				// Ensure mobile column still exists
@@ -118,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$ins = $conn->prepare('INSERT INTO admins (username, email, mobile_number, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
 				$ins->execute([$reg['username'], $reg['email'], $reg['mobile_number'], $hash, $reg['role']]);
 
+				// Commit transaction
+				$conn->commit();
+
 				$success = 'Account created successfully. You can now login.';
 				// Clear temp data and reset form
 				unset($_SESSION['admin_registration']);
@@ -125,7 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$username = $email = $mobile_number = '';
 				$role = 'registrar';
 				$step = 1;
+			} catch (PDOException $e) {
+				if ($conn->inTransaction()) {
+					$conn->rollBack();
+				}
+				error_log('Admin registration database error: ' . $e->getMessage());
+				$errors['server'] = 'Server error. Please try again later.';
+				$step = 1;
 			} catch (Exception $e) {
+				if ($conn->inTransaction()) {
+					$conn->rollBack();
+				}
 				error_log('Admin registration error: ' . $e->getMessage());
 				$errors['server'] = 'Server error. Please try again later.';
 				$step = 1;

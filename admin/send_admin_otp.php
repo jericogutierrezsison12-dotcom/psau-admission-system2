@@ -4,12 +4,18 @@
  * Handles sending email OTP for admin registration
  */
 
+// Start output buffering to prevent any HTML output from interfering with JSON
+ob_start();
+
 require_once '../includes/db_connect.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Set proper headers for JSON response
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 
 try {
     $raw = file_get_contents('php://input');
@@ -28,6 +34,15 @@ try {
     // Ensure only the restricted admin email is allowed
     if ($email !== 'jericogutierrezsison12@gmail.com') {
         throw new Exception('Only jericogutierrezsison12@gmail.com is allowed for admin registration');
+    }
+    
+    // reCAPTCHA validation (optional for admin registration but recommended)
+    if ($recaptcha_token !== '') {
+        require_once '../includes/api_calls.php';
+        $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
+        if (!$recaptcha_valid) {
+            throw new Exception('reCAPTCHA verification failed');
+        }
     }
 
     // Basic gating: ensure registration session matches email
@@ -65,8 +80,13 @@ try {
         throw new Exception('Failed to send OTP email');
     }
 
+    // Clean any output buffer and send JSON response
+    ob_end_clean();
     echo json_encode(['ok' => true]);
 } catch (Throwable $e) {
+    // Clean any output buffer and send error response
+    ob_end_clean();
     http_response_code(400);
+    error_log("Admin OTP send error: " . $e->getMessage());
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
