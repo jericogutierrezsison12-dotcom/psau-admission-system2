@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
+require_once '../includes/otp_attempt_tracking.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');

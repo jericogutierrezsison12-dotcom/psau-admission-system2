@@ -7,6 +7,7 @@
 // Include the database connection and other required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/otp_attempt_tracking.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -115,8 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors['otp_limit'] = true; // Flag to show limit message
                 }
             } else {
-            // OTP verified, create user account
-            try {
+                // OTP verified, create user account
+                try {
                 $conn->beginTransaction();
                 
                 // Get registration data from session
@@ -172,11 +173,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Redirect to success page
                 header('Location: registration_success.php?control_number=' . $control_number);
                 exit;
-            } catch (PDOException $e) {
-                $conn->rollBack();
-                error_log("Registration Error: " . $e->getMessage());
-                $errors['registration'] = 'An error occurred during registration. Please try again.';
-                $step = 1; // Go back to form
+                } catch (PDOException $e) {
+                    $conn->rollBack();
+                    error_log("Registration Error: " . $e->getMessage());
+                    $errors['registration'] = 'An error occurred during registration. Please try again.';
+                    $step = 1; // Go back to form
+                }
             }
         } else {
             $step = 2; // Stay on OTP verification step if there are errors
