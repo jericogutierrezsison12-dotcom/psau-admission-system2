@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/email_otp.php';
+require_once '../includes/otp_attempt_tracking.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -102,10 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['otp'] = 'Invalid OTP format';
         }
 
-        // If basic validation passes, verify OTP with attempt tracking
+        // If basic validation passes, verify OTP with database attempt tracking
         if (empty($errors['otp']) && empty($errors['recaptcha'])) {
             $email = $_SESSION['registration']['email'] ?? '';
-            $otp_result = verify_otp_session($otp_code, $email, 'registration');
+            $otp_result = check_otp_attempts($email, 'registration', $otp_code);
             
             if (!$otp_result['success']) {
                 $errors['otp'] = $otp_result['message'];

@@ -7,6 +7,8 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/email_otp.php';
+require_once '../includes/otp_attempt_tracking.php';
 require_once '../includes/functions.php';
 
 // Redirect if already logged in
@@ -55,20 +57,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['step']) && $_POST['step'] == 2) {
         // Process OTP verification
         $otp_code = trim($_POST['otp_code'] ?? '');
-        
-        if (empty($otp_code)) {
+        $recaptcha_verified = $_POST['recaptcha_verified'] ?? '';
+
+        // Check reCAPTCHA verification
+        if ($recaptcha_verified !== 'true') {
+            $errors['recaptcha'] = 'reCAPTCHA verification is required';
+        }
+
+        // Validate OTP format
+        if ($otp_code === '') {
             $errors['otp'] = 'OTP code is required';
         } elseif (!preg_match('/^\d{6}$/', $otp_code)) {
             $errors['otp'] = 'Invalid OTP format';
-        } elseif (!isset($_SESSION['password_reset']['otp_code'], $_SESSION['password_reset']['otp_expires'])) {
-            $errors['otp'] = 'No OTP found. Please resend the code.';
-        } elseif (time() > (int)$_SESSION['password_reset']['otp_expires']) {
-            $errors['otp'] = 'OTP has expired. Please resend the code.';
-        } elseif ($otp_code !== (string)$_SESSION['password_reset']['otp_code']) {
-            $errors['otp'] = 'Incorrect OTP. Please try again.';
-        } else {
-            // OTP verified, move to password reset step
-            $step = 3;
+        }
+
+        // If basic validation passes, verify OTP with database attempt tracking
+        if (empty($errors['otp']) && empty($errors['recaptcha'])) {
+            $email = $_SESSION['password_reset']['email'] ?? '';
+            $otp_result = check_otp_attempts($email, 'forgot_password', $otp_code);
+            
+            if (!$otp_result['success']) {
+                $errors['otp'] = $otp_result['message'];
+                
+                // If attempts exceeded, clear session and require new OTP
+                if (strpos($otp_result['message'], 'Too many failed attempts') !== false) {
+                    unset($_SESSION['password_reset']['otp_code']);
+                    unset($_SESSION['password_reset']['otp_expires']);
+                    $errors['otp_limit'] = true; // Flag to show limit message
+                }
+            } else {
+                // OTP verified, move to password reset step
+                $step = 3;
+            }
         }
     } elseif (isset($_POST['step']) && $_POST['step'] == 3) {
         // Process password reset
