@@ -8,10 +8,10 @@ function check_otp_attempts($email, $purpose, $input_otp) {
 
     try {
         // Fetch the latest OTP request for the given email and purpose
-        $stmt = $conn->prepare("SELECT id, otp_code, created_at FROM otp_requests 
-                                WHERE email = ? AND purpose = ? 
+        $stmt = $conn->prepare("SELECT id, purpose, created_at FROM otp_requests 
+                                WHERE email = ? AND purpose LIKE ? 
                                 ORDER BY created_at DESC LIMIT 1");
-        $stmt->execute([$email, $purpose]);
+        $stmt->execute([$email, $purpose . '_%']);
         $otp_request = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$otp_request) {
@@ -19,7 +19,8 @@ function check_otp_attempts($email, $purpose, $input_otp) {
         }
 
         $otp_id = $otp_request['id'];
-        $correct_otp = $otp_request['otp_code'];
+        // Extract OTP code from purpose field (format: "forgot_password_123456")
+        $correct_otp = substr($otp_request['purpose'], strlen($purpose) + 1);
         $otp_created_at = strtotime($otp_request['created_at']);
         $otp_expires_at = $otp_created_at + ($otp_expiry_minutes * 60);
 

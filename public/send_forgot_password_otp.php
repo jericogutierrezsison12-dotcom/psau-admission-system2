@@ -90,11 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
     // Store OTP in database for attempt tracking
-    $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, otp_code, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, NOW())");
     $stmt->execute([
         $email,
-        'forgot_password',
-        $otp,
+        'forgot_password_' . $otp, // Store OTP code in purpose field
         $_SERVER['REMOTE_ADDR'] ?? 'unknown',
         $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
     ]);
