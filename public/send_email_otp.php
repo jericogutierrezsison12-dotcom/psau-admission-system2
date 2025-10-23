@@ -44,6 +44,15 @@ try {
 		'expires' => time() + (10 * 60),
 	];
 
+	// Store OTP request in database for rate limiting
+	$stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+	$stmt->execute([
+		$email,
+		'registration_' . $otp,
+		$_SERVER['REMOTE_ADDR'] ?? '',
+		$_SERVER['HTTP_USER_AGENT'] ?? ''
+	]);
+
 	// Build email content
 	require_once '../firebase/firebase_email.php';
 	$subject = 'PSAU Admission: Your Verification Code';

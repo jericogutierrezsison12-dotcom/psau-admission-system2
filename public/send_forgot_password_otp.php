@@ -92,6 +92,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['password_reset']['otp_code'] = $otp;
     $_SESSION['password_reset']['otp_expires'] = time() + (5 * 60); // OTP valid for 5 minutes
 
+    // Store OTP request in database for rate limiting
+    $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+    $stmt->execute([
+        $email,
+        'forgot_password_' . $otp,
+        $_SERVER['REMOTE_ADDR'] ?? '',
+        $_SERVER['HTTP_USER_AGENT'] ?? ''
+    ]);
+
     // Send OTP via email
     $subject = "PSAU Admission System: Password Reset OTP";
     $message = "
