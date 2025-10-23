@@ -89,7 +89,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate a 6-digit OTP
     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // Store OTP in session for verification
+    // Store OTP in database for attempt tracking
+    $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, otp_code, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt->execute([
+        $email,
+        'forgot_password',
+        $otp,
+        $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+    ]);
+
+    // Also store in session for backward compatibility
     $_SESSION['password_reset']['otp_code'] = $otp;
     $_SESSION['password_reset']['otp_expires'] = time() + (5 * 60); // OTP valid for 5 minutes
 

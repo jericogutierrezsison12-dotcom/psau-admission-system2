@@ -39,6 +39,18 @@ try {
 
 	// Generate 6-digit OTP and set 10-minute expiry
 	$otp = random_int(100000, 999999);
+	
+	// Store OTP in database for attempt tracking
+	$stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, otp_code, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+	$stmt->execute([
+		$email,
+		'registration',
+		(string)$otp,
+		$_SERVER['REMOTE_ADDR'] ?? 'unknown',
+		$_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+	]);
+	
+	// Also store in session for backward compatibility
 	$_SESSION['email_otp'] = [
 		'code' => (string)$otp,
 		'expires' => time() + (10 * 60),
