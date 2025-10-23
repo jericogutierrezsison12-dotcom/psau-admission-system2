@@ -19,48 +19,47 @@ function check_otp_attempts($email, $purpose, $input_otp) {
         }
 
         $otp_id = $otp_request['id'];
-        // Extract OTP code from purpose field (format: "forgot_password_123456")
+        // Extract OTP code from purpose field (format: "forgot_password_123456" or "registration_123456")
         $correct_otp = substr($otp_request['purpose'], strlen($purpose) + 1);
-        $otp_created_at = strtotime($otp_request['created_at']);
-        $otp_expires_at = $otp_created_at + ($otp_expiry_minutes * 60);
-
-        // Check if OTP has expired
-        if (time() > $otp_expires_at) {
-            // Mark all attempts for this OTP as expired
-            $stmt = $conn->prepare("UPDATE otp_attempts SET is_expired = 1 WHERE otp_request_id = ?");
-            $stmt->execute([$otp_id]);
+        
+        // Check if OTP has expired using database time comparison
+        $stmt = $conn->prepare("SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM otp_requests WHERE id = ?");
+        $stmt->execute([$otp_id]);
+        $minutes_ago = $stmt->fetchColumn();
+        
+        if ($minutes_ago > $otp_expiry_minutes) {
             return ['success' => false, 'message' => 'Verification code has expired. Please request a new one.'];
         }
 
         // Record the current attempt
-        $stmt = $conn->prepare("INSERT INTO otp_attempts (otp_request_id, attempt_time, ip_address, user_agent, is_success) VALUES (?, NOW(), ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO otp_attempts (email, purpose, otp_request_id, otp_code, is_successful, ip_address, user_agent, attempted_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
         $stmt->execute([
+            $email,
+            $purpose,
             $otp_id,
+            $correct_otp,
+            ($input_otp === $correct_otp) ? 1 : 0,
             $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-            ($input_otp === $correct_otp) ? 1 : 0
+            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
         ]);
 
         // Count failed attempts for this specific OTP request
         $stmt = $conn->prepare("SELECT COUNT(*) FROM otp_attempts 
-                                WHERE otp_request_id = ? AND is_success = 0");
+                                WHERE otp_request_id = ? AND is_successful = 0");
         $stmt->execute([$otp_id]);
         $failed_attempts = $stmt->fetchColumn();
 
         if ($input_otp !== $correct_otp) {
             $remaining_attempts = $max_attempts - $failed_attempts;
             if ($remaining_attempts <= 0) {
-                // Mark all attempts for this OTP as blocked
-                $stmt = $conn->prepare("UPDATE otp_attempts SET is_blocked = 1 WHERE otp_request_id = ?");
-                $stmt->execute([$otp_id]);
                 return ['success' => false, 'message' => 'Too many failed attempts. Please request a new verification code.'];
             } else {
                 return ['success' => false, 'message' => "Incorrect OTP. {$remaining_attempts} attempts remaining."];
             }
         }
 
-        // If OTP is correct, mark all attempts for this OTP as successful and clear any blocks
-        $stmt = $conn->prepare("UPDATE otp_attempts SET is_success = 1, is_blocked = 0 WHERE otp_request_id = ?");
+        // If OTP is correct, mark all attempts for this OTP as successful
+        $stmt = $conn->prepare("UPDATE otp_attempts SET is_successful = 1 WHERE otp_request_id = ?");
         $stmt->execute([$otp_id]);
         return ['success' => true, 'message' => 'Verification successful.'];
 
@@ -74,7 +73,7 @@ function check_otp_attempts($email, $purpose, $input_otp) {
 function cleanup_old_otp_attempts() {
     global $conn;
     try {
-        $stmt = $conn->prepare("DELETE FROM otp_attempts WHERE attempt_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        $stmt = $conn->prepare("DELETE FROM otp_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
         $stmt->execute();
         error_log("Cleaned up old OTP attempts.");
     } catch (PDOException $e) {
