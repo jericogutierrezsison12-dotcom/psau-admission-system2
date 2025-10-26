@@ -4,6 +4,9 @@
  * Verifies if the user is logged in and redirects as needed
  */
 
+// Include required files
+require_once 'encryption.php';
+
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -12,7 +15,6 @@ if (session_status() == PHP_SESSION_NONE) {
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
     require_once 'db_connect.php';
-require_once 'encryption.php';
     require_once 'functions.php';
     
     $cookie_parts = explode(':', $_COOKIE['remember_me']);
