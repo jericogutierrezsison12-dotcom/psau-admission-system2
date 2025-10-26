@@ -2,6 +2,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Check if user is logged in as admin
 is_admin_logged_in();
@@ -15,9 +16,9 @@ try {
         SELECT 
             u.id,
             u.control_number,
-            u.first_name,
-            u.last_name,
-            u.email,
+            u.first_name_encrypted,
+            u.last_name_encrypted,
+            u.email_encrypted,
             a.status,
             a.created_at as application_date,
             TIMESTAMPDIFF(DAY, a.created_at, NOW()) as waiting_days,
@@ -43,7 +44,27 @@ try {
     
     $stmt = $conn->prepare($query);
     $stmt->execute();
-    $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $raw_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt applicant data
+    $applicants = [];
+    foreach ($raw_applicants as $applicant) {
+        $applicants[] = [
+            'id' => $applicant['id'],
+            'control_number' => $applicant['control_number'],
+            'first_name' => decryptPersonalData($applicant['first_name_encrypted']),
+            'last_name' => decryptPersonalData($applicant['last_name_encrypted']),
+            'email' => decryptContactData($applicant['email_encrypted']),
+            'status' => $applicant['status'],
+            'application_date' => $applicant['application_date'],
+            'waiting_days' => $applicant['waiting_days'],
+            'stanine_score' => $applicant['stanine_score'],
+            'enrollment_status' => $applicant['enrollment_status'],
+            'enrollment_date' => $applicant['enrollment_date'],
+            'last_reminder' => $applicant['last_reminder'],
+            'last_reminder_type' => $applicant['last_reminder_type']
+        ];
+    }
 } catch (PDOException $e) {
     error_log("Error fetching applicants: " . $e->getMessage());
     $error_message = "Error fetching applicants. Please try again later.";

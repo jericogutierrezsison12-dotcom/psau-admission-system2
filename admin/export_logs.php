@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Ensure admin is logged in
 if (!isset($_SESSION['admin_id'])) {
@@ -33,7 +34,9 @@ $base_query = "
         END as user_type,
         COALESCE(a.username, u.control_number, 'Unknown') as username,
         COALESCE(a.role, 'user') as role,
-        COALESCE(CONCAT(u.first_name, ' ', u.last_name), a.username, 'Unknown') as display_name
+        a.username as admin_username,
+        u.first_name_encrypted,
+        u.last_name_encrypted
     FROM activity_logs al
     LEFT JOIN admins a ON al.user_id = a.id
     LEFT JOIN users u ON al.user_id = u.id
@@ -90,7 +93,23 @@ $logs_query = $base_query . " ORDER BY al.created_at DESC";
 
 $stmt = $conn->prepare($logs_query);
 $stmt->execute($params);
-$logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$raw_logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Decrypt user data and build display names
+$logs = [];
+foreach ($raw_logs as $log) {
+    $display_name = 'Unknown';
+    if (!empty($log['admin_username'])) {
+        $display_name = $log['admin_username'];
+    } elseif (!empty($log['first_name_encrypted']) && !empty($log['last_name_encrypted'])) {
+        $first_name = decryptPersonalData($log['first_name_encrypted']);
+        $last_name = decryptPersonalData($log['last_name_encrypted']);
+        $display_name = trim($first_name . ' ' . $last_name);
+    }
+    
+    $log['display_name'] = $display_name;
+    $logs[] = $log;
+}
 
 // Set headers for CSV download
 $filename = 'activity_logs_' . date('Y-m-d_H-i-s') . '.csv';
