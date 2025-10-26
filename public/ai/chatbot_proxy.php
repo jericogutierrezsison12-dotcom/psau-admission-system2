@@ -133,5 +133,3 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
     echo json_encode(['reply' => trim(strip_tags($response)), 'raw' => $response]);
 }
 ?>
-
-

@@ -12,6 +12,7 @@ if (session_status() == PHP_SESSION_NONE) {
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
     require_once 'db_connect.php';
+require_once 'encryption.php';
     require_once 'functions.php';
     
     $cookie_parts = explode(':', $_COOKIE['remember_me']);
@@ -94,10 +95,36 @@ function get_current_user_data($conn) {
     }
     
     try {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
+        // Use encrypted data access for sensitive fields
+        $stmt = $conn->prepare("SELECT id, control_number, 
+                                       first_name_encrypted, last_name_encrypted, 
+                                       email_encrypted, mobile_number_encrypted,
+                                       address_encrypted, birth_date_encrypted, gender_encrypted,
+                                       is_verified, created_at, updated_at
+                                FROM users WHERE id = :user_id");
         $stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetch();
+        $user = $stmt->fetch();
+        
+        if (!$user) {
+            return null;
+        }
+        
+        // Decrypt sensitive fields
+        return [
+            'id' => $user['id'],
+            'control_number' => $user['control_number'],
+            'first_name' => decryptPersonalData($user['first_name_encrypted']),
+            'last_name' => decryptPersonalData($user['last_name_encrypted']),
+            'email' => decryptContactData($user['email_encrypted']),
+            'mobile_number' => decryptContactData($user['mobile_number_encrypted']),
+            'address' => decryptPersonalData($user['address_encrypted']),
+            'birth_date' => decryptPersonalData($user['birth_date_encrypted']),
+            'gender' => decryptPersonalData($user['gender_encrypted']),
+            'is_verified' => $user['is_verified'],
+            'created_at' => $user['created_at'],
+            'updated_at' => $user['updated_at']
+        ];
     } catch (PDOException $e) {
         error_log("Error fetching user: " . $e->getMessage());
         return null;

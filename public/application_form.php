@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
+require_once '../includes/encryption.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -104,8 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     $address = $_POST['address'] ?? '';
     $age = $_POST['age'] ?? '';
     
+    // Get additional user data
+    $mobile_number = $_POST['mobile_number'] ?? '';
+    $gender = $_POST['gender'] ?? '';
+    $birth_date = $_POST['birth_date'] ?? '';
+    
     // Validate required fields
-    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address) || empty($age)) {
+    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address) || empty($age) || empty($mobile_number) || empty($gender) || empty($birth_date)) {
         $message = 'Please fill in all required fields.';
         $messageType = 'danger';
     }
@@ -127,6 +133,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     // Validate age
     elseif (!is_numeric($age) || $age < 16 || $age > 100) {
         $message = 'Age must be a number between 16 and 100.';
+        $messageType = 'danger';
+    }
+    // Validate mobile number
+    elseif (!preg_match('/^[0-9]{10,11}$/', $mobile_number)) {
+        $message = 'Please enter a valid mobile number (10-11 digits).';
+        $messageType = 'danger';
+    }
+    // Validate gender
+    elseif (!in_array($gender, ['Male', 'Female', 'Other'])) {
+        $message = 'Please select a valid gender.';
+        $messageType = 'danger';
+    }
+    // Validate birth date
+    elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
+        $message = 'Please enter a valid birth date (YYYY-MM-DD).';
         $messageType = 'danger';
     }
     // Check if PDF file was uploaded    
@@ -223,6 +244,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $existing_rejected = $stmt->fetch();
                         
                         if ($existing_rejected) {
+                            // Update user data with encryption
+                            $encrypted_mobile = encryptContactData($mobile_number);
+                            $encrypted_gender = encryptPersonalData($gender);
+                            $encrypted_birth_date = encryptPersonalData($birth_date);
+                            
+                            $user_update_sql = "UPDATE users SET 
+                                mobile_number = ?, 
+                                gender = ?, 
+                                birth_date = ?,
+                                mobile_number_encrypted = ?,
+                                gender_encrypted = ?,
+                                birth_date_encrypted = ?,
+                                updated_at = NOW()
+                                WHERE id = ?";
+                            
+                            $user_stmt = $conn->prepare($user_update_sql);
+                            $user_stmt->execute([
+                                $mobile_number,
+                                $gender,
+                                $birth_date,
+                                $encrypted_mobile,
+                                $encrypted_gender,
+                                $encrypted_birth_date,
+                                $user['id']
+                            ]);
+                            
                             // Update existing application if it was rejected
                             $sql = "UPDATE applications SET 
                                 pdf_file = ?, 
@@ -278,6 +325,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             // Verify document path was saved correctly
                             verify_document_path($conn, $application_id);
                         } else {
+                            // Update user data with encryption for new application
+                            $encrypted_mobile = encryptContactData($mobile_number);
+                            $encrypted_gender = encryptPersonalData($gender);
+                            $encrypted_birth_date = encryptPersonalData($birth_date);
+                            
+                            $user_update_sql = "UPDATE users SET 
+                                mobile_number = ?, 
+                                gender = ?, 
+                                birth_date = ?,
+                                mobile_number_encrypted = ?,
+                                gender_encrypted = ?,
+                                birth_date_encrypted = ?,
+                                updated_at = NOW()
+                                WHERE id = ?";
+                            
+                            $user_stmt = $conn->prepare($user_update_sql);
+                            $user_stmt->execute([
+                                $mobile_number,
+                                $gender,
+                                $birth_date,
+                                $encrypted_mobile,
+                                $encrypted_gender,
+                                $encrypted_birth_date,
+                                $user['id']
+                            ]);
+                            
                             // Insert new application with document info and educational background
                             $sql = "INSERT INTO applications (
                                 user_id, 

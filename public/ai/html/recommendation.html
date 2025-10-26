@@ -35,7 +35,15 @@
 					</div>
 					<div class="col-md-3">
 						<label class="form-label">Strand</label>
-						<input type="text" class="form-control" name="strand" placeholder="e.g., STEM, ABM, HUMSS">
+						<input type="text" class="form-control" name="strand" id="strand" 
+							   list="strandOptions" placeholder="e.g., STEM, ABM, HUMSS, GAS">
+						<datalist id="strandOptions">
+							<option value="STEM">STEM - Science, Technology, Engineering, and Mathematics</option>
+							<option value="ABM">ABM - Accountancy, Business, and Management</option>
+							<option value="HUMSS">HUMSS - Humanities and Social Sciences</option>
+							<option value="TVL">TVL - Technical-Vocational-Livelihood</option>
+							<option value="GAS">GAS - General Academic Strand</option>
+						</datalist>
 					</div>
 					<div class="col-md-3">
 						<label class="form-label">Hobbies</label>
@@ -210,6 +218,16 @@
 		
 		// Rating functionality
 		let selectedRatings = {};
+		
+		// Strand input uppercase conversion
+		document.addEventListener('DOMContentLoaded', function() {
+			const strandField = document.getElementById('strand');
+			if (strandField) {
+				strandField.addEventListener('input', function() {
+					this.value = this.value.toUpperCase();
+				});
+			}
+		});
 		
 		// Add event listener to the Get Recommendations button
 		document.addEventListener('DOMContentLoaded', function() {

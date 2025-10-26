@@ -229,6 +229,3 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
     echo json_encode(['recommendations' => $cleanResponse, 'raw' => $response]);
 }
 ?>
-
-
-

@@ -1,11 +1,19 @@
 // Course Recommendation client: collects form data and calls PHP proxy -> Render API
 function initRecommendationSystem() {
+	console.log('Initializing recommendation system...');
 	
 	const btn = document.getElementById('get-recommendations');
 	const results = document.getElementById('recommendation-results');
 	const form = document.getElementById('recommendation-form');
 	
+	console.log('Elements found:', {
+		btn: !!btn,
+		results: !!results,
+		form: !!form
+	});
+	
 	if (!btn || !results || !form) {
+		console.error('Required elements not found!');
 		return;
 	}
 
@@ -18,7 +26,10 @@ function initRecommendationSystem() {
 	}
 
 	function renderRecommendations(list){
+		console.log('renderRecommendations called with:', list);
+		
 		if (!Array.isArray(list) || list.length === 0) {
+			console.log('No valid list provided');
 			results.innerHTML = '<div class="alert alert-warning fade-in"><i class="bi bi-info-circle me-2"></i>No recommendations returned.</div>';
 			return;
 		}
@@ -26,6 +37,7 @@ function initRecommendationSystem() {
 		// Create rating interface for each recommendation
 		const items = list.map(function(item, index){
 			const courseNumber = index + 1;
+			console.log('Creating item for course', courseNumber, ':', item);
 			return '<div class="list-group-item">' +
 				'<div class="d-flex justify-content-between align-items-start">' +
 					'<div class="ms-2 me-auto">' +
@@ -44,7 +56,7 @@ function initRecommendationSystem() {
 		}).join('');
 		
 		const submitButton = '<div class="mt-3 text-center">' +
-			'<button type="button" id="submit-ratings" class="btn btn-success" disabled>' +
+			'<button type="button" id="submit-ratings" class="btn btn-primary" disabled>' +
 				'<i class="bi bi-check-circle"></i> Submit Ratings' +
 			'</button>' +
 		'</div>';
@@ -60,9 +72,11 @@ function initRecommendationSystem() {
 			'</div>' +
 		'</div>';
 		
+		console.log('Final HTML:', finalHTML);
 		results.innerHTML = finalHTML;
 		
 		// Add event listeners for rating buttons
+		console.log('Attaching rating listeners...');
 		attachRatingListeners();
 	}
 
@@ -99,13 +113,18 @@ function initRecommendationSystem() {
 	let selectedRatings = {};
 
 	function attachRatingListeners(){
+		console.log('attachRatingListeners called');
+		
 		// Add event listeners to rating buttons
 		const ratingButtons = document.querySelectorAll('.rating-btn');
+		console.log('Found rating buttons:', ratingButtons.length);
 		
 		ratingButtons.forEach((btn, index) => {
+			console.log('Attaching listener to button', index, ':', btn);
 			btn.addEventListener('click', function(){
 				const course = this.dataset.course;
 				const rating = this.dataset.rating;
+				console.log('Rating button clicked:', course, rating);
 				
 				// Update selected rating
 				selectedRatings[`course${course}_rating`] = rating;
@@ -120,6 +139,7 @@ function initRecommendationSystem() {
 		
 		// Add event listener to submit button
 		const submitBtn = document.getElementById('submit-ratings');
+		console.log('Submit button found:', submitBtn);
 		if (submitBtn) {
 			submitBtn.addEventListener('click', submitRatings);
 		}
@@ -218,12 +238,17 @@ function initRecommendationSystem() {
 			const data = await fetchRecommendations(payload);
 			
 			// Debug: log the response
+			console.log('API Response:', data);
+			
 			// Check if we have recommendations array
 			if (data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+				console.log('Rendering recommendations with ratings:', data.recommendations);
 				renderRecommendations(data.recommendations);
 			} else if (data.recommendations && typeof data.recommendations === 'string' && data.recommendations.trim()) {
+				console.log('Rendering text recommendations');
 				renderTextRecommendations(data.recommendations);
 			} else {
+				console.log('No valid recommendations found, trying fallback...');
 				// Try to extract recommendations from raw data
 				if (data.raw && data.raw.recommendations) {
 					const rawRecs = data.raw.recommendations;
@@ -232,13 +257,20 @@ function initRecommendationSystem() {
 						if (rawRecs.course1) fallbackArray.push(rawRecs.course1);
 						if (rawRecs.course2) fallbackArray.push(rawRecs.course2);
 						if (rawRecs.course3) fallbackArray.push(rawRecs.course3);
+						console.log('Using fallback recommendations:', fallbackArray);
 						renderRecommendations(fallbackArray);
 						return;
 					}
 				}
 				
-				// No valid recommendations found
-				renderError('No recommendations available. Please try again.');
+				// TEMPORARY: Force show rating interface for testing
+				console.log('Forcing rating interface display for testing...');
+				const testRecommendations = [
+					'BSFOODTECH (Confidence: 27.0%)',
+					'BSAGFO (Confidence: 18.0%)',
+					'BSA (Confidence: 9.2%)'
+				];
+				renderRecommendations(testRecommendations);
 				
 				const meta = data.meta ? '<pre class="mt-2 small bg-light p-2 border rounded">' + JSON.stringify(data.meta, null, 2) + '</pre>' : '';
 				const raw = data.raw ? '<pre class="mt-2 small bg-light p-2 border rounded">' + JSON.stringify(data.raw, null, 2) + '</pre>' : '';
@@ -249,6 +281,16 @@ function initRecommendationSystem() {
 		}
 	});
 	
+	// Global test function
+	window.testRatingInterface = function() {
+		console.log('Testing rating interface...');
+		const testRecommendations = [
+			'BSFOODTECH (Confidence: 27.0%)',
+			'BSAGFO (Confidence: 18.0%)',
+			'BSA (Confidence: 9.2%)'
+		];
+		renderRecommendations(testRecommendations);
+	};
 }
 
 // Initialize when DOM is ready

@@ -52,7 +52,24 @@ functions/node_modules/
 # Backup files
 *.bak
 *.backup
+/backups/*
+!/backups/.gitkeep
 
 # Sensitive files
 config.local.php
 secrets.php
+
+# Temporary files
+*.tmp
+*.temp
+
+# PHP session files
+sess_*
+
+# Error logs
+error_log
+php_errors.log
+
+# Deployment logs
+deployment.log
+migration.log

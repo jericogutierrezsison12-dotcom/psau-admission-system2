@@ -1,27 +1,37 @@
+# PSAU Admission System - Render Configuration
+# This file configures the deployment on Render.com
+
 services:
   - type: web
     name: psau-admission-system
     env: php
-    plan: free
-    buildCommand: composer install --no-dev --optimize-autoloader
-    startCommand: vendor/bin/heroku-php-apache2 public/
+    plan: starter
+    buildCommand: "php deploy.php"
+    startCommand: "php -S 0.0.0.0:$PORT"
+    healthCheckPath: "/public/index.php"
     envVars:
+      - key: ENCRYPTION_KEY
+        sync: false
       - key: DB_HOST
         fromDatabase:
-          name: psau-db
+          name: psau-database
           property: host
       - key: DB_NAME
         fromDatabase:
-          name: psau-db
-          property: database
+          name: psau-database
+          property: name
       - key: DB_USER
         fromDatabase:
-          name: psau-db
+          name: psau-database
           property: user
       - key: DB_PASS
         fromDatabase:
-          name: psau-db
+          name: psau-database
           property: password
+      - key: DB_PORT
+        fromDatabase:
+          name: psau-database
+          property: port
       - key: FIREBASE_API_KEY
         value: AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8
       - key: FIREBASE_AUTH_DOMAIN
@@ -36,10 +46,40 @@ services:
         value: 1:522448258958:web:994b133a4f7b7f4c1b06df
       - key: FIREBASE_EMAIL_FUNCTION_URL
         value: https://sendemail-alsstt22ha-uc.a.run.app
+      - key: RECAPTCHA_SITE_KEY
+        value: 6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA
+      - key: RECAPTCHA_SECRET_KEY
+        value: 6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N
       - key: ENVIRONMENT
         value: production
+      - key: DOMAIN
+        value: psau-admission-system.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: BACKUP_RETENTION_DAYS
+        value: "30"
+      - key: SECURITY_MONITORING
+        value: "true"
+      - key: FAILED_LOGIN_LIMIT
+        value: "5"
+      - key: IP_BLOCK_DURATION
+        value: "3600"
 
 databases:
-  - name: psau-db
-    plan: free
+  - name: psau-database
+    plan: starter
     databaseName: psau_admission
+    user: psau_admin
+
+cronJobs:
+  - name: daily-backup
+    schedule: "0 2 * * *"
+    command: "curl -X POST https://psau-admission-system.onrender.com/admin/auto_backup.php"
+  - name: hourly-backup
+    schedule: "0 */6 * * *"
+    command: "curl -X POST https://psau-admission-system.onrender.com/admin/auto_backup.php"
+  - name: security-cleanup
+    schedule: "0 3 * * *"
+    command: "curl -X POST https://psau-admission-system.onrender.com/admin/security_monitor.php?action=cleanup"

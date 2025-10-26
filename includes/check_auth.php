@@ -11,6 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Include database connection
 require_once 'db_connect.php';
+require_once 'encryption.php';
 
 // Prepare response
 $response = [
@@ -24,14 +25,18 @@ if (isset($_SESSION['user_id'])) {
     
     // Get user data if needed
     try {
-        $stmt = $conn->prepare("SELECT id, email, first_name, last_name, user_type FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT id, first_name_encrypted, last_name_encrypted, email_encrypted FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($user) {
-            // Remove sensitive information
-            unset($user['password']);
-            $response['user'] = $user;
+            // Decrypt sensitive data
+            $response['user'] = [
+                'id' => $user['id'],
+                'first_name' => decryptPersonalData($user['first_name_encrypted']),
+                'last_name' => decryptPersonalData($user['last_name_encrypted']),
+                'email' => decryptContactData($user['email_encrypted'])
+            ];
         }
     } catch (PDOException $e) {
         // Log error but don't expose details to client
