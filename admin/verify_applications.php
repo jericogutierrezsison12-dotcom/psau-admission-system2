@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 require_once '../firebase/firebase_email.php';
 
 // Start session if not started
@@ -31,12 +32,41 @@ $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 // Fetch all pending applications
 $pending_applications = [];
 try {
-    $stmt = $conn->query("SELECT a.*, u.first_name, u.last_name, u.email, u.control_number 
+    $stmt = $conn->query("SELECT a.*, 
+                         u.id as user_id,
+                         u.control_number,
+                         u.first_name_encrypted,
+                         u.last_name_encrypted,
+                         u.email_encrypted
                          FROM applications a 
                          JOIN users u ON a.user_id = u.id 
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
-    $pending_applications = $stmt->fetchAll();
+    $raw_applications = $stmt->fetchAll();
+    
+    // Decrypt user data
+    foreach ($raw_applications as $app) {
+        $pending_applications[] = [
+            'id' => $app['id'],
+            'user_id' => $app['user_id'],
+            'status' => $app['status'],
+            'created_at' => $app['created_at'],
+            'first_name' => decryptPersonalData($app['first_name_encrypted']),
+            'last_name' => decryptPersonalData($app['last_name_encrypted']),
+            'email' => decryptContactData($app['email_encrypted']),
+            'control_number' => $app['control_number'],
+            'previous_school' => $app['previous_school'] ?? '',
+            'school_year' => $app['school_year'] ?? '',
+            'strand' => $app['strand'] ?? '',
+            'gpa' => $app['gpa'] ?? '',
+            'age' => $app['age'] ?? '',
+            'address' => $app['address'] ?? '',
+            'course_preference' => $app['course_preference'] ?? '',
+            'application_reason' => $app['application_reason'] ?? '',
+            'document_file_path' => $app['document_file_path'] ?? '',
+            'image_2x2' => $app['image_2x2'] ?? ''
+        ];
+    }
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
