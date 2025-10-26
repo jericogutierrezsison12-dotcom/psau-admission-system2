@@ -4,9 +4,6 @@
  * Verifies if the user is logged in and redirects as needed
  */
 
-// Include required files
-require_once 'encryption.php';
-
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -97,112 +94,10 @@ function get_current_user_data($conn) {
     }
     
     try {
-        // First try to get encrypted data, fallback to unencrypted for backward compatibility
-        $stmt = $conn->prepare("SELECT id, control_number, 
-                                       first_name, last_name, 
-                                       email, mobile_number,
-                                       address, birth_date, gender,
-                                       first_name_encrypted, last_name_encrypted, 
-                                       email_encrypted, mobile_number_encrypted,
-                                       address_encrypted, birth_date_encrypted, gender_encrypted,
-                                       is_verified, created_at, updated_at
-                                FROM users WHERE id = :user_id");
+        $stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
         $stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
         $stmt->execute();
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            return null;
-        }
-        
-        // Use encrypted fields if available, otherwise fall back to unencrypted
-        $result = [
-            'id' => $user['id'],
-            'control_number' => $user['control_number'],
-            'first_name' => '',
-            'last_name' => '',
-            'email' => '',
-            'mobile_number' => '',
-            'address' => '',
-            'birth_date' => '',
-            'gender' => '',
-            'is_verified' => $user['is_verified'],
-            'created_at' => $user['created_at'],
-            'updated_at' => $user['updated_at']
-        ];
-        
-        // Try to decrypt, if that fails, use unencrypted data
-        if (!empty($user['first_name_encrypted'])) {
-            try {
-                $result['first_name'] = decryptPersonalData($user['first_name_encrypted']);
-            } catch (Exception $e) {
-                $result['first_name'] = $user['first_name'] ?? '';
-            }
-        } else {
-            $result['first_name'] = $user['first_name'] ?? '';
-        }
-        
-        if (!empty($user['last_name_encrypted'])) {
-            try {
-                $result['last_name'] = decryptPersonalData($user['last_name_encrypted']);
-            } catch (Exception $e) {
-                $result['last_name'] = $user['last_name'] ?? '';
-            }
-        } else {
-            $result['last_name'] = $user['last_name'] ?? '';
-        }
-        
-        if (!empty($user['email_encrypted'])) {
-            try {
-                $result['email'] = decryptContactData($user['email_encrypted']);
-            } catch (Exception $e) {
-                $result['email'] = $user['email'] ?? '';
-            }
-        } else {
-            $result['email'] = $user['email'] ?? '';
-        }
-        
-        if (!empty($user['mobile_number_encrypted'])) {
-            try {
-                $result['mobile_number'] = decryptContactData($user['mobile_number_encrypted']);
-            } catch (Exception $e) {
-                $result['mobile_number'] = $user['mobile_number'] ?? '';
-            }
-        } else {
-            $result['mobile_number'] = $user['mobile_number'] ?? '';
-        }
-        
-        if (!empty($user['address_encrypted'])) {
-            try {
-                $result['address'] = decryptPersonalData($user['address_encrypted']);
-            } catch (Exception $e) {
-                $result['address'] = $user['address'] ?? '';
-            }
-        } else {
-            $result['address'] = $user['address'] ?? '';
-        }
-        
-        if (!empty($user['birth_date_encrypted'])) {
-            try {
-                $result['birth_date'] = decryptPersonalData($user['birth_date_encrypted']);
-            } catch (Exception $e) {
-                $result['birth_date'] = $user['birth_date'] ?? '';
-            }
-        } else {
-            $result['birth_date'] = $user['birth_date'] ?? '';
-        }
-        
-        if (!empty($user['gender_encrypted'])) {
-            try {
-                $result['gender'] = decryptPersonalData($user['gender_encrypted']);
-            } catch (Exception $e) {
-                $result['gender'] = $user['gender'] ?? '';
-            }
-        } else {
-            $result['gender'] = $user['gender'] ?? '';
-        }
-        
-        return $result;
+        return $stmt->fetch();
     } catch (PDOException $e) {
         error_log("Error fetching user: " . $e->getMessage());
         return null;

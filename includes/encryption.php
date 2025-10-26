@@ -19,23 +19,9 @@ class PSAUEncryption {
         // Get encryption key from environment or generate new one
         $key = getenv('ENCRYPTION_KEY');
         if (empty($key)) {
-            // Try to load from .env file first
-            $env_file = __DIR__ . '/../.env';
-            if (file_exists($env_file)) {
-                $env_content = file_get_contents($env_file);
-                if (preg_match('/ENCRYPTION_KEY=(.+)/', $env_content, $matches)) {
-                    $key = trim($matches[1]);
-                }
-            }
-            
-            if (empty($key)) {
-                // Generate a new key if none exists
-                $key = self::generateEncryptionKey();
-                error_log("Generated new encryption key. Please save this to your .env file: ENCRYPTION_KEY=" . base64_encode($key));
-                error_log("Or run: php setup_encryption_key.php");
-            } else {
-                $key = base64_decode($key);
-            }
+            // Generate a new key if none exists
+            $key = self::generateEncryptionKey();
+            error_log("Generated new encryption key. Please save this to your .env file: ENCRYPTION_KEY=" . base64_encode($key));
         } else {
             $key = base64_decode($key);
         }
@@ -277,15 +263,7 @@ function encryptPersonalData($data) {
  * @return string Decrypted data
  */
 function decryptPersonalData($encrypted_data) {
-    if (empty($encrypted_data)) {
-        return '';
-    }
-    try {
-        return PSAUEncryption::decrypt($encrypted_data, 'personal_data');
-    } catch (Exception $e) {
-        error_log("Decrypt personal data error: " . $e->getMessage());
-        return '';
-    }
+    return PSAUEncryption::decrypt($encrypted_data, 'personal_data');
 }
 
 /**
@@ -294,9 +272,6 @@ function decryptPersonalData($encrypted_data) {
  * @return string Encrypted data
  */
 function encryptContactData($data) {
-    if (empty($data)) {
-        return '';
-    }
     return PSAUEncryption::encrypt($data, 'contact_data');
 }
 
@@ -306,15 +281,7 @@ function encryptContactData($data) {
  * @return string Decrypted data
  */
 function decryptContactData($encrypted_data) {
-    if (empty($encrypted_data)) {
-        return '';
-    }
-    try {
-        return PSAUEncryption::decrypt($encrypted_data, 'contact_data');
-    } catch (Exception $e) {
-        error_log("Decrypt contact data error: " . $e->getMessage());
-        return '';
-    }
+    return PSAUEncryption::decrypt($encrypted_data, 'contact_data');
 }
 
 /**

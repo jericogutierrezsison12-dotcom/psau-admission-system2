@@ -24,7 +24,6 @@ echo "</div>";
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 // Email System - IMPORTANT: The system now uses Firebase for sending emails
 // Firebase email functions - this is the primary email system
@@ -58,14 +57,8 @@ $documents = [];
 try {
     $stmt = $conn->prepare("SELECT 
                           a.*, 
-                          u.id as user_id,
-                          u.control_number,
-                          u.first_name_encrypted,
-                          u.last_name_encrypted,
-                          u.email_encrypted,
-                          u.mobile_number_encrypted,
-                          u.is_verified,
-                          u.created_at as user_created_at,
+                          u.*,
+                          u.mobile_number as contact_number,
                           COALESCE(a.document_file_size, 0) as document_file_size,
                           COALESCE(a.image_2x2_size, 0) as image_2x2_size
                           FROM applications a 
@@ -77,18 +70,7 @@ try {
     if ($stmt->rowCount() > 0) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $application = $result;
-        
-        // Decrypt user data
-        $user = [
-            'id' => $result['user_id'],
-            'control_number' => $result['control_number'],
-            'first_name' => decryptPersonalData($result['first_name_encrypted']),
-            'last_name' => decryptPersonalData($result['last_name_encrypted']),
-            'email' => decryptContactData($result['email_encrypted']),
-            'mobile_number' => decryptContactData($result['mobile_number_encrypted']),
-            'is_verified' => $result['is_verified'],
-            'created_at' => $result['user_created_at']
-        ];
+        $user = $result;
         
         // Format file sizes to human-readable format
         $application['document_file_size_formatted'] = $application['document_file_size'] ? number_format($application['document_file_size'] / 1024, 2) . ' KB' : 'N/A';

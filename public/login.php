@@ -11,7 +11,6 @@ require_once '../includes/api_calls.php';
 require_once '../includes/security_functions.php';
 require_once '../includes/functions.php'; // Added for remember me functions
 require_once '../includes/simple_email.php'; // Added for email fallback
-require_once '../includes/encryption.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -98,10 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Check if user exists with the provided email or mobile number using encrypted lookup
-                $encrypted_identifier = encryptContactData($login_identifier);
-                $stmt = $conn->prepare("SELECT * FROM users WHERE (email_encrypted = ? OR mobile_number_encrypted = ?) AND is_verified = 1");
-                $stmt->execute([$encrypted_identifier, $encrypted_identifier]);
+                // Check if user exists with the provided email or mobile number
+                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
+                $stmt->execute([$login_identifier, $login_identifier]);
                 $user = $stmt->fetch();
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {

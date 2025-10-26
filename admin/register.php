@@ -8,7 +8,6 @@
  */
 
 require_once '../includes/db_connect.php';
-require_once '../includes/encryption.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -97,12 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['confirm_password'] = 'Passwords do not match';
         }
 
-        // Check for existing username and email using encrypted lookup
+        // Check for existing username and email
         if (!$errors) {
             try {
-                $encrypted_email = encryptContactData($email);
-                $chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email_encrypted = ?');
-                $chk->execute([$username, $encrypted_email]);
+                $chk = $conn->prepare('SELECT COUNT(*) FROM admins WHERE username = ? OR email = ?');
+                $chk->execute([$username, $email]);
                 $exists = (int)$chk->fetchColumn();
                 if ($exists > 0) {
                     $errors['exists'] = 'Username or email already exists';
@@ -159,13 +157,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->beginTransaction();
                 
                 $hash = password_hash($reg['password'], PASSWORD_DEFAULT);
-                
-                // Encrypt sensitive data
-                $encrypted_username = encryptPersonalData($reg['username']);
-                $encrypted_email = encryptContactData($reg['email']);
 
-                $ins = $conn->prepare('INSERT INTO admins (username, email, mobile_number, password, role, created_at, username_encrypted, email_encrypted) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
-                $ins->execute([$reg['username'], $reg['email'], '', $hash, $reg['role'], $encrypted_username, $encrypted_email]);
+                $ins = $conn->prepare('INSERT INTO admins (username, email, mobile_number, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
+                $ins->execute([$reg['username'], $reg['email'], '', $hash, $reg['role']]);
 
                 // Commit transaction
                 $conn->commit();

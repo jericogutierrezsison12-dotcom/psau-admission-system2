@@ -7,7 +7,6 @@
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
@@ -16,18 +15,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Get current user data with encryption
+// Get current user data
 $user = get_current_user_data($conn);
 if (!$user) {
     header('Location: login.php');
     exit;
 }
-
-// Get user's application data
-$application = null;
-$stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
-$stmt->execute([$user['id']]);
-$application = $stmt->fetch();
 
 // Initialize variables
 $message = '';
@@ -45,13 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $current_password = trim($_POST['current_password'] ?? '');
         $new_password = trim($_POST['new_password'] ?? '');
         $confirm_password = trim($_POST['confirm_password'] ?? '');
-        
-        // Application data
-        $previous_school = trim($_POST['previous_school'] ?? '');
-        $school_year = trim($_POST['school_year'] ?? '');
-        $strand = trim($_POST['strand'] ?? '');
-        $gpa = trim($_POST['gpa'] ?? '');
-        $age = trim($_POST['age'] ?? '');
 
         // Validate required fields
         if (empty($first_name) || empty($last_name)) {
@@ -62,14 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts = [];
         $params = [];
 
-        // Encrypt personal data
-        $encrypted_first_name = encryptPersonalData($first_name);
-        $encrypted_last_name = encryptPersonalData($last_name);
-        $encrypted_gender = encryptPersonalData($gender);
-        $encrypted_birth_date = encryptPersonalData($birth_date);
-        $encrypted_address = encryptPersonalData($address);
-
-        // Add personal info fields (both encrypted and unencrypted for compatibility)
+        // Add personal info fields
         $sql_parts[] = "first_name = ?";
         $params[] = $first_name;
         
@@ -84,22 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $sql_parts[] = "address = ?";
         $params[] = $address;
-        
-        // Add encrypted fields
-        $sql_parts[] = "first_name_encrypted = ?";
-        $params[] = $encrypted_first_name;
-        
-        $sql_parts[] = "last_name_encrypted = ?";
-        $params[] = $encrypted_last_name;
-        
-        $sql_parts[] = "gender_encrypted = ?";
-        $params[] = $encrypted_gender;
-        
-        $sql_parts[] = "birth_date_encrypted = ?";
-        $params[] = $encrypted_birth_date;
-        
-        $sql_parts[] = "address_encrypted = ?";
-        $params[] = $encrypted_address;
 
         // Check if password change was requested
         if (!empty($current_password) || !empty($new_password) || !empty($confirm_password)) {
@@ -151,49 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (!$stmt->execute($params)) {
             throw new Exception('Failed to update profile. Please try again.');
-        }
-        
-        // Update application data if it exists
-        if ($application) {
-            $app_sql_parts = [];
-            $app_params = [];
-            
-            if (!empty($previous_school)) {
-                $app_sql_parts[] = "previous_school = ?";
-                $app_params[] = $previous_school;
-            }
-            
-            if (!empty($school_year)) {
-                $app_sql_parts[] = "school_year = ?";
-                $app_params[] = $school_year;
-            }
-            
-            if (!empty($strand)) {
-                $app_sql_parts[] = "strand = ?";
-                $app_params[] = $strand;
-            }
-            
-            if (!empty($gpa)) {
-                $app_sql_parts[] = "gpa = ?";
-                $app_params[] = $gpa;
-            }
-            
-            if (!empty($age)) {
-                $app_sql_parts[] = "age = ?";
-                $app_params[] = $age;
-            }
-            
-            if (!empty($address)) {
-                $app_sql_parts[] = "address = ?";
-                $app_params[] = $address;
-            }
-            
-            if (!empty($app_sql_parts)) {
-                $app_params[] = $application['id'];
-                $app_sql = "UPDATE applications SET " . implode(", ", $app_sql_parts) . ", updated_at = NOW() WHERE id = ?";
-                $app_stmt = $conn->prepare($app_sql);
-                $app_stmt->execute($app_params);
-            }
         }
 
         // Log the activity

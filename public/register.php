@@ -8,7 +8,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/otp_attempt_tracking.php';
-require_once '../includes/encryption.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -18,8 +17,6 @@ $first_name = '';
 $last_name = '';
 $email = '';
 $mobile_number = '';
-$gender = '';
-$birth_date = '';
 $errors = [];
 
 // Determine current step based on session data
@@ -43,9 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $mobile_number = trim($_POST['mobile_number'] ?? '');
-        $gender = trim($_POST['gender'] ?? '');
-        $birth_date = trim($_POST['birth_date'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         
@@ -63,46 +57,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Please enter a valid email address';
         } else {
-            // Check if email already exists using encrypted lookup
-            $encrypted_email = encryptContactData($email);
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE email_encrypted = ?");
-            $stmt->execute([$encrypted_email]);
+            // Check if email already exists
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
+            $stmt->execute([$email]);
             if ($stmt->fetchColumn() > 0) {
                 $errors['email'] = 'Email is already registered';
             }
         }
         
-        if (empty($mobile_number)) {
-            $errors['mobile_number'] = 'Mobile number is required';
-        } elseif (!preg_match('/^[0-9]{10,11}$/', $mobile_number)) {
-            $errors['mobile_number'] = 'Please enter a valid mobile number (10-11 digits)';
-        } else {
-            // Check if mobile number already exists using encrypted lookup
-            $encrypted_mobile = encryptContactData($mobile_number);
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number_encrypted = ?");
-            $stmt->execute([$encrypted_mobile]);
-            if ($stmt->fetchColumn() > 0) {
-                $errors['mobile_number'] = 'Mobile number is already registered';
-            }
-        }
-        
-        if (empty($gender)) {
-            $errors['gender'] = 'Gender is required';
-        } elseif (!in_array($gender, ['Male', 'Female', 'Other'])) {
-            $errors['gender'] = 'Please select a valid gender';
-        }
-        
-        if (empty($birth_date)) {
-            $errors['birth_date'] = 'Birth date is required';
-        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
-            $errors['birth_date'] = 'Please enter a valid birth date (YYYY-MM-DD)';
-        } else {
-            // Validate age (must be at least 16)
-            $age = date_diff(date_create($birth_date), date_create('today'))->y;
-            if ($age < 16) {
-                $errors['birth_date'] = 'You must be at least 16 years old to register';
-            }
-        }
+        // Mobile number is no longer required; we'll assign a system-generated placeholder later
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
@@ -129,9 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
-                'mobile_number' => $mobile_number,
-                'gender' => $gender,
-                'birth_date' => $birth_date,
                 'password' => $password
             ];
             
@@ -183,36 +143,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Generate control number
                 $control_number = generate_control_number($conn);
+
+                // Generate a unique placeholder mobile number to satisfy NOT NULL + UNIQUE constraint
+                $generated_mobile = null;
+                for ($i = 0; $i < 5; $i++) {
+                    $candidate = '999' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); // 10 digits starting with 999
+                    $check = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
+                    $check->execute([$candidate]);
+                    if ($check->fetchColumn() == 0) {
+                        $generated_mobile = $candidate;
+                        break;
+                    }
+                }
+                if ($generated_mobile === null) {
+                    throw new Exception('Failed to generate unique placeholder mobile number');
+                }
                 
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
-                // Encrypt sensitive data
-                $encrypted_first_name = encryptPersonalData($registration['first_name']);
-                $encrypted_last_name = encryptPersonalData($registration['last_name']);
-                $encrypted_email = encryptContactData($registration['email']);
-                $encrypted_mobile = encryptContactData($registration['mobile_number']);
-                $encrypted_gender = encryptPersonalData($registration['gender']);
-                $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
-                
-                // Insert user into database with encrypted fields
-                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date, first_name_encrypted, last_name_encrypted, email_encrypted, mobile_number_encrypted, gender_encrypted, birth_date_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                // Insert user into database
+                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $registration['first_name'], // Keep unencrypted for backward compatibility
+                    $registration['first_name'],
                     $registration['last_name'],
                     $registration['email'],
-                    $registration['mobile_number'],
+                    $generated_mobile,
                     $hashed_password,
-                    1, // Verified through OTP
-                    $registration['gender'],
-                    $registration['birth_date'],
-                    $encrypted_first_name,
-                    $encrypted_last_name,
-                    $encrypted_email,
-                    $encrypted_mobile,
-                    $encrypted_gender,
-                    $encrypted_birth_date
+                    1 // Verified through OTP
                 ]);
                 
                 $user_id = $conn->lastInsertId();

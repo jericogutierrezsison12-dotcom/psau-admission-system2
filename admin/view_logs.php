@@ -12,7 +12,6 @@ if (session_status() === PHP_SESSION_NONE) {
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 // Ensure admin is logged in
 if (!isset($_SESSION['admin_id'])) {
@@ -105,9 +104,7 @@ try {
             SELECT 
                 al.*, 
                 COALESCE(a.username, u.control_number, 'Unknown') AS username,
-                a.username as admin_username,
-                u.first_name_encrypted,
-                u.last_name_encrypted,
+                TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,''))) AS display_name,
                 COALESCE(a.role, 'user') AS role,
                 CASE WHEN a.id IS NOT NULL THEN a.role ELSE 'user' END AS user_type
             FROM activity_logs al
@@ -122,23 +119,7 @@ try {
         $data_stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
         $data_stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $data_stmt->execute();
-        $raw_logs = $data_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Decrypt user data and build display names
-        $logs = [];
-        foreach ($raw_logs as $log) {
-            $display_name = 'Unknown';
-            if (!empty($log['admin_username'])) {
-                $display_name = $log['admin_username'];
-            } elseif (!empty($log['first_name_encrypted']) && !empty($log['last_name_encrypted'])) {
-                $first_name = decryptPersonalData($log['first_name_encrypted']);
-                $last_name = decryptPersonalData($log['last_name_encrypted']);
-                $display_name = trim($first_name . ' ' . $last_name);
-            }
-            
-            $log['display_name'] = $display_name;
-            $logs[] = $log;
-        }
+        $logs = $data_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Populate distinct actions for filter dropdown (from all logs)
         $actions_stmt = $conn->query("SELECT DISTINCT action FROM activity_logs ORDER BY action ASC");

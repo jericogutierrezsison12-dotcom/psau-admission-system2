@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 // Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
@@ -70,10 +69,10 @@ try {
         SELECT 
             u.id,
             u.control_number,
-            u.first_name_encrypted,
-            u.last_name_encrypted,
-            u.email_encrypted,
-            u.mobile_number_encrypted,
+            u.first_name,
+            u.last_name,
+            u.email,
+            u.mobile_number,
             a.image_2x2_path as profile_picture,
             a.pdf_file as pdf_path,
             ees.stanine_score,
@@ -114,26 +113,7 @@ try {
     }
     
     $stmt->execute();
-    $raw_students = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt student data
-    foreach ($raw_students as $student) {
-        $students[] = [
-            'id' => $student['id'],
-            'control_number' => $student['control_number'],
-            'first_name' => decryptPersonalData($student['first_name_encrypted']),
-            'last_name' => decryptPersonalData($student['last_name_encrypted']),
-            'email' => decryptContactData($student['email_encrypted']),
-            'mobile_number' => decryptContactData($student['mobile_number_encrypted']),
-            'profile_picture' => $student['profile_picture'] ?? '',
-            'pdf_path' => $student['pdf_path'] ?? '',
-            'stanine_score' => $student['stanine_score'] ?? '',
-            'course_code' => $student['course_code'] ?? '',
-            'course_name' => $student['course_name'] ?? '',
-            'enrollment_status' => $student['enrollment_status'],
-            'enrollment_date' => $student['enrollment_date']
-        ];
-    }
+    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get status counts
     $count_query = "

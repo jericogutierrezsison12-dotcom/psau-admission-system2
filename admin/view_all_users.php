@@ -3,7 +3,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 is_admin_logged_in('login.php');
 require_page_access('view_all_users');
@@ -54,11 +53,7 @@ $users = [];
 // Search term (accurate multi-field search)
 $q = trim($_GET['q'] ?? '');
 try {
-    $sql = 'SELECT u.id, u.control_number, 
-                   u.first_name_encrypted, u.last_name_encrypted, 
-                   u.email_encrypted, u.mobile_number_encrypted,
-                   u.is_verified, u.is_flagged, u.is_blocked, u.block_reason, u.created_at, 
-                   COALESCE(a.attempts, 0) AS attempt_count
+    $sql = 'SELECT u.id, u.control_number, u.first_name, u.last_name, u.email, u.mobile_number, u.is_verified, u.is_flagged, u.is_blocked, u.block_reason, u.created_at, COALESCE(a.attempts, 0) AS attempt_count
             FROM users u
             LEFT JOIN (
               SELECT user_id, COUNT(*) AS attempts
@@ -67,13 +62,12 @@ try {
             ) a ON a.user_id = u.id';
     $params = [];
     if ($q !== '') {
-        // For encrypted search, we need to search both encrypted and unencrypted fields
         $sql .= ' WHERE (
             u.control_number LIKE :q OR
-            u.first_name LIKE :q OR
-            u.last_name LIKE :q OR
             u.email LIKE :q OR
             u.mobile_number LIKE :q OR
+            u.first_name LIKE :q OR
+            u.last_name LIKE :q OR
             CONCAT(u.first_name, " ", u.last_name) LIKE :q
         )';
         $params[':q'] = "%$q%";
@@ -82,28 +76,8 @@ try {
     $stmt = $conn->prepare($sql);
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
-    $raw_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data
-    foreach ($raw_users as $user) {
-        $users[] = [
-            'id' => $user['id'],
-            'control_number' => $user['control_number'],
-            'first_name' => decryptPersonalData($user['first_name_encrypted']),
-            'last_name' => decryptPersonalData($user['last_name_encrypted']),
-            'email' => decryptContactData($user['email_encrypted']),
-            'mobile_number' => decryptContactData($user['mobile_number_encrypted']),
-            'is_verified' => $user['is_verified'],
-            'is_flagged' => $user['is_flagged'],
-            'is_blocked' => $user['is_blocked'],
-            'block_reason' => $user['block_reason'],
-            'created_at' => $user['created_at'],
-            'attempt_count' => $user['attempt_count']
-        ];
-    }
-} catch (PDOException $e) {
-    error_log("Error fetching users: " . $e->getMessage());
-}
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
 
 include 'html/view_all_users.html';
 ?>
