@@ -277,7 +277,15 @@ function encryptPersonalData($data) {
  * @return string Decrypted data
  */
 function decryptPersonalData($encrypted_data) {
-    return PSAUEncryption::decrypt($encrypted_data, 'personal_data');
+    if (empty($encrypted_data)) {
+        return '';
+    }
+    try {
+        return PSAUEncryption::decrypt($encrypted_data, 'personal_data');
+    } catch (Exception $e) {
+        error_log("Decrypt personal data error: " . $e->getMessage());
+        return '';
+    }
 }
 
 /**
@@ -286,6 +294,9 @@ function decryptPersonalData($encrypted_data) {
  * @return string Encrypted data
  */
 function encryptContactData($data) {
+    if (empty($data)) {
+        return '';
+    }
     return PSAUEncryption::encrypt($data, 'contact_data');
 }
 
@@ -295,7 +306,15 @@ function encryptContactData($data) {
  * @return string Decrypted data
  */
 function decryptContactData($encrypted_data) {
-    return PSAUEncryption::decrypt($encrypted_data, 'contact_data');
+    if (empty($encrypted_data)) {
+        return '';
+    }
+    try {
+        return PSAUEncryption::decrypt($encrypted_data, 'contact_data');
+    } catch (Exception $e) {
+        error_log("Decrypt contact data error: " . $e->getMessage());
+        return '';
+    }
 }
 
 /**
