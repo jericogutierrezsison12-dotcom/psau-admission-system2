@@ -19,9 +19,23 @@ class PSAUEncryption {
         // Get encryption key from environment or generate new one
         $key = getenv('ENCRYPTION_KEY');
         if (empty($key)) {
-            // Generate a new key if none exists
-            $key = self::generateEncryptionKey();
-            error_log("Generated new encryption key. Please save this to your .env file: ENCRYPTION_KEY=" . base64_encode($key));
+            // Try to load from .env file first
+            $env_file = __DIR__ . '/../.env';
+            if (file_exists($env_file)) {
+                $env_content = file_get_contents($env_file);
+                if (preg_match('/ENCRYPTION_KEY=(.+)/', $env_content, $matches)) {
+                    $key = trim($matches[1]);
+                }
+            }
+            
+            if (empty($key)) {
+                // Generate a new key if none exists
+                $key = self::generateEncryptionKey();
+                error_log("Generated new encryption key. Please save this to your .env file: ENCRYPTION_KEY=" . base64_encode($key));
+                error_log("Or run: php setup_encryption_key.php");
+            } else {
+                $key = base64_decode($key);
+            }
         } else {
             $key = base64_decode($key);
         }
