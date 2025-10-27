@@ -9,6 +9,9 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Include encryption helper for decryption functions
+require_once 'encryption.php';
+
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
     require_once 'db_connect.php';
