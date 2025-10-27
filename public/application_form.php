@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
+require_once '../includes/encryption.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -246,6 +247,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             // Ensure the image path has images/ prefix
                             $image_path_db = 'images/' . $new_imagename;
                             
+                            // Encrypt application data
+                            $encrypted_previous_school = encrypt_application_field('previous_school', $previous_school);
+                            $encrypted_school_year = encrypt_application_field('school_year', $school_year);
+                            $encrypted_strand = encrypt_application_field('strand', $strand);
+                            $encrypted_gpa = encrypt_application_field('gpa', $gpa);
+                            $encrypted_address = encrypt_application_field('address', $address);
+                            
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([
                                 $new_filename,
@@ -257,11 +265,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $previous_school,
-                                $school_year,
-                                $strand,
-                                $gpa,
-                                $address,
+                                $encrypted_previous_school,
+                                $encrypted_school_year,
+                                $encrypted_strand,
+                                $encrypted_gpa,
+                                $encrypted_address,
                                 $existing_rejected['id']
                             ]);
                             
@@ -301,6 +309,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             // Ensure the image path has images/ prefix
                             $image_path_db = 'images/' . $new_imagename;
                             
+                            // Encrypt application data
+                            $encrypted_previous_school = encrypt_application_field('previous_school', $previous_school);
+                            $encrypted_school_year = encrypt_application_field('school_year', $school_year);
+                            $encrypted_strand = encrypt_application_field('strand', $strand);
+                            $encrypted_gpa = encrypt_application_field('gpa', $gpa);
+                            $encrypted_address = encrypt_application_field('address', $address);
+                            
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([
                                 $user['id'],
@@ -313,11 +328,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $previous_school,
-                                $school_year,
-                                $strand,
-                                $gpa,
-                                $address
+                                $encrypted_previous_school,
+                                $encrypted_school_year,
+                                $encrypted_strand,
+                                $encrypted_gpa,
+                                $encrypted_address
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -335,14 +350,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $user['first_name'] . ' ' . $user['last_name']
                         ]);
                         
-                        // Update user profile with the provided information
+                        // Update user profile with the provided information (encrypted)
+                        $encrypted_user_address = encrypt_user_field('address', $address);
                         $update_user = $conn->prepare("UPDATE users SET 
                             address = ?, 
                             updated_at = NOW() 
                             WHERE id = ?");
                         
                         $update_user->execute([
-                            $address,
+                            $encrypted_user_address,
                             $user['id']
                         ]);
                         

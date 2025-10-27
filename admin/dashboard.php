@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 is_admin_logged_in('login.php');
@@ -92,7 +93,19 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC 
                          LIMIT 5");
-    $pending_applications = $stmt->fetchAll();
+    $raw_applications = $stmt->fetchAll();
+    
+    // Decrypt application and user data
+    foreach ($raw_applications as $app) {
+        $app = decrypt_application_data($app);
+        $user_stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+        $user_stmt->execute([$app['user_id']]);
+        $user = decrypt_user_data($user_stmt->fetch());
+        $app['first_name'] = $user['first_name'];
+        $app['last_name'] = $user['last_name'];
+        $app['control_number'] = $user['control_number'];
+        $pending_applications[] = $app;
+    }
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
