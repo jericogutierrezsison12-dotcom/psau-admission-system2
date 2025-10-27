@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $mobile_number = trim($_POST['mobile_number'] ?? '');
         $gender = trim($_POST['gender'] ?? '');
         $birth_date = trim($_POST['birth_date'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -67,6 +68,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        if (empty($mobile_number)) {
+            $errors['mobile_number'] = 'Mobile number is required';
+        } elseif (!preg_match('/^09\d{9}$/', $mobile_number)) {
+            $errors['mobile_number'] = 'Invalid mobile number format. Must be 11 digits starting with 09';
+        } else {
+            // Check if mobile number already exists
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
+            $stmt->execute([$mobile_number]);
+            if ($stmt->fetchColumn() > 0) {
+                $errors['mobile_number'] = 'Mobile number is already registered';
+            }
+        }
+        
         if (empty($gender)) {
             $errors['gender'] = 'Gender is required';
         } elseif (!in_array($gender, ['Male', 'Female', 'Other'])) {
@@ -90,8 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['birth_date'] = 'You must be at least 16 years old to register';
             }
         }
-        
-        // Mobile number is no longer required; we'll assign a system-generated placeholder later
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
@@ -118,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
+                'mobile_number' => $mobile_number,
                 'gender' => $gender,
                 'birth_date' => $birth_date,
                 'password' => $password
@@ -171,21 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Generate control number
                 $control_number = generate_control_number($conn);
-
-                // Generate a unique placeholder mobile number to satisfy NOT NULL + UNIQUE constraint
-                $generated_mobile = null;
-                for ($i = 0; $i < 5; $i++) {
-                    $candidate = '999' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); // 10 digits starting with 999
-                    $check = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
-                    $check->execute([$candidate]);
-                    if ($check->fetchColumn() == 0) {
-                        $generated_mobile = $candidate;
-                        break;
-                    }
-                }
-                if ($generated_mobile === null) {
-                    throw new Exception('Failed to generate unique placeholder mobile number');
-                }
                 
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
@@ -197,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $encrypted_first_name = encryptPersonalData($registration['first_name']);
                 $encrypted_last_name = encryptPersonalData($registration['last_name']);
                 $encrypted_email = encryptContactData($registration['email']);
-                $encrypted_mobile = encryptContactData($generated_mobile);
+                $encrypted_mobile = encryptContactData($registration['mobile_number']);
                 $encrypted_gender = encryptPersonalData($registration['gender']);
                 $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
                 
@@ -208,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $registration['first_name'], // Keep unencrypted for backward compatibility
                     $registration['last_name'],
                     $registration['email'],
-                    $generated_mobile,
+                    $registration['mobile_number'],
                     $hashed_password,
                     1, // Verified through OTP
                     $registration['gender'],

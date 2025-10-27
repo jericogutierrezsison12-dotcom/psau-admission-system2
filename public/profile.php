@@ -35,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $last_name = trim($_POST['last_name'] ?? '');
         $gender = trim($_POST['gender'] ?? '');
         $birth_date = trim($_POST['birth_date'] ?? '');
+        $mobile_number = trim($_POST['mobile_number'] ?? '');
         $address = trim($_POST['address'] ?? '');
         $previous_school = trim($_POST['previous_school'] ?? '');
         $school_year = trim($_POST['school_year'] ?? '');
@@ -59,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $encrypted_last_name = encryptPersonalData($last_name);
         $encrypted_gender = encryptPersonalData($gender);
         $encrypted_birth_date = encryptPersonalData($birth_date);
+        $encrypted_mobile = encryptContactData($mobile_number);
         $encrypted_address = encryptPersonalData($address);
 
         // Add personal info fields
@@ -73,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $sql_parts[] = "birth_date = ?";
         $params[] = !empty($birth_date) ? $birth_date : null;
+        
+        $sql_parts[] = "mobile_number = ?";
+        $params[] = $mobile_number;
         
         $sql_parts[] = "address = ?";
         $params[] = $address;
@@ -89,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $sql_parts[] = "birth_date_encrypted = ?";
         $params[] = $encrypted_birth_date;
+        
+        $sql_parts[] = "mobile_number_encrypted = ?";
+        $params[] = $encrypted_mobile;
         
         $sql_parts[] = "address_encrypted = ?";
         $params[] = $encrypted_address;
