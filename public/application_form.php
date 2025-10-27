@@ -214,13 +214,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $message .= ' Remaining attempts: ' . ($maxAttempts - $submissionAttempts - 1);
                         $messageType = 'danger';
                     } else {
-                        // Check if this is a resubmission of a rejected application or updating a submitted application
-                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND (status = 'Rejected' OR status = 'Submitted') ORDER BY created_at DESC LIMIT 1");
+                        // Check if this is a resubmission of a rejected application
+                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND status = 'Rejected' ORDER BY created_at DESC LIMIT 1");
                         $stmt->execute([$user['id']]);
-                        $existing_application = $stmt->fetch();
+                        $existing_rejected = $stmt->fetch();
                         
-                        if ($existing_application) {
-                            // Update existing application (rejected or submitted)
+                        if ($existing_rejected) {
+                            // Update existing application if it was rejected
                             $sql = "UPDATE applications SET 
                                 pdf_file = ?, 
                                 pdf_validated = ?, 
@@ -262,10 +262,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $strand,
                                 $gpa,
                                 $address,
-                                $existing_application['id']
+                                $existing_rejected['id']
                             ]);
                             
-                            $application_id = $existing_application['id'];
+                            $application_id = $existing_rejected['id'];
                             
                             // Debug log
                             error_log("Updated application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
@@ -390,16 +390,13 @@ echo '<script>
     const userData = ' . json_encode([
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],
-        'email' => $user['email'],
-        'mobile_number' => $user['mobile_number'],
-        'address' => $user['address']
+        'email' => $user['email']
     ]) . ';
     const existingApplication = ' . json_encode($existing_application) . ';
     
     // Pre-fill form fields if existing application data exists
-    document.addEventListener("DOMContentLoaded", function() {
-        // Auto-fill from existing application data
-        if (existingApplication) {
+    if (existingApplication) {
+        document.addEventListener("DOMContentLoaded", function() {
             if (existingApplication.previous_school) {
                 document.getElementById("previous_school").value = existingApplication.previous_school;
             }
@@ -415,14 +412,6 @@ echo '<script>
             if (existingApplication.address) {
                 document.getElementById("address").value = existingApplication.address;
             }
-        }
-        
-        // Auto-fill from user profile data if application fields are empty
-        if (userData) {
-            const addressField = document.getElementById("address");
-            if (addressField && !addressField.value && userData.address) {
-                addressField.value = userData.address;
-            }
-        }
-    });
+        });
+    }
 </script>'; 
