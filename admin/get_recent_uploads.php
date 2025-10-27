@@ -7,6 +7,7 @@
 // Start session and include required files
 session_start();
 require_once '../includes/db_connect.php';
+require_once '../includes/aes_encryption.php';
 
 // Simple error handling
 error_reporting(E_ALL);

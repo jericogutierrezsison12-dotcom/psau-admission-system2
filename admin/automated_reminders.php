@@ -1,4 +1,5 @@
 <?php
+require_once '../includes/aes_encryption.php';
 /**
  * Automated Reminder System
  * This script checks for upcoming entrance exams and enrollment schedules

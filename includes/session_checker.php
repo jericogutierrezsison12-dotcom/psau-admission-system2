@@ -9,6 +9,9 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Include AES encryption for data decryption
+require_once 'aes_encryption.php';
+
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
     require_once 'db_connect.php';
@@ -103,6 +106,15 @@ function get_current_user_data($conn) {
         if (!$user) {
             return null;
         }
+        
+        // Decrypt sensitive user data
+        $user['first_name'] = smartDecrypt($user['first_name'], 'personal_data');
+        $user['last_name'] = smartDecrypt($user['last_name'], 'personal_data');
+        $user['email'] = smartDecrypt($user['email'], 'contact_data');
+        $user['mobile_number'] = smartDecrypt($user['mobile_number'], 'contact_data');
+        $user['gender'] = smartDecrypt($user['gender'], 'personal_data');
+        $user['birth_date'] = smartDecrypt($user['birth_date'], 'personal_data');
+        $user['address'] = smartDecrypt($user['address'], 'personal_data');
         
         // Fetch educational background from applications table
         $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 

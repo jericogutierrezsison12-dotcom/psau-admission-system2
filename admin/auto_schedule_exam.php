@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
+require_once '../includes/aes_encryption.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
 

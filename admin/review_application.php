@@ -24,6 +24,7 @@ echo "</div>";
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
+require_once '../includes/aes_encryption.php';
 
 // Email System - IMPORTANT: The system now uses Firebase for sending emails
 // Firebase email functions - this is the primary email system

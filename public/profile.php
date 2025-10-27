@@ -7,6 +7,7 @@
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/aes_encryption.php';
 
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
@@ -54,24 +55,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts = [];
         $params = [];
         
-        // Add personal info fields
+        // Encrypt sensitive data before storing
+        $encrypted_first_name = encryptPersonalData($first_name);
+        $encrypted_last_name = encryptPersonalData($last_name);
+        $encrypted_gender = encryptPersonalData($gender);
+        $encrypted_birth_date = encryptPersonalData($birth_date);
+        $encrypted_mobile = encryptContactData($mobile_number);
+        $encrypted_address = encryptPersonalData($address);
+
+        // Add personal info fields (store encrypted data)
         $sql_parts[] = "first_name = ?";
-        $params[] = $first_name;
+        $params[] = $encrypted_first_name;
         
         $sql_parts[] = "last_name = ?";
-        $params[] = $last_name;
+        $params[] = $encrypted_last_name;
         
         $sql_parts[] = "gender = ?";
-        $params[] = $gender;
+        $params[] = $encrypted_gender;
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = !empty($birth_date) ? $birth_date : null;
+        $params[] = !empty($birth_date) ? $encrypted_birth_date : null;
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = $mobile_number;
+        $params[] = $encrypted_mobile;
         
         $sql_parts[] = "address = ?";
-        $params[] = $address;
+        $params[] = $encrypted_address;
 
         // Check if password change was requested
         if (!empty($current_password) || !empty($new_password) || !empty($confirm_password)) {

@@ -11,6 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Include required files
 require_once '../includes/db_connect.php';
+require_once '../includes/aes_encryption.php';
 require_once '../includes/admin_auth.php';
 
 // Ensure admin is logged in

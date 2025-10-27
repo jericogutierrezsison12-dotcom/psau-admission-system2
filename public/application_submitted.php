@@ -6,6 +6,7 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/aes_encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();

@@ -188,18 +188,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
-                // Insert user into database
+                // Include AES encryption helper
+                require_once '../includes/aes_encryption.php';
+                
+                // Encrypt sensitive data
+                $encrypted_first_name = encryptPersonalData($registration['first_name']);
+                $encrypted_last_name = encryptPersonalData($registration['last_name']);
+                $encrypted_email = encryptContactData($registration['email']);
+                $encrypted_mobile = encryptContactData($registration['mobile_number']);
+                $encrypted_gender = encryptPersonalData($registration['gender']);
+                $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
+                
+                // Insert user into database (store both encrypted and unencrypted for compatibility)
                 $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $registration['first_name'],
-                    $registration['last_name'],
-                    $registration['email'],
-                    $registration['mobile_number'],
+                    $encrypted_first_name, // Store encrypted data in regular fields
+                    $encrypted_last_name,
+                    $encrypted_email,
+                    $encrypted_mobile,
                     $hashed_password,
                     1, // Verified through OTP
-                    $registration['gender'],
-                    $registration['birth_date']
+                    $encrypted_gender,
+                    $encrypted_birth_date
                 ]);
                 
                 $user_id = $conn->lastInsertId();

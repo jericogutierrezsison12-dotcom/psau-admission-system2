@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
+require_once '../includes/aes_encryption.php';
 require_once '../includes/functions.php';
 
 // Check if admin is logged in

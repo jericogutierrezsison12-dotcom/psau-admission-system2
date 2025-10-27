@@ -4,6 +4,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once '../includes/db_connect.php';
+require_once '../includes/aes_encryption.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
 
