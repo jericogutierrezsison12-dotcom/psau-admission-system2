@@ -94,10 +94,83 @@ function get_current_user_data($conn) {
     }
     
     try {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
+        // Fetch user data from users table with decryption
+        $stmt = $conn->prepare("SELECT id, control_number, 
+                                      first_name, last_name, 
+                                      email, mobile_number,
+                                      address, birth_date, gender,
+                                      first_name_encrypted, last_name_encrypted, 
+                                      email_encrypted, mobile_number_encrypted,
+                                      address_encrypted, birth_date_encrypted, gender_encrypted,
+                                      is_verified, created_at, updated_at
+                               FROM users WHERE id = :user_id");
         $stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetch();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            return null;
+        }
+        
+        // Use encrypted fields if available, otherwise fall back to unencrypted
+        if (!empty($user['first_name_encrypted'])) {
+            $decrypted = decryptPersonalData($user['first_name_encrypted']);
+            if (!empty($decrypted)) $user['first_name'] = $decrypted;
+        }
+        
+        if (!empty($user['last_name_encrypted'])) {
+            $decrypted = decryptPersonalData($user['last_name_encrypted']);
+            if (!empty($decrypted)) $user['last_name'] = $decrypted;
+        }
+        
+        if (!empty($user['email_encrypted'])) {
+            $decrypted = decryptContactData($user['email_encrypted']);
+            if (!empty($decrypted)) $user['email'] = $decrypted;
+        }
+        
+        if (!empty($user['mobile_number_encrypted'])) {
+            $decrypted = decryptContactData($user['mobile_number_encrypted']);
+            if (!empty($decrypted)) $user['mobile_number'] = $decrypted;
+        }
+        
+        if (!empty($user['gender_encrypted'])) {
+            $decrypted = decryptPersonalData($user['gender_encrypted']);
+            if (!empty($decrypted)) $user['gender'] = $decrypted;
+        }
+        
+        if (!empty($user['birth_date_encrypted'])) {
+            $decrypted = decryptPersonalData($user['birth_date_encrypted']);
+            if (!empty($decrypted)) $user['birth_date'] = $decrypted;
+        }
+        
+        if (!empty($user['address_encrypted'])) {
+            $decrypted = decryptPersonalData($user['address_encrypted']);
+            if (!empty($decrypted)) $user['address'] = $decrypted;
+        }
+        
+        // Fetch educational background from applications table
+        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
+                                   FROM applications 
+                                   WHERE user_id = :user_id 
+                                   ORDER BY created_at DESC 
+                                   LIMIT 1");
+        $app_stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
+        $app_stmt->execute();
+        $application = $app_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($application) {
+            $user['previous_school'] = $application['previous_school'];
+            $user['school_year'] = $application['school_year'];
+            $user['strand'] = $application['strand'];
+            $user['gpa'] = $application['gpa'];
+            $user['age'] = $application['age'];
+            // Only use application address if user address is not set
+            if (empty($user['address']) && !empty($application['address'])) {
+                $user['address'] = $application['address'];
+            }
+        }
+        
+        return $user;
     } catch (PDOException $e) {
         error_log("Error fetching user: " . $e->getMessage());
         return null;

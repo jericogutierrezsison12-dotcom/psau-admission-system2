@@ -40,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $gender = trim($_POST['gender'] ?? '');
+        $birth_date = trim($_POST['birth_date'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         
@@ -62,6 +64,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$email]);
             if ($stmt->fetchColumn() > 0) {
                 $errors['email'] = 'Email is already registered';
+            }
+        }
+        
+        if (empty($gender)) {
+            $errors['gender'] = 'Gender is required';
+        } elseif (!in_array($gender, ['Male', 'Female', 'Other'])) {
+            $errors['gender'] = 'Invalid gender selected';
+        }
+        
+        if (empty($birth_date)) {
+            $errors['birth_date'] = 'Birth date is required';
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
+            $errors['birth_date'] = 'Invalid birth date format';
+        } else {
+            // Check if birth date is not in the future
+            $birth_datetime = new DateTime($birth_date);
+            $today = new DateTime();
+            if ($birth_datetime > $today) {
+                $errors['birth_date'] = 'Birth date cannot be in the future';
+            }
+            // Check if age is at least 16
+            $age = $today->diff($birth_datetime)->y;
+            if ($age < 16) {
+                $errors['birth_date'] = 'You must be at least 16 years old to register';
             }
         }
         
@@ -92,6 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
+                'gender' => $gender,
+                'birth_date' => $birth_date,
                 'password' => $password
             ];
             
@@ -162,16 +190,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
-                // Insert user into database
-                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                // Include encryption helper
+                require_once '../includes/encryption.php';
+                
+                // Encrypt sensitive data
+                $encrypted_first_name = encryptPersonalData($registration['first_name']);
+                $encrypted_last_name = encryptPersonalData($registration['last_name']);
+                $encrypted_email = encryptContactData($registration['email']);
+                $encrypted_mobile = encryptContactData($generated_mobile);
+                $encrypted_gender = encryptPersonalData($registration['gender']);
+                $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
+                
+                // Insert user into database with encrypted fields
+                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date, first_name_encrypted, last_name_encrypted, email_encrypted, mobile_number_encrypted, gender_encrypted, birth_date_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $registration['first_name'],
+                    $registration['first_name'], // Keep unencrypted for backward compatibility
                     $registration['last_name'],
                     $registration['email'],
                     $generated_mobile,
                     $hashed_password,
-                    1 // Verified through OTP
+                    1, // Verified through OTP
+                    $registration['gender'],
+                    $registration['birth_date'],
+                    $encrypted_first_name,
+                    $encrypted_last_name,
+                    $encrypted_email,
+                    $encrypted_mobile,
+                    $encrypted_gender,
+                    $encrypted_birth_date
                 ]);
                 
                 $user_id = $conn->lastInsertId();
