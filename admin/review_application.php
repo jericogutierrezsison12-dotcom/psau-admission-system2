@@ -24,7 +24,6 @@ echo "</div>";
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
-require_once '../includes/aes_encryption.php';
 
 // Email System - IMPORTANT: The system now uses Firebase for sending emails
 // Firebase email functions - this is the primary email system
@@ -79,6 +78,9 @@ try {
         
         // Debug info for application data
         error_log("Application data for ID {$application_id}: " . json_encode($application));
+        
+        // Include AES encryption for decryption
+        require_once '../includes/aes_encryption.php';
         
         // Decrypt sensitive user data
         $application['first_name'] = smartDecrypt($application['first_name'], 'personal_data');

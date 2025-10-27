@@ -9,7 +9,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
-require_once '../includes/aes_encryption.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -248,6 +247,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $image_path_db = 'images/' . $new_imagename;
                             
                             $stmt = $conn->prepare($sql);
+                            // Include AES encryption
+                            require_once '../includes/aes_encryption.php';
+                            
                             $stmt->execute([
                                 $new_filename,
                                 $validation_result['isValid'] ?? false,

@@ -7,7 +7,6 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
-require_once '../includes/aes_encryption.php';
 require_once '../includes/admin_auth.php';
 require_once '../firebase/firebase_email.php';
 
@@ -38,13 +37,6 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
     $pending_applications = $stmt->fetchAll();
-    
-    // Decrypt sensitive data
-    foreach ($pending_applications as &$app) {
-        $app['first_name'] = smartDecrypt($app['first_name'], 'personal_data');
-        $app['last_name'] = smartDecrypt($app['last_name'], 'personal_data');
-        $app['email'] = smartDecrypt($app['email'], 'contact_data');
-    }
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -117,11 +109,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $user = $stmt->fetch();
         
         if ($user) {
-            // Decrypt user data
-            $user['first_name'] = smartDecrypt($user['first_name'], 'personal_data');
-            $user['last_name'] = smartDecrypt($user['last_name'], 'personal_data');
-            $user['email'] = smartDecrypt($user['email'], 'contact_data');
-            
             // Send verification email
             $verification_email = [
                 'first_name' => $user['first_name'],

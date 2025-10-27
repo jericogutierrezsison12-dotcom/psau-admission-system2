@@ -199,11 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $encrypted_gender = encryptPersonalData($registration['gender']);
                 $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
                 
-                // Insert user into database (store both encrypted and unencrypted for compatibility)
+                // Insert user into database (store encrypted data)
                 $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $encrypted_first_name, // Store encrypted data in regular fields
+                    $encrypted_first_name,
                     $encrypted_last_name,
                     $encrypted_email,
                     $encrypted_mobile,

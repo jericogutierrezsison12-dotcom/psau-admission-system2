@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/aes_encryption.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
 

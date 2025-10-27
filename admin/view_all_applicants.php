@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/aes_encryption.php';
 require_once '../includes/admin_auth.php';
 
 // Check if user is logged in as admin
@@ -45,6 +44,9 @@ try {
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Include AES encryption for decryption
+    require_once '../includes/aes_encryption.php';
     
     // Decrypt sensitive data for each applicant
     foreach ($applicants as &$applicant) {

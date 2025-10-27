@@ -48,13 +48,6 @@ class PSAUAESEncryption {
     }
 
     /**
-     * Generate a new encryption key
-     */
-    private static function generateEncryptionKey() {
-        return random_bytes(32);
-    }
-
-    /**
      * Encrypt sensitive data
      * @param string $data Data to encrypt
      * @param string $context Context for additional authentication data
@@ -135,43 +128,6 @@ class PSAUAESEncryption {
         }
         
         return $decrypted;
-    }
-
-    /**
-     * Encrypt data for database storage
-     * @param string $data Data to encrypt
-     * @param string $table_name Table name for context
-     * @param string $field_name Field name for context
-     * @return string Encrypted data
-     */
-    public static function encryptForDatabase($data, $table_name, $field_name) {
-        $context = $table_name . '_' . $field_name;
-        return self::encrypt($data, $context);
-    }
-
-    /**
-     * Decrypt data from database storage
-     * @param string $encrypted_data Encrypted data from database
-     * @param string $table_name Table name for context
-     * @param string $field_name Field name for context
-     * @return string Decrypted data
-     */
-    public static function decryptFromDatabase($encrypted_data, $table_name, $field_name) {
-        $context = $table_name . '_' . $field_name;
-        return self::decrypt($encrypted_data, $context);
-    }
-
-    /**
-     * Get encryption status
-     * @return array Encryption configuration status
-     */
-    public static function getStatus() {
-        self::initialize();
-        return [
-            'initialized' => self::$initialized,
-            'key_length' => self::$encryption_key ? strlen(self::$encryption_key) : 0,
-            'key_source' => getenv('AES_ENCRYPTION_KEY') ? 'environment' : 'generated'
-        ];
     }
 }
 
@@ -265,36 +221,6 @@ function decryptAcademicData($encrypted_data) {
         return PSAUAESEncryption::decrypt($encrypted_data, 'academic_data');
     } catch (Exception $e) {
         error_log("Decrypt academic data error: " . $e->getMessage());
-        return $encrypted_data; // Return encrypted data if decryption fails
-    }
-}
-
-/**
- * Encrypt application data
- * @param string $data Application data to encrypt
- * @return string Encrypted data
- */
-function encryptApplicationData($data) {
-    if (empty($data)) return '';
-    try {
-        return PSAUAESEncryption::encrypt($data, 'application_data');
-    } catch (Exception $e) {
-        error_log("Encrypt application data error: " . $e->getMessage());
-        return $data; // Return original data if encryption fails
-    }
-}
-
-/**
- * Decrypt application data
- * @param string $encrypted_data Encrypted application data
- * @return string Decrypted data
- */
-function decryptApplicationData($encrypted_data) {
-    if (empty($encrypted_data)) return '';
-    try {
-        return PSAUAESEncryption::decrypt($encrypted_data, 'application_data');
-    } catch (Exception $e) {
-        error_log("Decrypt application data error: " . $e->getMessage());
         return $encrypted_data; // Return encrypted data if decryption fails
     }
 }

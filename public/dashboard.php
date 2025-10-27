@@ -7,7 +7,6 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/aes_encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
@@ -28,13 +27,6 @@ if ($user) {
     $application = $stmt->fetch();
     
     if ($application) {
-        // Decrypt application data
-        $application['previous_school'] = smartDecrypt($application['previous_school'], 'academic_data');
-        $application['school_year'] = smartDecrypt($application['school_year'], 'academic_data');
-        $application['strand'] = smartDecrypt($application['strand'], 'academic_data');
-        $application['gpa'] = smartDecrypt($application['gpa'], 'academic_data');
-        $application['address'] = smartDecrypt($application['address'], 'personal_data');
-        
         $hasApplication = true;
         $status = $application['status'];
         

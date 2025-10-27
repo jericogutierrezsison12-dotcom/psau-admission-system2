@@ -7,7 +7,6 @@
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/aes_encryption.php';
 
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
@@ -55,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts = [];
         $params = [];
         
+        // Include AES encryption helper
+        require_once '../includes/aes_encryption.php';
+        
         // Encrypt sensitive data before storing
         $encrypted_first_name = encryptPersonalData($first_name);
         $encrypted_last_name = encryptPersonalData($last_name);
@@ -62,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $encrypted_birth_date = encryptPersonalData($birth_date);
         $encrypted_mobile = encryptContactData($mobile_number);
         $encrypted_address = encryptPersonalData($address);
-
+        
         // Add personal info fields (store encrypted data)
         $sql_parts[] = "first_name = ?";
         $params[] = $encrypted_first_name;

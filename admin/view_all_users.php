@@ -3,7 +3,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
-require_once '../includes/aes_encryption.php';
 
 is_admin_logged_in('login.php');
 require_page_access('view_all_users');
@@ -78,6 +77,9 @@ try {
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Include AES encryption for decryption
+    require_once '../includes/aes_encryption.php';
     
     // Decrypt sensitive user data for display
     foreach ($users as &$user) {
