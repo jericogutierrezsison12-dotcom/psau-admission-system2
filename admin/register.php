@@ -154,11 +154,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ."</div>";
                     
                     $result = firebase_send_email($email, $subject, $message);
-                    if ($result || (is_array($result) && !empty($result['success']))) {
+                    // firebase_send_email returns array with 'success' key
+                    if (is_array($result) && !empty($result['success'])) {
                         // Record OTP request for rate limiting
                         record_otp_request($email, 'admin_register');
+                        error_log("OTP email sent successfully to: $email");
                     } else {
-                        error_log("Failed to send automatic OTP to admin email: $email");
+                        error_log("Failed to send automatic OTP to admin email: $email. Result: " . print_r($result, true));
                     }
                 } else {
                     error_log("Rate limit exceeded for sending OTP to admin email: $email");
