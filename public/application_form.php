@@ -70,8 +70,6 @@ $maxAttempts = 5;
 $disableUpload = false;
 $applicationStatus = '';
 
-// Fetch existing application data to pre-fill form
-$existing_application = null;
 if ($user) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
@@ -84,12 +82,11 @@ if ($user) {
         $messageType = $attemptCheck['message_type'];
     }
     
-    // Check if user has an existing application and get its data
-    $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+    // Check if user has an existing application and its status
+    $stmt = $conn->prepare("SELECT status FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$user['id']]);
     if ($stmt->rowCount() > 0) {
-        $existing_application = $stmt->fetch();
-        $applicationStatus = $existing_application['status'];
+        $applicationStatus = $stmt->fetchColumn();
         // Disable upload if application is submitted and not rejected
         if ($applicationStatus !== 'Rejected' && $applicationStatus !== '') {
             $disableUpload = true;
@@ -105,9 +102,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     $strand = $_POST['strand'] ?? '';
     $gpa = $_POST['gpa'] ?? '';
     $address = $_POST['address'] ?? '';
+    $age = $_POST['age'] ?? '';
     
     // Validate required fields
-    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address)) {
+    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address) || empty($age)) {
         $message = 'Please fill in all required fields.';
         $messageType = 'danger';
     }
@@ -124,6 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     // Validate GPA
     elseif (!is_numeric($gpa) || $gpa < 75 || $gpa > 100) {
         $message = 'GPA must be a number between 75 and 100.';
+        $messageType = 'danger';
+    }
+    // Validate age
+    elseif (!is_numeric($age) || $age < 16 || $age > 100) {
+        $message = 'Age must be a number between 16 and 100.';
         $messageType = 'danger';
     }
     // Check if PDF file was uploaded    
@@ -237,6 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 strand = ?,
                                 gpa = ?,
                                 address = ?,
+                                age = ?,
                                 status = 'Submitted', 
                                 updated_at = NOW() 
                                 WHERE id = ?";
@@ -262,6 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $strand,
                                 $gpa,
                                 $address,
+                                $age,
                                 $existing_rejected['id']
                             ]);
                             
@@ -291,10 +296,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 strand,
                                 gpa,
                                 address,
+                                age,
                                 status,
                                 created_at,
                                 updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
+                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
                             
                             // Ensure the document path has uploads/ prefix
                             $document_path = 'uploads/' . $new_filename;
@@ -317,7 +323,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $school_year,
                                 $strand,
                                 $gpa,
-                                $address
+                                $address,
+                                $age
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -385,33 +392,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
 // Include the HTML template
 include_once 'html/application_form.html';
 
-// Pass user data and existing application data to JavaScript
+// Pass user data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],
         'email' => $user['email']
     ]) . ';
-    const existingApplication = ' . json_encode($existing_application) . ';
-    
-    // Pre-fill form fields if existing application data exists
-    if (existingApplication) {
-        document.addEventListener("DOMContentLoaded", function() {
-            if (existingApplication.previous_school) {
-                document.getElementById("previous_school").value = existingApplication.previous_school;
-            }
-            if (existingApplication.school_year) {
-                document.getElementById("school_year").value = existingApplication.school_year;
-            }
-            if (existingApplication.strand) {
-                document.getElementById("strand").value = existingApplication.strand;
-            }
-            if (existingApplication.gpa) {
-                document.getElementById("gpa").value = existingApplication.gpa;
-            }
-            if (existingApplication.address) {
-                document.getElementById("address").value = existingApplication.address;
-            }
-        });
-    }
 </script>'; 

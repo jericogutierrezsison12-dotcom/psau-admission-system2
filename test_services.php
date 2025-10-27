@@ -84,7 +84,7 @@ if (empty($missing_tables)) {
 echo "<h2>6. Environment Check</h2>";
 $server_name = $_SERVER['SERVER_NAME'] ?? 'unknown';
 $is_localhost = ($server_name === 'localhost' || $server_name === '127.0.0.1');
-$is_production = ($server_name === 'psau-admission-system-16ip.onrender.com');
+$is_production = ($server_name === 'psau-admission-system.onrender.com');
 
 echo "Server Name: $server_name<br>";
 echo "Is Localhost: " . ($is_localhost ? 'Yes' : 'No') . "<br>";

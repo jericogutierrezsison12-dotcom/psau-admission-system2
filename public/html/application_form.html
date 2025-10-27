@@ -127,6 +127,13 @@
                                     <small class="text-muted">Enter complete address (House/Building Number, Street, Barangay, City/Municipality, Province)</small>
                                 </div>
                                 
+                                <div class="mb-3">
+                                    <label for="age" class="form-label">Age <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="age" name="age"
+                                        min="16" max="100" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                    <small class="text-muted">Enter your current age (must be at least 16)</small>
+                                </div>
+                                
                                 <!-- 2x2 Image Upload Section -->
                                 <div class="mb-3">
                                     <label for="image_2x2" class="form-label">2x2 ID Picture <span class="text-danger">*</span></label>

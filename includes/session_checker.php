@@ -94,40 +94,10 @@ function get_current_user_data($conn) {
     }
     
     try {
-        // Get user data from users table
         $stmt = $conn->prepare("SELECT * FROM users WHERE id = :user_id");
         $stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
         $stmt->execute();
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            return null;
-        }
-        
-        // Fetch educational background from applications table
-        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
-                                   FROM applications 
-                                   WHERE user_id = :user_id 
-                                   ORDER BY created_at DESC 
-                                   LIMIT 1");
-        $app_stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
-        $app_stmt->execute();
-        $education = $app_stmt->fetch();
-        
-        // Merge educational background data with user data
-        if ($education) {
-            $user['previous_school'] = $education['previous_school'];
-            $user['school_year'] = $education['school_year'];
-            $user['strand'] = $education['strand'];
-            $user['gpa'] = $education['gpa'];
-            $user['age'] = $education['age'];
-            // Use application address if user address is empty
-            if (empty($user['address']) && !empty($education['address'])) {
-                $user['address'] = $education['address'];
-            }
-        }
-        
-        return $user;
+        return $stmt->fetch();
     } catch (PDOException $e) {
         error_log("Error fetching user: " . $e->getMessage());
         return null;
