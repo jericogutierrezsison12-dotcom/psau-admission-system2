@@ -73,7 +73,36 @@
                             <?php endif; ?>
                         </div>
                         
+                        <div class="col-md-6">
+                            <label for="mobile_number" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control <?php echo isset($errors['mobile_number']) ? 'is-invalid' : ''; ?>" id="mobile_number" name="mobile_number" placeholder="09XX XXX XXXX" required>
+                            <?php if (isset($errors['mobile_number'])): ?>
+                                <div class="invalid-feedback"><?php echo $errors['mobile_number']; ?></div>
+                            <?php endif; ?>
+                            <small class="text-muted">Format: 09XX XXX XXXX (11 digits)</small>
+                        </div>
                         
+                        <div class="col-md-6">
+                            <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+                            <select class="form-control <?php echo isset($errors['gender']) ? 'is-invalid' : ''; ?>" id="gender" name="gender" required>
+                                <option value="">-- Select Gender --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <?php if (isset($errors['gender'])): ?>
+                                <div class="invalid-feedback"><?php echo $errors['gender']; ?></div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="birth_date" class="form-label">Birth Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control <?php echo isset($errors['birth_date']) ? 'is-invalid' : ''; ?>" id="birth_date" name="birth_date" required>
+                            <?php if (isset($errors['birth_date'])): ?>
+                                <div class="invalid-feedback"><?php echo $errors['birth_date']; ?></div>
+                            <?php endif; ?>
+                            <small class="text-muted" id="age-display"></small>
+                        </div>
                         
                         <div class="col-md-6">
                             <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
@@ -258,6 +287,29 @@
                         confirmPassword.type = 'password';
                         confirmPasswordIcon.classList.remove('bi-eye-slash');
                         confirmPasswordIcon.classList.add('bi-eye');
+                    }
+                });
+            }
+            
+            // Calculate age from birth date
+            const birthDateInput = document.getElementById('birth_date');
+            const ageDisplay = document.getElementById('age-display');
+            
+            if (birthDateInput && ageDisplay) {
+                birthDateInput.addEventListener('change', function() {
+                    const birthDate = new Date(this.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    
+                    if (age >= 0) {
+                        ageDisplay.textContent = `Age: ${age} years old`;
+                    } else {
+                        ageDisplay.textContent = 'Invalid birth date';
                     }
                 });
             }

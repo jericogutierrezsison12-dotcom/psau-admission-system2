@@ -1,7 +1,7 @@
 <?php
 /**
- * PSAU Admission System - FAQ Management
- * Handles managing frequently asked questions
+ * PSAU Admission System - Comprehensive FAQ Management
+ * Handles managing FAQs and unanswered questions in one interface
  */
 
 // Start session if not already started
@@ -42,62 +42,25 @@ if (isset($_SESSION['message'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    // Debug logging
-    error_log("FAQ Action received: " . $action);
-    error_log("POST data: " . print_r($_POST, true));
-    
     try {
         switch ($action) {
-            case 'resolve_unanswered':
-                $ua_id = (int)($_POST['ua_id'] ?? 0);
+            case 'add_faq':
                 $question = trim($_POST['question'] ?? '');
                 $answer = trim($_POST['answer'] ?? '');
-                if (empty($ua_id) || empty($question) || empty($answer)) {
-                    throw new Exception('Question and answer are required.');
-                }
-                // Start transaction to ensure both operations are atomic
-                $conn->beginTransaction();
-                // Determine next sort order
-                $stmt = $conn->query("SELECT MAX(sort_order) as max_order FROM faqs");
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $sort_order = ($result['max_order'] ?? 0) + 1;
-                // Insert into faqs
-                $stmt = $conn->prepare("INSERT INTO faqs (question, answer, sort_order, is_active) VALUES (?, ?, ?, 1)");
-                $stmt->execute([$question, $answer, $sort_order]);
-                // Delete from unanswered_questions
-                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
-                $stmt->execute([$ua_id]);
-                $conn->commit();
-                $_SESSION['message'] = 'Unanswered question added as FAQ successfully';
-                $_SESSION['message_type'] = 'success';
-                header('Location: manage_faqs.php');
-                exit;
-
-            case 'delete_unanswered':
-                $ua_id = (int)($_POST['ua_id'] ?? 0);
-                if (empty($ua_id)) {
-                    throw new Exception('Invalid unanswered question ID.');
-                }
-                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
-                $stmt->execute([$ua_id]);
-                $_SESSION['message'] = 'Unanswered question deleted';
-                $_SESSION['message_type'] = 'success';
-                header('Location: manage_faqs.php');
-                exit;
-            case 'add':
-                $question = trim($_POST['question'] ?? '');
-                $answer = trim($_POST['answer'] ?? '');
+                $sort_order = (int)($_POST['sort_order'] ?? 0);
                 
                 if (empty($question) || empty($answer)) {
                     throw new Exception('Question and answer are required.');
                 }
                 
-                // Get the maximum sort_order and add 1
-                $stmt = $conn->query("SELECT MAX(sort_order) as max_order FROM faqs");
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $sort_order = ($result['max_order'] ?? 0) + 1;
+                // Get next sort order if not provided
+                if ($sort_order == 0) {
+                    $stmt = $conn->query("SELECT MAX(sort_order) as max_order FROM faqs");
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $sort_order = ($result['max_order'] ?? 0) + 1;
+                }
                 
-                $stmt = $conn->prepare("INSERT INTO faqs (question, answer, sort_order) VALUES (?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO faqs (question, answer, sort_order, is_active) VALUES (?, ?, ?, 1)");
                 $stmt->execute([$question, $answer, $sort_order]);
                 
                 $_SESSION['message'] = 'FAQ added successfully';
@@ -105,73 +68,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: manage_faqs.php');
                 exit;
                 
-            case 'edit':
-                $id = $_POST['id'] ?? 0;
+            case 'edit_faq':
+                $id = (int)($_POST['id'] ?? 0);
                 $question = trim($_POST['question'] ?? '');
                 $answer = trim($_POST['answer'] ?? '');
+                $sort_order = (int)($_POST['sort_order'] ?? 0);
                 $is_active = isset($_POST['is_active']) ? 1 : 0;
                 
                 if (empty($id) || empty($question) || empty($answer)) {
-                    throw new Exception('All fields are required.');
+                    throw new Exception('ID, question and answer are required.');
                 }
                 
-                $stmt = $conn->prepare("UPDATE faqs SET question = ?, answer = ?, is_active = ? WHERE id = ?");
-                $stmt->execute([$question, $answer, $is_active, $id]);
+                $stmt = $conn->prepare("UPDATE faqs SET question = ?, answer = ?, sort_order = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([$question, $answer, $sort_order, $is_active, $id]);
                 
                 $_SESSION['message'] = 'FAQ updated successfully';
                 $_SESSION['message_type'] = 'success';
                 header('Location: manage_faqs.php');
                 exit;
                 
-            case 'delete':
-                $id = $_POST['id'] ?? 0;
+            case 'delete_faq':
+                $id = (int)($_POST['id'] ?? 0);
                 
                 if (empty($id)) {
-                    throw new Exception('Invalid FAQ ID.');
+                    throw new Exception('FAQ ID is required.');
                 }
                 
-                // Start transaction to handle sort_order updates
-                $conn->beginTransaction();
-                
-                // Get the current sort_order of the FAQ to be deleted
-                $stmt = $conn->prepare("SELECT sort_order FROM faqs WHERE id = ?");
-                $stmt->execute([$id]);
-                $current_order = $stmt->fetch(PDO::FETCH_ASSOC)['sort_order'];
-                
-                // Delete the FAQ
                 $stmt = $conn->prepare("DELETE FROM faqs WHERE id = ?");
                 $stmt->execute([$id]);
-                
-                // Update sort_order for remaining FAQs
-                $stmt = $conn->prepare("UPDATE faqs SET sort_order = sort_order - 1 WHERE sort_order > ?");
-                $stmt->execute([$current_order]);
-                
-                $conn->commit();
                 
                 $_SESSION['message'] = 'FAQ deleted successfully';
                 $_SESSION['message_type'] = 'success';
                 header('Location: manage_faqs.php');
                 exit;
                 
-            case 'toggle':
-                $id = $_POST['id'] ?? 0;
-                $is_active = $_POST['is_active'] ?? 0;
+            case 'resolve_unanswered':
+                $ua_id = (int)($_POST['ua_id'] ?? 0);
+                $question = trim($_POST['question'] ?? '');
+                $answer = trim($_POST['answer'] ?? '');
                 
-                if (empty($id)) {
-                    throw new Exception('Invalid FAQ ID.');
+                if (empty($ua_id) || empty($question) || empty($answer)) {
+                    throw new Exception('Question and answer are required.');
                 }
                 
-                $stmt = $conn->prepare("UPDATE faqs SET is_active = ? WHERE id = ?");
-                $stmt->execute([$is_active, $id]);
+                // Start transaction
+                $conn->beginTransaction();
                 
-                echo json_encode(['success' => true]);
+                // Get next sort order
+                $stmt = $conn->query("SELECT MAX(sort_order) as max_order FROM faqs");
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $sort_order = ($result['max_order'] ?? 0) + 1;
+                
+                // Insert into faqs
+                $stmt = $conn->prepare("INSERT INTO faqs (question, answer, sort_order, is_active) VALUES (?, ?, ?, 1)");
+                $stmt->execute([$question, $answer, $sort_order]);
+                
+                // Delete from unanswered_questions
+                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
+                $stmt->execute([$ua_id]);
+                
+                $conn->commit();
+                
+                $_SESSION['message'] = 'Unanswered question added as FAQ successfully';
+                $_SESSION['message_type'] = 'success';
+                header('Location: manage_faqs.php');
                 exit;
+                
+            case 'delete_unanswered':
+                $id = (int)($_POST['id'] ?? 0);
+                
+                if (empty($id)) {
+                    throw new Exception('Question ID is required.');
+                }
+                
+                $stmt = $conn->prepare("DELETE FROM unanswered_questions WHERE id = ?");
+                $stmt->execute([$id]);
+                
+                $_SESSION['message'] = 'Unanswered question deleted successfully';
+                $_SESSION['message_type'] = 'success';
+                header('Location: manage_faqs.php');
+                exit;
+                
+            default:
+                throw new Exception('Invalid action.');
         }
     } catch (Exception $e) {
-        if ($action === 'delete') {
-            $conn->rollBack();
-        }
-        $error_message = $e->getMessage();
+        $_SESSION['message'] = $e->getMessage();
+        $_SESSION['message_type'] = 'error';
+        header('Location: manage_faqs.php');
+        exit;
+    }
+}
+
+// Handle GET actions (edit and resolve)
+$edit_faq = null;
+$resolve_question = null;
+
+if (isset($_GET['action'])) {
+    switch ($_GET['action']) {
+        case 'edit':
+            $id = (int)($_GET['id'] ?? 0);
+            if ($id > 0) {
+                $stmt = $conn->prepare("SELECT * FROM faqs WHERE id = ?");
+                $stmt->execute([$id]);
+                $edit_faq = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            break;
+            
+        case 'resolve':
+            $id = (int)($_GET['id'] ?? 0);
+            if ($id > 0) {
+                $stmt = $conn->prepare("SELECT * FROM unanswered_questions WHERE id = ?");
+                $stmt->execute([$id]);
+                $resolve_question = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            break;
     }
 }
 
@@ -181,6 +192,7 @@ try {
     $faqs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_message = "Error fetching FAQs: " . $e->getMessage();
+    $faqs = [];
 }
 
 // Get unanswered questions
@@ -188,7 +200,6 @@ try {
     $stmt = $conn->query("SELECT id, question, created_at FROM unanswered_questions ORDER BY created_at DESC, id DESC");
     $unanswered = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // If table missing, set empty and show warning later in UI
     $unanswered = [];
 }
 
@@ -198,4 +209,5 @@ $stmt->execute([$_SESSION['admin_id']]);
 $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Include HTML template
-include 'html/manage_faqs.html'; 
+include 'html/manage_faqs.html';
+?>

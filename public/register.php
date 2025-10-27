@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $mobile_number = trim($_POST['mobile_number'] ?? '');
+        $gender = trim($_POST['gender'] ?? '');
+        $birth_date = trim($_POST['birth_date'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         
@@ -65,7 +68,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Mobile number is no longer required; we'll assign a system-generated placeholder later
+        if (empty($mobile_number)) {
+            $errors['mobile_number'] = 'Mobile number is required';
+        } elseif (!preg_match('/^09\d{9}$/', $mobile_number)) {
+            $errors['mobile_number'] = 'Invalid mobile number format. Must be 11 digits starting with 09';
+        } else {
+            // Check if mobile number already exists
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
+            $stmt->execute([$mobile_number]);
+            if ($stmt->fetchColumn() > 0) {
+                $errors['mobile_number'] = 'Mobile number is already registered';
+            }
+        }
+        
+        if (empty($gender)) {
+            $errors['gender'] = 'Gender is required';
+        } elseif (!in_array($gender, ['Male', 'Female', 'Other'])) {
+            $errors['gender'] = 'Invalid gender selected';
+        }
+        
+        if (empty($birth_date)) {
+            $errors['birth_date'] = 'Birth date is required';
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
+            $errors['birth_date'] = 'Invalid birth date format';
+        } else {
+            // Check if birth date is not in the future
+            $birth_datetime = new DateTime($birth_date);
+            $today = new DateTime();
+            if ($birth_datetime > $today) {
+                $errors['birth_date'] = 'Birth date cannot be in the future';
+            }
+            // Check if age is at least 16
+            $age = $today->diff($birth_datetime)->y;
+            if ($age < 16) {
+                $errors['birth_date'] = 'You must be at least 16 years old to register';
+            }
+        }
         
         if (empty($password)) {
             $errors['password'] = 'Password is required';
@@ -92,6 +130,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
+                'mobile_number' => $mobile_number,
+                'gender' => $gender,
+                'birth_date' => $birth_date,
                 'password' => $password
             ];
             
@@ -143,35 +184,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Generate control number
                 $control_number = generate_control_number($conn);
-
-                // Generate a unique placeholder mobile number to satisfy NOT NULL + UNIQUE constraint
-                $generated_mobile = null;
-                for ($i = 0; $i < 5; $i++) {
-                    $candidate = '999' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); // 10 digits starting with 999
-                    $check = $conn->prepare("SELECT COUNT(*) FROM users WHERE mobile_number = ?");
-                    $check->execute([$candidate]);
-                    if ($check->fetchColumn() == 0) {
-                        $generated_mobile = $candidate;
-                        break;
-                    }
-                }
-                if ($generated_mobile === null) {
-                    throw new Exception('Failed to generate unique placeholder mobile number');
-                }
                 
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
                 // Insert user into database
-                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
                     $registration['first_name'],
                     $registration['last_name'],
                     $registration['email'],
-                    $generated_mobile,
+                    $registration['mobile_number'],
                     $hashed_password,
-                    1 // Verified through OTP
+                    1, // Verified through OTP
+                    $registration['gender'],
+                    $registration['birth_date']
                 ]);
                 
                 $user_id = $conn->lastInsertId();
