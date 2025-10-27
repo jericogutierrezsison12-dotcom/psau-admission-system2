@@ -146,7 +146,7 @@ function encryptPersonalData($data) {
         return PSAUAESEncryption::encrypt($data, 'personal_data');
     } catch (Exception $e) {
         error_log("Encrypt personal data error: " . $e->getMessage());
-        return $data; // Return original data if encryption fails
+        throw $e; // Throw exception if encryption fails
     }
 }
 
@@ -176,7 +176,7 @@ function encryptContactData($data) {
         return PSAUAESEncryption::encrypt($data, 'contact_data');
     } catch (Exception $e) {
         error_log("Encrypt contact data error: " . $e->getMessage());
-        return $data; // Return original data if encryption fails
+        throw $e; // Throw exception if encryption fails
     }
 }
 
@@ -206,7 +206,7 @@ function encryptAcademicData($data) {
         return PSAUAESEncryption::encrypt($data, 'academic_data');
     } catch (Exception $e) {
         error_log("Encrypt academic data error: " . $e->getMessage());
-        return $data; // Return original data if encryption fails
+        throw $e; // Throw exception if encryption fails
     }
 }
 

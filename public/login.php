@@ -97,9 +97,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Check if user exists with the provided email or mobile number
+                // Include AES encryption for login comparison
+                require_once '../includes/aes_encryption.php';
+                
+                // Encrypt login identifier for comparison with encrypted database values
+                $encrypted_email = encryptContactData($login_identifier);
+                $encrypted_mobile = encryptContactData($login_identifier);
+                
+                // Check if user exists with the provided email or mobile number (using encrypted values)
                 $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
-                $stmt->execute([$login_identifier, $login_identifier]);
+                $stmt->execute([$encrypted_email, $encrypted_mobile]);
                 $user = $stmt->fetch();
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
