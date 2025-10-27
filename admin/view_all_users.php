@@ -3,7 +3,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 is_admin_logged_in('login.php');
 require_page_access('view_all_users');
@@ -77,13 +76,7 @@ try {
     $stmt = $conn->prepare($sql);
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
-    $raw_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data for each user
-    $users = [];
-    foreach ($raw_users as $user) {
-        $users[] = decrypt_user_data($user);
-    }
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {}
 
 include 'html/view_all_users.html';

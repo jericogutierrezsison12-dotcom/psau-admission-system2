@@ -1,0 +1,35 @@
+# PSAU Admission System - Encryption Configuration
+# Copy this file to .env and configure your encryption settings
+
+# Encryption Key (REQUIRED)
+# Generate a new key with: php -r "echo base64_encode(random_bytes(32));"
+ENCRYPTION_KEY=your_32_byte_base64_encoded_encryption_key_here
+
+# File Storage Configuration
+ENCRYPTED_STORAGE_PATH=../uploads/encrypted/
+ENCRYPTED_TEMP_PATH=../uploads/encrypted/temp/
+
+# Security Settings
+ENCRYPTION_ALGORITHM=AES-256-GCM
+SESSION_ENCRYPTION=true
+API_ENCRYPTION=true
+
+# Database Encryption
+DB_FIELD_ENCRYPTION=true
+DB_SEARCH_ENCRYPTION=true
+
+# File Upload Settings
+MAX_FILE_SIZE=10485760
+ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,doc,docx
+
+# Download Security
+DOWNLOAD_TOKEN_EXPIRY=3600
+MAX_DOWNLOADS_PER_HOUR=10
+
+# Logging
+ENCRYPTION_LOG_LEVEL=INFO
+ENCRYPTION_LOG_FILE=../logs/encryption.log
+
+# Backup Settings
+ENCRYPTION_BACKUP=true
+BACKUP_RETENTION_DAYS=30

@@ -16,21 +16,8 @@ class PSAUEncryption {
             return;
         }
         
-        // Load .env file if it exists
-        if (!isset($_ENV['ENCRYPTION_KEY']) && file_exists(__DIR__ . '/../.env')) {
-            $lines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
-                    list($key, $value) = explode('=', $line, 2);
-                    if (trim($key) === 'ENCRYPTION_KEY') {
-                        $_ENV['ENCRYPTION_KEY'] = trim($value);
-                    }
-                }
-            }
-        }
-        
         // Get encryption key from environment or generate new one
-        $key = $_ENV['ENCRYPTION_KEY'] ?? getenv('ENCRYPTION_KEY');
+        $key = getenv('ENCRYPTION_KEY');
         if (empty($key)) {
             // Generate a new key if none exists
             $key = self::generateEncryptionKey();
@@ -40,7 +27,7 @@ class PSAUEncryption {
         }
         
         if (strlen($key) !== 32) {
-            throw new Exception("Invalid encryption key length. Must be 32 bytes. Please check your ENCRYPTION_KEY in .env file.");
+            throw new Exception("Invalid encryption key length. Must be 32 bytes.");
         }
         
         self::$encryption_key = $key;
@@ -331,175 +318,5 @@ function encryptApplicationData($data) {
  */
 function decryptApplicationData($encrypted_data) {
     return PSAUEncryption::decrypt($encrypted_data, 'application_data');
-}
-
-/**
- * Encrypt user field data
- * @param string $field_name Database field name
- * @param string $data Data to encrypt
- * @return string Encrypted data
- */
-function encrypt_user_field($field_name, $data) {
-    if (empty($data)) return '';
-    return PSAUEncryption::encryptForDatabase($data, 'users', $field_name);
-}
-
-/**
- * Decrypt user field data
- * @param string $field_name Database field name
- * @param string $encrypted_data Encrypted data
- * @return string Decrypted data
- */
-function decrypt_user_field($field_name, $encrypted_data) {
-    if (empty($encrypted_data)) return '';
-    try {
-        return PSAUEncryption::decryptFromDatabase($encrypted_data, 'users', $field_name);
-    } catch (Exception $e) {
-        error_log("Decryption error for users.$field_name: " . $e->getMessage());
-        return $encrypted_data; // Return original if decryption fails
-    }
-}
-
-/**
- * Encrypt application field data
- * @param string $field_name Database field name
- * @param string $data Data to encrypt
- * @return string Encrypted data
- */
-function encrypt_application_field($field_name, $data) {
-    if (empty($data)) return '';
-    return PSAUEncryption::encryptForDatabase($data, 'applications', $field_name);
-}
-
-/**
- * Decrypt application field data
- * @param string $field_name Database field name
- * @param string $encrypted_data Encrypted data
- * @return string Decrypted data
- */
-function decrypt_application_field($field_name, $encrypted_data) {
-    if (empty($encrypted_data)) return '';
-    try {
-        return PSAUEncryption::decryptFromDatabase($encrypted_data, 'applications', $field_name);
-    } catch (Exception $e) {
-        error_log("Decryption error for applications.$field_name: " . $e->getMessage());
-        return $encrypted_data; // Return original if decryption fails
-    }
-}
-
-/**
- * Decrypt entire user row
- * @param array $user User row from database
- * @return array User row with decrypted fields
- */
-function decrypt_user_data($user) {
-    if (!$user) return $user;
-    
-    $decrypted_fields = ['first_name', 'last_name', 'email', 'mobile_number', 'gender', 'birth_date', 'address'];
-    
-    foreach ($decrypted_fields as $field) {
-        if (isset($user[$field])) {
-            $user[$field] = decrypt_user_field($field, $user[$field]);
-        }
-    }
-    
-    return $user;
-}
-
-/**
- * Decrypt entire application row
- * @param array $application Application row from database
- * @return array Application row with decrypted fields
- */
-function decrypt_application_data($application) {
-    if (!$application) return $application;
-    
-    $decrypted_fields = ['previous_school', 'school_year', 'strand', 'gpa', 'address', 'age'];
-    
-    foreach ($decrypted_fields as $field) {
-        if (isset($application[$field])) {
-            $application[$field] = decrypt_application_field($field, $application[$field]);
-        }
-    }
-    
-    return $application;
-}
-
-/**
- * Find user by encrypted email
- * @param PDO $conn Database connection
- * @param string $email Email to search
- * @return array|false User data or false
- */
-function find_user_by_encrypted_email($conn, $email) {
-    try {
-        $stmt = $conn->prepare("SELECT * FROM users");
-        $stmt->execute();
-        $users = $stmt->fetchAll();
-        
-        foreach ($users as $user) {
-            try {
-                $decrypted_email = decrypt_user_field('email', $user['email']);
-                if ($decrypted_email === $email) {
-                    return $user;
-                }
-            } catch (Exception $e) {
-                continue;
-            }
-        }
-        return false;
-    } catch (PDOException $e) {
-        error_log("Error finding user by email: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Find user by encrypted mobile number
- * @param PDO $conn Database connection
- * @param string $mobile_number Mobile number to search
- * @return array|false User data or false
- */
-function find_user_by_encrypted_mobile($conn, $mobile_number) {
-    try {
-        $stmt = $conn->prepare("SELECT * FROM users");
-        $stmt->execute();
-        $users = $stmt->fetchAll();
-        
-        foreach ($users as $user) {
-            try {
-                $decrypted_mobile = decrypt_user_field('mobile_number', $user['mobile_number']);
-                if ($decrypted_mobile === $mobile_number) {
-                    return $user;
-                }
-            } catch (Exception $e) {
-                continue;
-            }
-        }
-        return false;
-    } catch (PDOException $e) {
-        error_log("Error finding user by mobile: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Check if email exists (with encryption)
- * @param PDO $conn Database connection
- * @param string $email Email to check
- * @return bool True if exists
- */
-function encrypted_email_exists($conn, $email) {
-    return find_user_by_encrypted_email($conn, $email) !== false;
-}
-
-/**
- * Check if mobile number exists (with encryption)
- * @param PDO $conn Database connection
- * @param string $mobile_number Mobile number to check
- * @return bool True if exists
- */
-function encrypted_mobile_exists($conn, $mobile_number) {
-    return find_user_by_encrypted_mobile($conn, $mobile_number) !== false;
 }
 ?>
