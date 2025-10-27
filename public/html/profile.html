@@ -114,16 +114,69 @@
                                     <div class="col-md-6">
                                         <label for="birth_date" class="form-label">Birth Date</label>
                                         <input type="date" class="form-control" id="birth_date" name="birth_date" value="<?php echo $user['birth_date'] ?? ''; ?>">
+                                        <small class="text-muted" id="age-display"></small>
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label for="address" class="form-label">Address</label>
-                                    <textarea class="form-control" id="address" name="address" rows="3"><?php echo htmlspecialchars($user['address'] ?? ''); ?></textarea>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="mobile_number" class="form-label">Mobile Number</label>
+                                        <input type="tel" class="form-control" id="mobile_number" name="mobile_number" value="<?php echo htmlspecialchars($user['mobile_number'] ?? ''); ?>" placeholder="09XX XXX XXXX">
+                                        <small class="text-muted">Format: 09XX XXX XXXX (11 digits)</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="address" class="form-label">Address</label>
+                                        <textarea class="form-control" id="address" name="address" rows="3"><?php echo htmlspecialchars($user['address'] ?? ''); ?></textarea>
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Account Information Section (Not Editable) -->
+                            <!-- Educational Background Section -->
+                            <div class="profile-section">
+                                <h4><span class="section-icon"><i class="bi bi-book"></i></span> Educational Background</h4>
+                                
+                                <div class="mb-3">
+                                    <label for="previous_school" class="form-label">Previous School</label>
+                                    <input type="text" class="form-control" id="previous_school" name="previous_school" value="<?php echo htmlspecialchars($user['previous_school'] ?? ''); ?>">
+                                    <small class="text-muted">Enter complete school name and location</small>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="school_year" class="form-label">School Year</label>
+                                        <input type="text" class="form-control" id="school_year" name="school_year" value="<?php echo htmlspecialchars($user['school_year'] ?? ''); ?>" placeholder="YYYY-YYYY">
+                                        <small class="text-muted">Format: YYYY-YYYY</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="strand" class="form-label">Senior High Track/Strand</label>
+                                        <input type="text" class="form-control" id="strand" name="strand" value="<?php echo htmlspecialchars($user['strand'] ?? ''); ?>" list="strandOptions">
+                                        <datalist id="strandOptions">
+                                            <option value="STEM">STEM</option>
+                                            <option value="ABM">ABM</option>
+                                            <option value="HUMSS">HUMSS</option>
+                                            <option value="TVL">TVL</option>
+                                            <option value="GAS">GAS</option>
+                                            <option value="Arts and Design">Arts and Design</option>
+                                            <option value="Sports">Sports</option>
+                                        </datalist>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="gpa" class="form-label">General Average/GPA</label>
+                                        <input type="number" class="form-control" id="gpa" name="gpa" value="<?php echo htmlspecialchars($user['gpa'] ?? ''); ?>" min="75" max="100" step="0.01">
+                                        <small class="text-muted">Enter GPA (75-100)</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="age" class="form-label">Age</label>
+                                        <input type="number" class="form-control" id="age" name="age" value="<?php echo htmlspecialchars($user['age'] ?? ''); ?>" min="16" max="100">
+                                        <small class="text-muted">Current age</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="profile-section">
                                 <h4><span class="section-icon"><i class="bi bi-lock"></i></span> Account Information</h4>
                                 
@@ -199,5 +252,54 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JavaScript -->
     <script src="js/profile.js"></script>
+    
+    <script>
+        // Calculate age from birth date
+        document.addEventListener('DOMContentLoaded', function() {
+            const birthDateInput = document.getElementById('birth_date');
+            const ageDisplay = document.getElementById('age-display');
+            
+            // Calculate age on page load if birth date exists
+            if (birthDateInput && birthDateInput.value && ageDisplay) {
+                const birthDate = new Date(birthDateInput.value);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                
+                if (age >= 0) {
+                    ageDisplay.textContent = `Age: ${age} years old`;
+                }
+            }
+            
+            // Calculate age when birth date changes
+            if (birthDateInput && ageDisplay) {
+                birthDateInput.addEventListener('change', function() {
+                    const birthDate = new Date(this.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    
+                    if (age >= 0) {
+                        ageDisplay.textContent = `Age: ${age} years old`;
+                        // Update age field in educational background if it exists
+                        const ageField = document.getElementById('age');
+                        if (ageField) {
+                            ageField.value = age;
+                        }
+                    } else {
+                        ageDisplay.textContent = 'Invalid birth date';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html> 

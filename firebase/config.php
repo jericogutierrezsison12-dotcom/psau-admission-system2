@@ -29,7 +29,7 @@ $firebase_config = [
     'allowed_domains' => [
         'localhost',
         '127.0.0.1',
-        'psau-admission-system-16ip.onrender.com'
+        'psau-admission-system.onrender.com'
     ]
 ];
 

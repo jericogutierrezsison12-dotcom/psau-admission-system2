@@ -464,7 +464,7 @@ function verify_recaptcha($token, $action = null) {
     // Detect Render environment and allowed hosts
     $is_render = !empty($_ENV['RENDER']) || !empty($_SERVER['RENDER']);
     $host = strtolower($_SERVER['HTTP_HOST'] ?? $server_name);
-    $allowed_hosts_env = getenv('ALLOWED_HOSTS') ?: 'psau-admission-system-16ip.onrender.com,localhost,127.0.0.1';
+    $allowed_hosts_env = getenv('ALLOWED_HOSTS') ?: 'psau-admission-system.onrender.com,localhost,127.0.0.1';
     $allowed_hosts = array_filter(array_map('trim', explode(',', $allowed_hosts_env)));
     
     // If this is localhost and we're in development mode, we can bypass strict validation
