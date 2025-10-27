@@ -8,7 +8,6 @@
 ob_start();
 
 require_once '../includes/db_connect.php';
-require_once '../includes/otp_rate_limiting.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -32,31 +31,25 @@ try {
         throw new Exception('Valid email is required');
     }
     
-    // This endpoint is for sending OTP to user's own email during admin registration
-    // The restricted email validation is handled in send_restricted_email_otp.php
-    
-    // reCAPTCHA validation - skip for Firebase tokens
-    // Firebase reCAPTCHA returns a verification token that doesn't work with Google's verify API
-    // We'll just check that a token is provided and trust Firebase's verification
-    if ($recaptcha_token === '') {
-        throw new Exception('reCAPTCHA verification is required');
+    // Ensure only the restricted admin email is allowed
+    if ($email !== 'jericogutierrezsison12@gmail.com') {
+        throw new Exception('Only jericogutierrezsison12@gmail.com is allowed for admin registration');
     }
     
-    // Log the token for debugging
-    error_log("reCAPTCHA token received: " . substr($recaptcha_token, 0, 20) . "...");
+    // reCAPTCHA validation (required for admin registration)
+    if ($recaptcha_token === '') {
+        throw new Exception('reCAPTCHA token is required');
+    }
     
-    // Skip Google reCAPTCHA verification for Firebase tokens
-    // Firebase has already verified the reCAPTCHA client-side
+    require_once '../includes/api_calls.php';
+    $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
+    if (!$recaptcha_valid) {
+        throw new Exception('reCAPTCHA verification failed');
+    }
 
     // Basic gating: ensure registration session matches email
     if (!isset($_SESSION['admin_registration']['email']) || strcasecmp($_SESSION['admin_registration']['email'], $email) !== 0) {
         throw new Exception('Admin registration session not found for this email');
-    }
-
-    // Check OTP rate limiting
-    $rate_limit = check_otp_rate_limit($email, 'admin_register');
-    if (!$rate_limit['can_send']) {
-        throw new Exception($rate_limit['message']);
     }
 
     // Generate 6-digit OTP and set 10-minute expiry
@@ -88,9 +81,6 @@ try {
     if (!$result || (is_array($result) && empty($result['success']))) {
         throw new Exception('Failed to send OTP email');
     }
-
-    // Record OTP request for rate limiting
-    record_otp_request($email, 'admin_register');
 
     // Clean any output buffer and send JSON response
     ob_end_clean();

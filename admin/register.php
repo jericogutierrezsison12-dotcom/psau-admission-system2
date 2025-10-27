@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $hash = password_hash($reg['password'], PASSWORD_DEFAULT);
 
-                $ins = $conn->prepare('INSERT INTO admins (username, email, mobile_number, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
-                $ins->execute([$reg['username'], $reg['email'], '', $hash, $reg['role']]);
+                $ins = $conn->prepare('INSERT INTO admins (username, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())');
+                $ins->execute([$reg['username'], $reg['email'], $hash, $reg['role']]);
 
                 // Commit transaction
                 $conn->commit();

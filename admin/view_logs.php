@@ -32,9 +32,6 @@ $page = max(1, intval($_GET['page'] ?? 1));
 $per_page = 50;
 $offset = ($page - 1) * $per_page;
 
-// Get tab parameter for switching between logs
-$tab = $_GET['tab'] ?? 'activity';
-
 // Initialize variables
 $error_message = null;
 $logs = [];
@@ -42,14 +39,6 @@ $total_logs = 0;
 $total_pages = 0;
 $actions = [];
 $user_type_counts = [];
-
-// OTP-specific variables
-$otp_logs = [];
-$otp_total_logs = 0;
-$otp_total_pages = 0;
-$otp_search = $_GET['otp_search'] ?? '';
-$otp_page = max(1, intval($_GET['otp_page'] ?? 1));
-$otp_offset = ($otp_page - 1) * $per_page;
 
 try {
     // Build SQL with filters and user enrichment
@@ -144,95 +133,6 @@ try {
         $user_type_counts = array_map(function($row){ return ['user_type'=>$row['user_type'], 'count'=>(int)$row['cnt']]; }, $user_type_counts);
     }
 
-    // Process OTP logs if on OTP tab
-    if ($tab === 'otp') {
-        // Get OTP requests
-        $otp_where = [];
-        $otp_params = [];
-        
-        if (!empty($otp_search)) {
-            $otp_where[] = "(email LIKE :otp_search OR purpose LIKE :otp_search OR ip_address LIKE :otp_search)";
-            $otp_params[':otp_search'] = "%$otp_search%";
-        }
-        
-        $otp_where_sql = empty($otp_where) ? '' : ('WHERE ' . implode(' AND ', $otp_where));
-        
-        // Count OTP requests
-        $otp_count_sql = "SELECT COUNT(*) FROM otp_requests $otp_where_sql";
-        $otp_count_stmt = $conn->prepare($otp_count_sql);
-        foreach ($otp_params as $k => $v) { $otp_count_stmt->bindValue($k, $v); }
-        $otp_count_stmt->execute();
-        $otp_total_logs = (int)$otp_count_stmt->fetchColumn();
-        
-        if ($otp_total_logs > 0) {
-            $otp_total_pages = (int)ceil($otp_total_logs / $per_page);
-            
-            // Get OTP requests data
-            $otp_data_sql = "
-                SELECT 
-                    'request' as type,
-                    id,
-                    email,
-                    purpose,
-                    ip_address,
-                    user_agent,
-                    created_at,
-                    NULL as otp_code,
-                    NULL as attempts,
-                    NULL as is_used,
-                    NULL as expires_at
-                FROM otp_requests 
-                $otp_where_sql
-                ORDER BY created_at DESC
-                LIMIT :limit OFFSET :offset
-            ";
-            $otp_data_stmt = $conn->prepare($otp_data_sql);
-            foreach ($otp_params as $k => $v) { $otp_data_stmt->bindValue($k, $v); }
-            $otp_data_stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
-            $otp_data_stmt->bindValue(':offset', $otp_offset, PDO::PARAM_INT);
-            $otp_data_stmt->execute();
-            $otp_requests = $otp_data_stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Get OTP codes (if table exists)
-            $otp_codes = [];
-            try {
-                $otp_codes_sql = "
-                    SELECT 
-                        'code' as type,
-                        id,
-                        email,
-                        purpose,
-                        ip_address,
-                        NULL as user_agent,
-                        created_at,
-                        otp_code,
-                        attempts,
-                        is_used,
-                        expires_at
-                    FROM otp_codes 
-                    $otp_where_sql
-                    ORDER BY created_at DESC
-                    LIMIT :limit OFFSET :offset
-                ";
-                $otp_codes_stmt = $conn->prepare($otp_codes_sql);
-                foreach ($otp_params as $k => $v) { $otp_codes_stmt->bindValue($k, $v); }
-                $otp_codes_stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
-                $otp_codes_stmt->bindValue(':offset', $otp_offset, PDO::PARAM_INT);
-                $otp_codes_stmt->execute();
-                $otp_codes = $otp_codes_stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                // OTP codes table might not exist, that's okay
-                $otp_codes = [];
-            }
-            
-            // Combine and sort OTP logs
-            $otp_logs = array_merge($otp_requests, $otp_codes);
-            usort($otp_logs, function($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
-            });
-        }
-    }
-
 } catch (PDOException $e) {
     error_log("Database error in view_logs.php: " . $e->getMessage());
     $error_message = "Database error occurred. Please check the error logs for details.";
@@ -295,7 +195,7 @@ $total_logs_count = array_sum(array_column($user_type_counts, 'count'));
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">
-                    <i class="bi bi-journal-text me-2"></i>System Logs
+                    <i class="bi bi-journal-text me-2"></i>Activity Logs
                 </h1>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary" onclick="exportLogs()">
@@ -307,28 +207,6 @@ $total_logs_count = array_sum(array_column($user_type_counts, 'count'));
                 </div>
             </div>
 
-            <!-- Tab Navigation -->
-            <ul class="nav nav-tabs mb-4" id="logTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link <?php echo $tab === 'activity' ? 'active' : ''; ?>" 
-                            id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" 
-                            type="button" role="tab" aria-controls="activity" 
-                            aria-selected="<?php echo $tab === 'activity' ? 'true' : 'false'; ?>"
-                            onclick="switchTab('activity')">
-                        <i class="bi bi-journal-text me-1"></i>Activity Logs
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link <?php echo $tab === 'otp' ? 'active' : ''; ?>" 
-                            id="otp-tab" data-bs-toggle="tab" data-bs-target="#otp" 
-                            type="button" role="tab" aria-controls="otp" 
-                            aria-selected="<?php echo $tab === 'otp' ? 'true' : 'false'; ?>"
-                            onclick="switchTab('otp')">
-                        <i class="bi bi-shield-lock me-1"></i>OTP Logs
-                    </button>
-                </li>
-            </ul>
-
             <!-- Error/Info Message Display -->
             <?php if (isset($error_message)): ?>
             <div class="alert alert-<?php echo strpos($error_message, 'No activity logs found') !== false ? 'info' : 'danger'; ?> alert-dismissible fade show" role="alert">
@@ -338,487 +216,290 @@ $total_logs_count = array_sum(array_column($user_type_counts, 'count'));
             </div>
             <?php endif; ?>
 
-            <!-- Tab Content -->
-            <div class="tab-content" id="logTabsContent">
-                <!-- Activity Logs Tab -->
-                <div class="tab-pane fade <?php echo $tab === 'activity' ? 'show active' : ''; ?>" id="activity" role="tabpanel" aria-labelledby="activity-tab">
-                    <!-- Summary Cards -->
-                    <?php if (!empty($user_type_counts)): ?>
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-title">Total Logs</h6>
-                                            <h3 class="mb-0"><?php echo number_format($total_logs_count); ?></h3>
-                                        </div>
-                                        <div class="align-self-center">
-                                            <i class="bi bi-journal-text fs-1"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <?php foreach ($user_type_counts as $type_count): ?>
-                        <div class="col-md-3">
-                            <div class="card bg-<?php echo $type_count['user_type'] === 'admin' ? 'success' : ($type_count['user_type'] === 'registrar' ? 'info' : ($type_count['user_type'] === 'department' ? 'warning' : 'secondary')); ?> text-white">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-title"><?php echo ucfirst($type_count['user_type']); ?> Logs</h6>
-                                            <h3 class="mb-0"><?php echo number_format($type_count['count']); ?></h3>
-                                        </div>
-                                        <div class="align-self-center">
-                                            <i class="bi bi-<?php echo $type_count['user_type'] === 'admin' ? 'person-badge' : ($type_count['user_type'] === 'registrar' ? 'person-check' : ($type_count['user_type'] === 'department' ? 'building' : 'person')); ?> fs-1"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Filters -->
-                    <?php if (!empty($actions)): ?>
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
-                        </div>
+            <!-- Summary Cards -->
+            <?php if (!empty($user_type_counts)): ?>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
                         <div class="card-body">
-                            <form method="GET" class="row g-3">
-                                <input type="hidden" name="tab" value="activity">
-                                <div class="col-md-2">
-                                    <label for="user_type" class="form-label">User Type</label>
-                                    <select class="form-select" id="user_type" name="user_type">
-                                        <option value="all" <?php echo $user_type === 'all' ? 'selected' : ''; ?>>All Users</option>
-                                        <option value="admin" <?php echo $user_type === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                                        <option value="registrar" <?php echo $user_type === 'registrar' ? 'selected' : ''; ?>>Registrar</option>
-                                        <option value="department" <?php echo $user_type === 'department' ? 'selected' : ''; ?>>Department</option>
-                                        <option value="user" <?php echo $user_type === 'user' ? 'selected' : ''; ?>>Regular Users</option>
-                                    </select>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Logs</h6>
+                                    <h3 class="mb-0"><?php echo number_format($total_logs_count); ?></h3>
                                 </div>
-                                <div class="col-md-2">
-                                    <label for="action" class="form-label">Action</label>
-                                    <select class="form-select" id="action" name="action">
-                                        <option value="">All Actions</option>
-                                        <?php foreach ($actions as $action): ?>
-                                        <option value="<?php echo htmlspecialchars($action); ?>" <?php echo $action_filter === $action ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($action); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                <div class="align-self-center">
+                                    <i class="bi bi-journal-text fs-1"></i>
                                 </div>
-                                <div class="col-md-2">
-                                    <label for="date_from" class="form-label">From Date</label>
-                                    <input type="date" class="form-control" id="date_from" name="date_from" value="<?php echo htmlspecialchars($date_from); ?>">
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="date_to" class="form-label">To Date</label>
-                                    <input type="date" class="form-control" id="date_to" name="date_to" value="<?php echo htmlspecialchars($date_to); ?>">
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="search" class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="search" name="search" placeholder="Search logs..." value="<?php echo htmlspecialchars($search); ?>">
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="bi bi-search me-1"></i>Filter
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
-                    <?php endif; ?>
-
-                    <!-- Activity Logs Table -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-list-ul me-2"></i>Activity Logs
-                                    <span class="badge bg-secondary ms-2"><?php echo number_format($total_logs); ?> total logs</span>
-                                </h5>
-                                <?php if ($total_pages > 1): ?>
-                                <div class="d-flex gap-2">
-                                    <span class="text-muted">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                </div>
+                <?php foreach ($user_type_counts as $type_count): ?>
+                <div class="col-md-3">
+                    <div class="card bg-<?php echo $type_count['user_type'] === 'admin' ? 'success' : ($type_count['user_type'] === 'registrar' ? 'info' : ($type_count['user_type'] === 'department' ? 'warning' : 'secondary')); ?> text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title"><?php echo ucfirst($type_count['user_type']); ?> Logs</h6>
+                                    <h3 class="mb-0"><?php echo number_format($type_count['count']); ?></h3>
                                 </div>
-                                <?php endif; ?>
+                                <div class="align-self-center">
+                                    <i class="bi bi-<?php echo $type_count['user_type'] === 'admin' ? 'person-badge' : ($type_count['user_type'] === 'registrar' ? 'person-check' : ($type_count['user_type'] === 'department' ? 'building' : 'person')); ?> fs-1"></i>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                                <table class="table table-hover mb-0 log-table">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Date & Time</th>
-                                            <th>User</th>
-                                            <th>Type</th>
-                                            <th>Action</th>
-                                            <th>Details</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php if (empty($logs)): ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4">
-                                                <i class="bi bi-inbox fs-1 text-muted"></i>
-                                                <p class="text-muted mt-2">No logs found matching your criteria</p>
-                                            </td>
-                                        </tr>
-                                        <?php else: ?>
-                                        <?php foreach ($logs as $log): ?>
-                                        <tr class="user-type-<?php echo $log['user_type']; ?>">
-                                            <td>
-                                                <small class="text-muted">
-                                                    <?php echo date('M j, Y', strtotime($log['created_at'])); ?><br>
-                                                    <strong><?php echo date('g:i A', strtotime($log['created_at'])); ?></strong>
-                                                </small>
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <strong><?php echo htmlspecialchars($log['display_name']); ?></strong><br>
-                                                    <small class="text-muted"><?php echo htmlspecialchars($log['username']); ?></small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <?php
-                                                $badge_class = 'bg-secondary';
-                                                $icon = 'person';
-                                                switch ($log['user_type']) {
-                                                    case 'admin':
-                                                        $badge_class = 'bg-success';
-                                                        $icon = 'person-badge';
-                                                        break;
-                                                    case 'registrar':
-                                                        $badge_class = 'bg-info';
-                                                        $icon = 'person-check';
-                                                        break;
-                                                    case 'department':
-                                                        $badge_class = 'bg-warning';
-                                                        $icon = 'building';
-                                                        break;
-                                                    case 'user':
-                                                        $badge_class = 'bg-primary';
-                                                        $icon = 'person';
-                                                        break;
-                                                }
-                                                ?>
-                                                <span class="badge <?php echo $badge_class; ?>">
-                                                    <i class="bi bi-<?php echo $icon; ?> me-1"></i>
-                                                    <?php echo ucfirst($log['user_type']); ?>
-                                                </span>
-                                                <?php if ($log['role'] && $log['role'] !== 'user'): ?>
-                                                <br><small class="text-muted"><?php echo ucfirst($log['role']); ?></small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <code class="text-primary"><?php echo htmlspecialchars($log['action']); ?></code>
-                                            </td>
-                                            <td>
-                                                <div class="log-details" title="<?php echo htmlspecialchars($log['details']); ?>">
-                                                    <?php 
-                                                    $details = htmlspecialchars($log['details']);
-                                                    // Truncate long details for better display
-                                                    if (strlen($details) > 100) {
-                                                        echo substr($details, 0, 100) . '...';
-                                                    } else {
-                                                        echo $details;
-                                                    }
-                                                    ?>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <?php
-                                                // Determine status based on action type
-                                                $status_class = 'bg-secondary';
-                                                $status_text = 'Info';
-                                                $status_icon = 'info-circle';
-                                                
-                                                if (strpos($log['action'], 'login') !== false) {
-                                                    $status_class = 'bg-success';
-                                                    $status_text = 'Success';
-                                                    $status_icon = 'check-circle';
-                                                } elseif (strpos($log['action'], 'error') !== false || strpos($log['action'], 'fail') !== false) {
-                                                    $status_class = 'bg-danger';
-                                                    $status_text = 'Error';
-                                                    $status_icon = 'exclamation-triangle';
-                                                } elseif (strpos($log['action'], 'create') !== false || strpos($log['action'], 'add') !== false) {
-                                                    $status_class = 'bg-primary';
-                                                    $status_text = 'Created';
-                                                    $status_icon = 'plus-circle';
-                                                } elseif (strpos($log['action'], 'update') !== false || strpos($log['action'], 'edit') !== false) {
-                                                    $status_class = 'bg-warning';
-                                                    $status_text = 'Updated';
-                                                    $status_icon = 'pencil-square';
-                                                } elseif (strpos($log['action'], 'delete') !== false || strpos($log['action'], 'remove') !== false) {
-                                                    $status_class = 'bg-danger';
-                                                    $status_text = 'Deleted';
-                                                    $status_icon = 'trash';
-                                                }
-                                                ?>
-                                                <span class="badge <?php echo $status_class; ?>">
-                                                    <i class="bi bi-<?php echo $status_icon; ?> me-1"></i>
-                                                    <?php echo $status_text; ?>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Filters -->
+            <?php if (!empty($actions)): ?>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-2">
+                            <label for="user_type" class="form-label">User Type</label>
+                            <select class="form-select" id="user_type" name="user_type">
+                                <option value="all" <?php echo $user_type === 'all' ? 'selected' : ''; ?>>All Users</option>
+                                <option value="admin" <?php echo $user_type === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                <option value="registrar" <?php echo $user_type === 'registrar' ? 'selected' : ''; ?>>Registrar</option>
+                                <option value="department" <?php echo $user_type === 'department' ? 'selected' : ''; ?>>Department</option>
+                                <option value="user" <?php echo $user_type === 'user' ? 'selected' : ''; ?>>Regular Users</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="action" class="form-label">Action</label>
+                            <select class="form-select" id="action" name="action">
+                                <option value="">All Actions</option>
+                                <?php foreach ($actions as $action): ?>
+                                <option value="<?php echo htmlspecialchars($action); ?>" <?php echo $action_filter === $action ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($action); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="<?php echo htmlspecialchars($date_from); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="<?php echo htmlspecialchars($date_to); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="search" name="search" placeholder="Search logs..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-1"></i>Filter
+                                </button>
                             </div>
                         </div>
-                        
-                        <!-- Pagination -->
+                    </form>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Logs Table -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Activity Logs
+                            <span class="badge bg-secondary ms-2"><?php echo number_format($total_logs); ?> total logs</span>
+                        </h5>
                         <?php if ($total_pages > 1): ?>
-                        <div class="card-footer">
-                            <nav aria-label="Logs pagination">
-                                <ul class="pagination justify-content-center mb-0">
-                                    <?php if ($page > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
-                                            <i class="bi bi-chevron-left"></i> Previous
-                                        </a>
-                                    </li>
-                                    <?php endif; ?>
-                                    
-                                    <?php
-                                    $start_page = max(1, $page - 2);
-                                    $end_page = min($total_pages, $page + 2);
-                                    
-                                    if ($start_page > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                    </li>
-                                    <?php if ($start_page > 2): ?>
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                    <?php endif; ?>
-                                    
-                                    <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                    </li>
-                                    <?php endfor; ?>
-                                    
-                                    <?php if ($end_page < $total_pages): ?>
-                                    <?php if ($end_page < $total_pages - 1): ?>
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>"><?php echo $total_pages; ?></a>
-                                    </li>
-                                    <?php endif; ?>
-                                    
-                                    <?php if ($page < $total_pages): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
-                                            Next <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                    <?php endif; ?>
-                                </ul>
-                            </nav>
+                        <div class="d-flex gap-2">
+                            <span class="text-muted">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
                         </div>
                         <?php endif; ?>
                     </div>
                 </div>
-
-                <!-- OTP Logs Tab -->
-                <div class="tab-pane fade <?php echo $tab === 'otp' ? 'show active' : ''; ?>" id="otp" role="tabpanel" aria-labelledby="otp-tab">
-                    <!-- OTP Search -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Search OTP Logs</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="GET" class="row g-3">
-                                <input type="hidden" name="tab" value="otp">
-                                <div class="col-md-8">
-                                    <label for="otp_search" class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="otp_search" name="otp_search" 
-                                           placeholder="Search by email, purpose, or IP address..." 
-                                           value="<?php echo htmlspecialchars($otp_search); ?>">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">&nbsp;</label>
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="bi bi-search me-1"></i>Search
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- OTP Logs Table -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-shield-lock me-2"></i>OTP Logs
-                                    <span class="badge bg-secondary ms-2"><?php echo number_format($otp_total_logs); ?> total logs</span>
-                                </h5>
-                                <?php if ($otp_total_pages > 1): ?>
-                                <div class="d-flex gap-2">
-                                    <span class="text-muted">Page <?php echo $otp_page; ?> of <?php echo $otp_total_pages; ?></span>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                                <table class="table table-hover mb-0 log-table">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Type</th>
-                                            <th>Date & Time</th>
-                                            <th>Email</th>
-                                            <th>Purpose</th>
-                                            <th>OTP Code</th>
-                                            <th>IP Address</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php if (empty($otp_logs)): ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center py-4">
-                                                <i class="bi bi-shield-lock fs-1 text-muted"></i>
-                                                <p class="text-muted mt-2">No OTP logs found</p>
-                                            </td>
-                                        </tr>
-                                        <?php else: ?>
-                                        <?php foreach ($otp_logs as $otp_log): ?>
-                                        <tr>
-                                            <td>
-                                                <?php if ($otp_log['type'] === 'request'): ?>
-                                                <span class="badge bg-info">
-                                                    <i class="bi bi-send me-1"></i>Request
-                                                </span>
-                                                <?php else: ?>
-                                                <span class="badge bg-primary">
-                                                    <i class="bi bi-key me-1"></i>Code
-                                                </span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <small class="text-muted">
-                                                    <?php echo date('M j, Y', strtotime($otp_log['created_at'])); ?><br>
-                                                    <strong><?php echo date('g:i A', strtotime($otp_log['created_at'])); ?></strong>
-                                                </small>
-                                            </td>
-                                            <td>
-                                                <code><?php echo htmlspecialchars($otp_log['email']); ?></code>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-secondary">
-                                                    <?php echo htmlspecialchars($otp_log['purpose']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php if ($otp_log['otp_code']): ?>
-                                                <code class="text-primary"><?php echo htmlspecialchars($otp_log['otp_code']); ?></code>
-                                                <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <small class="text-muted"><?php echo htmlspecialchars($otp_log['ip_address']); ?></small>
-                                            </td>
-                                            <td>
-                                                <?php if ($otp_log['type'] === 'code'): ?>
-                                                    <?php if ($otp_log['is_used']): ?>
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-check-circle me-1"></i>Used
-                                                    </span>
-                                                    <?php elseif ($otp_log['expires_at'] && strtotime($otp_log['expires_at']) < time()): ?>
-                                                    <span class="badge bg-danger">
-                                                        <i class="bi bi-clock me-1"></i>Expired
-                                                    </span>
-                                                    <?php else: ?>
-                                                    <span class="badge bg-warning">
-                                                        <i class="bi bi-hourglass-split me-1"></i>Pending
-                                                    </span>
-                                                    <?php endif; ?>
-                                                    <?php if ($otp_log['attempts']): ?>
-                                                    <br><small class="text-muted"><?php echo $otp_log['attempts']; ?> attempts</small>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                <span class="badge bg-info">
-                                                    <i class="bi bi-info-circle me-1"></i>Requested
-                                                </span>
-                                                <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-hover mb-0 log-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($logs)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="bi bi-inbox fs-1 text-muted"></i>
+                                        <p class="text-muted mt-2">No logs found matching your criteria</p>
+                                    </td>
+                                </tr>
+                                <?php else: ?>
+                                <?php foreach ($logs as $log): ?>
+                                <tr class="user-type-<?php echo $log['user_type']; ?>">
+                                    <td>
+                                        <small class="text-muted">
+                                            <?php echo date('M j, Y', strtotime($log['created_at'])); ?><br>
+                                            <strong><?php echo date('g:i A', strtotime($log['created_at'])); ?></strong>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($log['display_name']); ?></strong><br>
+                                            <small class="text-muted"><?php echo htmlspecialchars($log['username']); ?></small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $badge_class = 'bg-secondary';
+                                        $icon = 'person';
+                                        switch ($log['user_type']) {
+                                            case 'admin':
+                                                $badge_class = 'bg-success';
+                                                $icon = 'person-badge';
+                                                break;
+                                            case 'registrar':
+                                                $badge_class = 'bg-info';
+                                                $icon = 'person-check';
+                                                break;
+                                            case 'department':
+                                                $badge_class = 'bg-warning';
+                                                $icon = 'building';
+                                                break;
+                                            case 'user':
+                                                $badge_class = 'bg-primary';
+                                                $icon = 'person';
+                                                break;
+                                        }
+                                        ?>
+                                        <span class="badge <?php echo $badge_class; ?>">
+                                            <i class="bi bi-<?php echo $icon; ?> me-1"></i>
+                                            <?php echo ucfirst($log['user_type']); ?>
+                                        </span>
+                                        <?php if ($log['role'] && $log['role'] !== 'user'): ?>
+                                        <br><small class="text-muted"><?php echo ucfirst($log['role']); ?></small>
                                         <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <!-- OTP Pagination -->
-                        <?php if ($otp_total_pages > 1): ?>
-                        <div class="card-footer">
-                            <nav aria-label="OTP logs pagination">
-                                <ul class="pagination justify-content-center mb-0">
-                                    <?php if ($otp_page > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['otp_page' => $otp_page - 1])); ?>">
-                                            <i class="bi bi-chevron-left"></i> Previous
-                                        </a>
-                                    </li>
-                                    <?php endif; ?>
-                                    
-                                    <?php
-                                    $otp_start_page = max(1, $otp_page - 2);
-                                    $otp_end_page = min($otp_total_pages, $otp_page + 2);
-                                    
-                                    if ($otp_start_page > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['otp_page' => 1])); ?>">1</a>
-                                    </li>
-                                    <?php if ($otp_start_page > 2): ?>
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                    <?php endif; ?>
-                                    
-                                    <?php for ($i = $otp_start_page; $i <= $otp_end_page; $i++): ?>
-                                    <li class="page-item <?php echo $i === $otp_page ? 'active' : ''; ?>">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['otp_page' => $i])); ?>"><?php echo $i; ?></a>
-                                    </li>
-                                    <?php endfor; ?>
-                                    
-                                    <?php if ($otp_end_page < $otp_total_pages): ?>
-                                    <?php if ($otp_end_page < $otp_total_pages - 1): ?>
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['otp_page' => $otp_total_pages])); ?>"><?php echo $otp_total_pages; ?></a>
-                                    </li>
-                                    <?php endif; ?>
-                                    
-                                    <?php if ($otp_page < $otp_total_pages): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['otp_page' => $otp_page + 1])); ?>">
-                                            Next <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                    <?php endif; ?>
-                                </ul>
-                            </nav>
-                        </div>
-                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <code class="text-primary"><?php echo htmlspecialchars($log['action']); ?></code>
+                                    </td>
+                                    <td>
+                                        <div class="log-details" title="<?php echo htmlspecialchars($log['details']); ?>">
+                                            <?php 
+                                            $details = htmlspecialchars($log['details']);
+                                            // Truncate long details for better display
+                                            if (strlen($details) > 100) {
+                                                echo substr($details, 0, 100) . '...';
+                                            } else {
+                                                echo $details;
+                                            }
+                                            ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        // Determine status based on action type
+                                        $status_class = 'bg-secondary';
+                                        $status_text = 'Info';
+                                        $status_icon = 'info-circle';
+                                        
+                                        if (strpos($log['action'], 'login') !== false) {
+                                            $status_class = 'bg-success';
+                                            $status_text = 'Success';
+                                            $status_icon = 'check-circle';
+                                        } elseif (strpos($log['action'], 'error') !== false || strpos($log['action'], 'fail') !== false) {
+                                            $status_class = 'bg-danger';
+                                            $status_text = 'Error';
+                                            $status_icon = 'exclamation-triangle';
+                                        } elseif (strpos($log['action'], 'create') !== false || strpos($log['action'], 'add') !== false) {
+                                            $status_class = 'bg-primary';
+                                            $status_text = 'Created';
+                                            $status_icon = 'plus-circle';
+                                        } elseif (strpos($log['action'], 'update') !== false || strpos($log['action'], 'edit') !== false) {
+                                            $status_class = 'bg-warning';
+                                            $status_text = 'Updated';
+                                            $status_icon = 'pencil-square';
+                                        } elseif (strpos($log['action'], 'delete') !== false || strpos($log['action'], 'remove') !== false) {
+                                            $status_class = 'bg-danger';
+                                            $status_text = 'Deleted';
+                                            $status_icon = 'trash';
+                                        }
+                                        ?>
+                                        <span class="badge <?php echo $status_class; ?>">
+                                            <i class="bi bi-<?php echo $status_icon; ?> me-1"></i>
+                                            <?php echo $status_text; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+                
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                <div class="card-footer">
+                    <nav aria-label="Logs pagination">
+                        <ul class="pagination justify-content-center mb-0">
+                            <?php if ($page > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <?php
+                            $start_page = max(1, $page - 2);
+                            $end_page = min($total_pages, $page + 2);
+                            
+                            if ($start_page > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                            </li>
+                            <?php if ($start_page > 2): ?>
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                            </li>
+                            <?php endfor; ?>
+                            
+                            <?php if ($end_page < $total_pages): ?>
+                            <?php if ($end_page < $total_pages - 1): ?>
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>"><?php echo $total_pages; ?></a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <?php if ($page < $total_pages): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -839,12 +520,6 @@ $total_logs_count = array_sum(array_column($user_type_counts, 'count'));
             // Create export URL
             const exportUrl = 'export_logs.php?' + params.toString();
             window.open(exportUrl, '_blank');
-        }
-        
-        function switchTab(tab) {
-            const params = new URLSearchParams(window.location.search);
-            params.set('tab', tab);
-            window.location.href = '?' + params.toString();
         }
         
         // Auto-refresh every 30 seconds
