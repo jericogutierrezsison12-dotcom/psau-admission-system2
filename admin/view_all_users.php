@@ -77,17 +77,6 @@ try {
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Include AES encryption for decryption
-    require_once '../includes/aes_encryption.php';
-    
-    // Decrypt sensitive user data for display
-    foreach ($users as &$user) {
-        $user['first_name'] = smartDecrypt($user['first_name'], 'personal_data');
-        $user['last_name'] = smartDecrypt($user['last_name'], 'personal_data');
-        $user['email'] = smartDecrypt($user['email'], 'contact_data');
-        $user['mobile_number'] = smartDecrypt($user['mobile_number'], 'contact_data');
-    }
 } catch (PDOException $e) {}
 
 include 'html/view_all_users.html';

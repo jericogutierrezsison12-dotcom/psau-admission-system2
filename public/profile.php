@@ -54,35 +54,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts = [];
         $params = [];
         
-        // Include AES encryption helper
-        require_once '../includes/aes_encryption.php';
-        
-        // Encrypt sensitive data before storing
-        $encrypted_first_name = encryptPersonalData($first_name);
-        $encrypted_last_name = encryptPersonalData($last_name);
-        $encrypted_gender = encryptPersonalData($gender);
-        $encrypted_birth_date = encryptPersonalData($birth_date);
-        $encrypted_mobile = encryptContactData($mobile_number);
-        $encrypted_address = encryptPersonalData($address);
-        
-        // Add personal info fields (store encrypted data)
+        // Add personal info fields
         $sql_parts[] = "first_name = ?";
-        $params[] = $encrypted_first_name;
+        $params[] = $first_name;
         
         $sql_parts[] = "last_name = ?";
-        $params[] = $encrypted_last_name;
+        $params[] = $last_name;
         
         $sql_parts[] = "gender = ?";
-        $params[] = $encrypted_gender;
+        $params[] = $gender;
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = !empty($birth_date) ? $encrypted_birth_date : null;
+        $params[] = !empty($birth_date) ? $birth_date : null;
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = $encrypted_mobile;
+        $params[] = $mobile_number;
         
         $sql_parts[] = "address = ?";
-        $params[] = $encrypted_address;
+        $params[] = $address;
 
         // Check if password change was requested
         if (!empty($current_password) || !empty($new_password) || !empty($confirm_password)) {

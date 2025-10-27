@@ -247,9 +247,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $image_path_db = 'images/' . $new_imagename;
                             
                             $stmt = $conn->prepare($sql);
-                            // Include AES encryption
-                            require_once '../includes/aes_encryption.php';
-                            
                             $stmt->execute([
                                 $new_filename,
                                 $validation_result['isValid'] ?? false,
@@ -260,11 +257,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                encryptAcademicData($previous_school),
-                                encryptAcademicData($school_year),
-                                encryptAcademicData($strand),
-                                encryptAcademicData($gpa),
-                                encryptPersonalData($address),
+                                $previous_school,
+                                $school_year,
+                                $strand,
+                                $gpa,
+                                $address,
                                 $existing_rejected['id']
                             ]);
                             
@@ -316,11 +313,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                encryptAcademicData($previous_school),
-                                encryptAcademicData($school_year),
-                                encryptAcademicData($strand),
-                                encryptAcademicData($gpa),
-                                encryptPersonalData($address)
+                                $previous_school,
+                                $school_year,
+                                $strand,
+                                $gpa,
+                                $address
                             ]);
                             
                             $application_id = $conn->lastInsertId();

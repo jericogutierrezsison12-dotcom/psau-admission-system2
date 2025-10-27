@@ -104,18 +104,6 @@ function get_current_user_data($conn) {
             return null;
         }
         
-        // Include AES encryption for decryption
-        require_once __DIR__ . '/aes_encryption.php';
-        
-        // Decrypt sensitive user data
-        $user['first_name'] = smartDecrypt($user['first_name'], 'personal_data');
-        $user['last_name'] = smartDecrypt($user['last_name'], 'personal_data');
-        $user['email'] = smartDecrypt($user['email'], 'contact_data');
-        $user['mobile_number'] = smartDecrypt($user['mobile_number'], 'contact_data');
-        $user['gender'] = smartDecrypt($user['gender'], 'personal_data');
-        $user['birth_date'] = smartDecrypt($user['birth_date'], 'personal_data');
-        $user['address'] = smartDecrypt($user['address'], 'personal_data');
-        
         // Fetch educational background from applications table
         $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
                                    FROM applications 
@@ -128,18 +116,14 @@ function get_current_user_data($conn) {
         
         // Merge educational background data with user data
         if ($education) {
-            // Decrypt educational data
-            $user['previous_school'] = smartDecrypt($education['previous_school'], 'academic_data');
-            $user['school_year'] = smartDecrypt($education['school_year'], 'academic_data');
-            $user['strand'] = smartDecrypt($education['strand'], 'academic_data');
-            $user['gpa'] = smartDecrypt($education['gpa'], 'academic_data');
+            $user['previous_school'] = $education['previous_school'];
+            $user['school_year'] = $education['school_year'];
+            $user['strand'] = $education['strand'];
+            $user['gpa'] = $education['gpa'];
             $user['age'] = $education['age'];
             // Use application address if user address is empty
-            if (empty($user['address'])) {
-                $edu_address = smartDecrypt($education['address'], 'personal_data');
-                if (!empty($edu_address)) {
-                    $user['address'] = $edu_address;
-                }
+            if (empty($user['address']) && !empty($education['address'])) {
+                $user['address'] = $education['address'];
             }
         }
         

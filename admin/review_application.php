@@ -79,31 +79,6 @@ try {
         // Debug info for application data
         error_log("Application data for ID {$application_id}: " . json_encode($application));
         
-        // Include AES encryption for decryption
-        require_once '../includes/aes_encryption.php';
-        
-        // Decrypt sensitive user data
-        $application['first_name'] = smartDecrypt($application['first_name'], 'personal_data');
-        $application['last_name'] = smartDecrypt($application['last_name'], 'personal_data');
-        $application['email'] = smartDecrypt($application['email'], 'contact_data');
-        $application['mobile_number'] = smartDecrypt($application['mobile_number'], 'contact_data');
-        $application['gender'] = smartDecrypt($application['gender'], 'personal_data');
-        $application['birth_date'] = smartDecrypt($application['birth_date'], 'personal_data');
-        $application['address'] = smartDecrypt($application['address'], 'personal_data');
-        $application['previous_school'] = smartDecrypt($application['previous_school'], 'academic_data');
-        $application['school_year'] = smartDecrypt($application['school_year'], 'academic_data');
-        $application['strand'] = smartDecrypt($application['strand'], 'academic_data');
-        $application['gpa'] = smartDecrypt($application['gpa'], 'academic_data');
-        
-        // Update user array with decrypted data
-        $user['first_name'] = $application['first_name'];
-        $user['last_name'] = $application['last_name'];
-        $user['email'] = $application['email'];
-        $user['mobile_number'] = $application['mobile_number'];
-        $user['gender'] = $application['gender'];
-        $user['birth_date'] = $application['birth_date'];
-        $user['address'] = $application['address'];
-        
         // Ensure address field is properly loaded
         if (!isset($application['address']) || empty($application['address'])) {
             error_log("Address is empty or missing in application data");

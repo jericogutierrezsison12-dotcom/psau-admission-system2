@@ -97,28 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Fetch all users and decrypt to find the matching user
-                $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
-                $stmt->execute();
-                $users = $stmt->fetchAll();
-                
-                $user = null;
-                if (!empty($users)) {
-                    // Include AES encryption for decryption
-                    require_once '../includes/aes_encryption.php';
-                    
-                    // Loop through users and decrypt to find match
-                    foreach ($users as $u) {
-                        $decrypted_email = smartDecrypt($u['email'], 'contact_data');
-                        $decrypted_mobile = smartDecrypt($u['mobile_number'], 'contact_data');
-                        
-                        // Check if login identifier matches decrypted email or mobile
-                        if ($decrypted_email === $login_identifier || $decrypted_mobile === $login_identifier) {
-                            $user = $u;
-                            break;
-                        }
-                    }
-                }
+                // Check if user exists with the provided email or mobile number
+                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
+                $stmt->execute([$login_identifier, $login_identifier]);
+                $user = $stmt->fetch();
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';

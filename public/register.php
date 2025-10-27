@@ -136,16 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => $password
             ];
             
-            // Generate OTP and set expiry
-            $otp = random_int(100000, 999999);
-            $_SESSION['email_otp'] = [
-                'code' => (string)$otp,
-                'expires' => time() + (10 * 60), // 10 minutes
-            ];
-            
-            // TODO: Send OTP email here (for now just log it)
-            error_log("OTP for {$email}: {$otp}");
-            
             // Move to OTP verification step
             $step = 2;
         }
@@ -198,29 +188,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
-                // Include AES encryption helper
-                require_once '../includes/aes_encryption.php';
-                
-                // Encrypt sensitive data
-                $encrypted_first_name = encryptPersonalData($registration['first_name']);
-                $encrypted_last_name = encryptPersonalData($registration['last_name']);
-                $encrypted_email = encryptContactData($registration['email']);
-                $encrypted_mobile = encryptContactData($registration['mobile_number']);
-                $encrypted_gender = encryptPersonalData($registration['gender']);
-                $encrypted_birth_date = encryptPersonalData($registration['birth_date']);
-                
-                // Insert user into database (store encrypted data)
+                // Insert user into database
                 $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $encrypted_first_name,
-                    $encrypted_last_name,
-                    $encrypted_email,
-                    $encrypted_mobile,
+                    $registration['first_name'],
+                    $registration['last_name'],
+                    $registration['email'],
+                    $registration['mobile_number'],
                     $hashed_password,
                     1, // Verified through OTP
-                    $encrypted_gender,
-                    $encrypted_birth_date
+                    $registration['gender'],
+                    $registration['birth_date']
                 ]);
                 
                 $user_id = $conn->lastInsertId();
