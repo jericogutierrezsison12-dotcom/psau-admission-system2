@@ -45,6 +45,17 @@ try {
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt sensitive data for each applicant
+    foreach ($applicants as &$applicant) {
+        $applicant['first_name'] = smartDecrypt($applicant['first_name'], 'personal_data');
+        $applicant['last_name'] = smartDecrypt($applicant['last_name'], 'personal_data');
+        $applicant['email'] = smartDecrypt($applicant['email'], 'contact_data');
+        $applicant['mobile_number'] = smartDecrypt($applicant['mobile_number'], 'contact_data');
+        $applicant['previous_school'] = smartDecrypt($applicant['previous_school'], 'academic_data');
+        $applicant['school_year'] = smartDecrypt($applicant['school_year'], 'academic_data');
+        $applicant['strand'] = smartDecrypt($applicant['strand'], 'academic_data');
+    }
 } catch (PDOException $e) {
     error_log("Error fetching applicants: " . $e->getMessage());
     $error_message = "Error fetching applicants. Please try again later.";

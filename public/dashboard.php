@@ -28,6 +28,13 @@ if ($user) {
     $application = $stmt->fetch();
     
     if ($application) {
+        // Decrypt application data
+        $application['previous_school'] = smartDecrypt($application['previous_school'], 'academic_data');
+        $application['school_year'] = smartDecrypt($application['school_year'], 'academic_data');
+        $application['strand'] = smartDecrypt($application['strand'], 'academic_data');
+        $application['gpa'] = smartDecrypt($application['gpa'], 'academic_data');
+        $application['address'] = smartDecrypt($application['address'], 'personal_data');
+        
         $hasApplication = true;
         $status = $application['status'];
         
