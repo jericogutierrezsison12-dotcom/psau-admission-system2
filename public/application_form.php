@@ -214,13 +214,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $message .= ' Remaining attempts: ' . ($maxAttempts - $submissionAttempts - 1);
                         $messageType = 'danger';
                     } else {
-                        // Check if this is a resubmission of a rejected application
-                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND status = 'Rejected' ORDER BY created_at DESC LIMIT 1");
+                        // Check if this is a resubmission of a rejected application or updating a draft
+                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND (status = 'Rejected' OR status = 'Draft') ORDER BY created_at DESC LIMIT 1");
                         $stmt->execute([$user['id']]);
-                        $existing_rejected = $stmt->fetch();
+                        $existing_application = $stmt->fetch();
                         
-                        if ($existing_rejected) {
-                            // Update existing application if it was rejected
+                        if ($existing_application) {
+                            // Update existing application (rejected or draft)
                             $sql = "UPDATE applications SET 
                                 pdf_file = ?, 
                                 pdf_validated = ?, 
@@ -262,10 +262,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $strand,
                                 $gpa,
                                 $address,
-                                $existing_rejected['id']
+                                $existing_application['id']
                             ]);
                             
-                            $application_id = $existing_rejected['id'];
+                            $application_id = $existing_application['id'];
                             
                             // Debug log
                             error_log("Updated application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
