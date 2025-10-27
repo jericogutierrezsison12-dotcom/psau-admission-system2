@@ -23,8 +23,8 @@ function send_simple_email($to, $subject, $message, $options = []) {
     $headers = [
         'MIME-Version: 1.0',
         'Content-type: text/html; charset=UTF-8',
-        'From: PSAU Admissions <noreply@psau-admission-system.onrender.com>',
-        'Reply-To: ' . ($options['replyTo'] ?? 'noreply@psau-admission-system.onrender.com'),
+        'From: PSAU Admissions <noreply@psau-admission-system-16ip.onrender.com>',
+        'Reply-To: ' . ($options['replyTo'] ?? 'noreply@psau-admission-system-16ip.onrender.com'),
         'X-Mailer: PSAU Admission System'
     ];
     
