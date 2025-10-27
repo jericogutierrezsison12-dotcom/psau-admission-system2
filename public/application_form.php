@@ -105,10 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     $strand = $_POST['strand'] ?? '';
     $gpa = $_POST['gpa'] ?? '';
     $address = $_POST['address'] ?? '';
-    $age = $_POST['age'] ?? '';
     
     // Validate required fields
-    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address) || empty($age)) {
+    if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address)) {
         $message = 'Please fill in all required fields.';
         $messageType = 'danger';
     }
@@ -125,11 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     // Validate GPA
     elseif (!is_numeric($gpa) || $gpa < 75 || $gpa > 100) {
         $message = 'GPA must be a number between 75 and 100.';
-        $messageType = 'danger';
-    }
-    // Validate age
-    elseif (!is_numeric($age) || $age < 16 || $age > 100) {
-        $message = 'Age must be a number between 16 and 100.';
         $messageType = 'danger';
     }
     // Check if PDF file was uploaded    
@@ -243,7 +237,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 strand = ?,
                                 gpa = ?,
                                 address = ?,
-                                age = ?,
                                 status = 'Submitted', 
                                 updated_at = NOW() 
                                 WHERE id = ?";
@@ -269,7 +262,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $strand,
                                 $gpa,
                                 $address,
-                                $age,
                                 $existing_rejected['id']
                             ]);
                             
@@ -299,11 +291,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 strand,
                                 gpa,
                                 address,
-                                age,
                                 status,
                                 created_at,
                                 updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
+                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
                             
                             // Ensure the document path has uploads/ prefix
                             $document_path = 'uploads/' . $new_filename;
@@ -326,8 +317,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $school_year,
                                 $strand,
                                 $gpa,
-                                $address,
-                                $age
+                                $address
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -421,9 +411,6 @@ echo '<script>
             }
             if (existingApplication.address) {
                 document.getElementById("address").value = existingApplication.address;
-            }
-            if (existingApplication.age) {
-                document.getElementById("age").value = existingApplication.age;
             }
         });
     }
