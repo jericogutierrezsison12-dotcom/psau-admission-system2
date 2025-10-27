@@ -35,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $gender = trim($_POST['gender'] ?? '');
         $birth_date = trim($_POST['birth_date'] ?? '');
         $mobile_number = trim($_POST['mobile_number'] ?? '');
-        $address = trim($_POST['address'] ?? '');
         // Age is auto-calculated from birth_date, so we don't need to process it from POST
         $age = '';
         $current_password = trim($_POST['current_password'] ?? '');
@@ -67,8 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts[] = "mobile_number = ?";
         $params[] = $mobile_number;
         
-        $sql_parts[] = "address = ?";
-        $params[] = $address;
 
         // Check if password change was requested
         if (!empty($current_password) || !empty($new_password) || !empty($confirm_password)) {
@@ -134,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $message = !empty($new_password) ? 
-            'Profile and password updated successfully. Please log in again with your new password.' : 
+            'Profile and password updated successfully. You will be logged out for security reasons.' : 
             'Profile updated successfully.';
         $messageType = 'success';
 
