@@ -32,6 +32,7 @@ class PSAUAESEncryption {
                 // Use a default key for testing (in production, this should be set in environment)
                 $key = 'MuKrgKrmyUOpKzSRKqy3SflowFG5xWcqCdjLu0sSV8I='; // Generated key
                 error_log("Using default AES encryption key. Please set AES_ENCRYPTION_KEY in your .env file for production.");
+                $key = base64_decode($key);
             } else {
                 $key = base64_decode($key);
             }
