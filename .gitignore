@@ -56,3 +56,6 @@ functions/node_modules/
 # Sensitive files
 config.local.php
 secrets.php
+
+# Deployment cleanup flag
+.cleanup_completed
