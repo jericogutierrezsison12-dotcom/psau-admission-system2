@@ -122,6 +122,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => $password,
                 'role' => $role,
             ];
+            
+            // Automatically send OTP to their email after storing registration data
+            try {
+                require_once '../includes/otp_rate_limiting.php';
+                $rate_limit = check_otp_rate_limit($email, 'admin_register');
+                if ($rate_limit['can_send']) {
+                    // Generate 6-digit OTP and set 10-minute expiry
+                    $otp = random_int(100000, 999999);
+                    $_SESSION['admin_email_otp'] = [
+                        'code' => (string)$otp,
+                        'expires' => time() + (10 * 60),
+                    ];
+                    
+                    // Build email content
+                    require_once '../firebase/firebase_email.php';
+                    $subject = 'PSAU Admin Registration: Your Verification Code';
+                    $message = "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
+                        ."<div style='background-color:#2E7D32;color:#fff;padding:16px;text-align:center;'>"
+                        ."<h2 style='margin:0'>Pampanga State Agricultural University</h2>"
+                        ."</div>"
+                        ."<div style='padding:20px;border:1px solid #ddd;border-top:none'>"
+                        ."<p>Dear Admin,</p>"
+                        ."<p>Your verification code for admin registration is:</p>"
+                        ."<p style='font-size:28px;letter-spacing:6px;font-weight:bold;text-align:center;margin:20px 0'>{$otp}</p>"
+                        ."<p>This code will expire in 10 minutes. If you did not request this code, you may ignore this email.</p>"
+                        ."<p>Best regards,<br>PSAU Admissions Team</p>"
+                        ."</div>"
+                        ."<div style='background:#f5f5f5;padding:10px;text-align:center;color:#666;font-size:12px'>&copy; "
+                        . date('Y') . " PSAU Admission System</div>"
+                        ."</div>";
+                    
+                    $result = firebase_send_email($email, $subject, $message);
+                    if ($result || (is_array($result) && !empty($result['success']))) {
+                        // Record OTP request for rate limiting
+                        record_otp_request($email, 'admin_register');
+                    } else {
+                        error_log("Failed to send automatic OTP to admin email: $email");
+                    }
+                } else {
+                    error_log("Rate limit exceeded for sending OTP to admin email: $email");
+                }
+            } catch (Exception $e) {
+                error_log("Error sending automatic OTP email: " . $e->getMessage());
+            }
+            
             $step = 3;
         }
     } elseif ($postedStep === 3) {
