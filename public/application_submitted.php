@@ -44,6 +44,9 @@ try {
 // Include HTML template
 include_once __DIR__ . '/html/application_submitted.html';
 
+// Debug: Log application data
+error_log('Application data: ' . print_r($application, true));
+
 // Pass data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
@@ -54,5 +57,6 @@ echo '<script>
     const applicationData = {
         application: ' . json_encode($application) . '
     };
+    console.log("PHP Debug - Application data:", applicationData);
 </script>';
 ?> 

@@ -39,7 +39,7 @@
                                 <h5 class="border-bottom pb-2">Application Details</h5>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <p><strong>Date Submitted:</strong> <span data-submitted-date></span></p>
+                                        <p><strong>Date Submitted:</strong> <span data-submitted-date><?php echo isset($application['created_at']) ? date('F j, Y \a\t g:i A', strtotime($application['created_at'])) : 'N/A'; ?></span></p>
                                     </div>
                                     <div class="col-md-6">
                                         <p>
