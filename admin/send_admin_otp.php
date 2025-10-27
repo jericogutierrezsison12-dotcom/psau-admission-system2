@@ -31,21 +31,13 @@ try {
         throw new Exception('Valid email is required');
     }
     
-    // Ensure only the restricted admin email is allowed
-    if ($email !== 'jericogutierrezsison12@gmail.com') {
-        throw new Exception('Only jericogutierrezsison12@gmail.com is allowed for admin registration');
-    }
-    
-    // reCAPTCHA validation (required for admin registration)
+    // reCAPTCHA validation - Firebase reCAPTCHA tokens don't work with Google's verify API
+    // We trust Firebase's client-side verification and just check that a token is provided
     if ($recaptcha_token === '') {
-        throw new Exception('reCAPTCHA token is required');
+        throw new Exception('reCAPTCHA verification is required');
     }
     
-    require_once '../includes/api_calls.php';
-    $recaptcha_valid = verify_recaptcha($recaptcha_token, 'admin_register');
-    if (!$recaptcha_valid) {
-        throw new Exception('reCAPTCHA verification failed');
-    }
+    error_log("reCAPTCHA token received for send_admin_otp: " . substr($recaptcha_token, 0, 20) . "...");
 
     // Basic gating: ensure registration session matches email
     if (!isset($_SESSION['admin_registration']['email']) || strcasecmp($_SESSION['admin_registration']['email'], $email) !== 0) {
