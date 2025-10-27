@@ -136,6 +136,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => $password
             ];
             
+            // Generate OTP and set expiry
+            $otp = random_int(100000, 999999);
+            $_SESSION['email_otp'] = [
+                'code' => (string)$otp,
+                'expires' => time() + (10 * 60), // 10 minutes
+            ];
+            
+            // TODO: Send OTP email here (for now just log it)
+            error_log("OTP for {$email}: {$otp}");
+            
             // Move to OTP verification step
             $step = 2;
         }
