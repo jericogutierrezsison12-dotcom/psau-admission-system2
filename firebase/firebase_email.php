@@ -320,7 +320,7 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
     $subject = "PSAU Admission System: Entrance Exam Score Posted";
     
     // Create course selection URL with control number parameter
-    $course_selection_url = 'http://localhost/psau_admission_system3-2/select_course.php?control_number=' . urlencode($control_number);
+    $course_selection_url = 'https://psau-admission-system-16ip.onrender.com/select_course.php?control_number=' . urlencode($control_number);
     
     // Create HTML message
     $message = "
