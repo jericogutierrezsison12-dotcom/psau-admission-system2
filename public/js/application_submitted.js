@@ -31,9 +31,6 @@ $(document).ready(function() {
                 hour12: true
             });
             
-            // Update application ID
-            $('[data-application-id]').text(application.id);
-            
             // Update submitted date
             $('[data-submitted-date]').text(formattedDate);
             
