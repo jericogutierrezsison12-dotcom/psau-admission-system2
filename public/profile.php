@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Get current user data
+// Get current user data (includes educational background from applications table)
 $user = get_current_user_data($conn);
 if (!$user) {
     header('Location: login.php');
