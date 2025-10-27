@@ -52,7 +52,8 @@
                                     <p><strong>Name:</strong> <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></p>
                                     <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
                                     <p><strong>Mobile Number:</strong> <?php echo htmlspecialchars($user['mobile_number'] ?? 'N/A'); ?></p>
-                                    <p><strong>Age:</strong> <?php echo htmlspecialchars($application['age'] ?? 'N/A'); ?></p>
+                                    <p><strong>Birth Date:</strong> <?php echo !empty($user['birth_date']) ? date('F j, Y', strtotime($user['birth_date'])) : 'N/A'; ?></p>
+                                    <p><strong>Age:</strong> <?php echo $user['calculated_age'] !== null ? $user['calculated_age'] . ' years old' : 'N/A'; ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Address:</strong> <?php echo htmlspecialchars($application['address'] ?? 'N/A'); ?></p>

@@ -76,6 +76,15 @@ try {
         $application['document_file_size_formatted'] = $application['document_file_size'] ? number_format($application['document_file_size'] / 1024, 2) . ' KB' : 'N/A';
         $application['image_2x2_size_formatted'] = $application['image_2x2_size'] ? number_format($application['image_2x2_size'] / 1024, 2) . ' KB' : 'N/A';
         
+        // Calculate age from birth_date
+        if (!empty($user['birth_date'])) {
+            $birth = new DateTime($user['birth_date']);
+            $today = new DateTime();
+            $user['calculated_age'] = $today->diff($birth)->y;
+        } else {
+            $user['calculated_age'] = null;
+        }
+        
         // Debug info for application data
         error_log("Application data for ID {$application_id}: " . json_encode($application));
         
