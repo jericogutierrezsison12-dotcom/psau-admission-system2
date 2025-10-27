@@ -390,13 +390,16 @@ echo '<script>
     const userData = ' . json_encode([
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],
-        'email' => $user['email']
+        'email' => $user['email'],
+        'mobile_number' => $user['mobile_number'],
+        'address' => $user['address']
     ]) . ';
     const existingApplication = ' . json_encode($existing_application) . ';
     
     // Pre-fill form fields if existing application data exists
-    if (existingApplication) {
-        document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function() {
+        // Auto-fill from existing application data
+        if (existingApplication) {
             if (existingApplication.previous_school) {
                 document.getElementById("previous_school").value = existingApplication.previous_school;
             }
@@ -412,6 +415,14 @@ echo '<script>
             if (existingApplication.address) {
                 document.getElementById("address").value = existingApplication.address;
             }
-        });
-    }
+        }
+        
+        // Auto-fill from user profile data if application fields are empty
+        if (userData) {
+            const addressField = document.getElementById("address");
+            if (addressField && !addressField.value && userData.address) {
+                addressField.value = userData.address;
+            }
+        }
+    });
 </script>'; 

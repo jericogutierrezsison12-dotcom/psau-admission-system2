@@ -40,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $school_year = trim($_POST['school_year'] ?? '');
         $strand = trim($_POST['strand'] ?? '');
         $gpa = trim($_POST['gpa'] ?? '');
-        $age = trim($_POST['age'] ?? '');
+        // Age is auto-calculated from birth_date, so we don't need to process it from POST
+        $age = '';
         $current_password = trim($_POST['current_password'] ?? '');
         $new_password = trim($_POST['new_password'] ?? '');
         $confirm_password = trim($_POST['confirm_password'] ?? '');
@@ -125,8 +126,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Failed to update profile. Please try again.');
         }
         
+        // Calculate age from birth_date if provided
+        $calculated_age = '';
+        if (!empty($birth_date)) {
+            $birth = new DateTime($birth_date);
+            $today = new DateTime();
+            $age_calc = $today->diff($birth);
+            $calculated_age = $age_calc->y;
+        }
+        
         // Update applications table if educational background fields are provided
-        if (!empty($previous_school) || !empty($school_year) || !empty($strand) || !empty($gpa) || !empty($age)) {
+        if (!empty($previous_school) || !empty($school_year) || !empty($strand) || !empty($gpa) || !empty($calculated_age)) {
             // Check if user has an application
             $check_app = $conn->prepare("SELECT id FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
             $check_app->execute([$user['id']]);
@@ -157,9 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $app_params[] = $gpa;
                 }
                 
-                if (!empty($age)) {
+                if (!empty($calculated_age)) {
                     $app_sql_parts[] = "age = ?";
-                    $app_params[] = $age;
+                    $app_params[] = $calculated_age;
                 }
                 
                 if (!empty($address)) {

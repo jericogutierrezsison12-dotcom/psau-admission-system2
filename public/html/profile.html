@@ -171,8 +171,8 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label for="age" class="form-label">Age</label>
-                                        <input type="number" class="form-control" id="age" name="age" value="<?php echo htmlspecialchars($user['age'] ?? ''); ?>" min="16" max="100">
-                                        <small class="text-muted">Current age</small>
+                                        <input type="number" class="form-control non-editable" id="age" name="age" value="<?php echo htmlspecialchars($user['age'] ?? ''); ?>" min="16" max="100" readonly>
+                                        <small class="text-muted">Auto-calculated from birth date</small>
                                     </div>
                                 </div>
                             </div>
@@ -258,10 +258,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             const birthDateInput = document.getElementById('birth_date');
             const ageDisplay = document.getElementById('age-display');
+            const ageField = document.getElementById('age');
             
-            // Calculate age on page load if birth date exists
-            if (birthDateInput && birthDateInput.value && ageDisplay) {
-                const birthDate = new Date(birthDateInput.value);
+            // Function to calculate age
+            function calculateAge(birthDate) {
                 const today = new Date();
                 let age = today.getFullYear() - birthDate.getFullYear();
                 const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -270,32 +270,44 @@
                     age--;
                 }
                 
-                if (age >= 0) {
-                    ageDisplay.textContent = `Age: ${age} years old`;
+                return age >= 0 ? age : null;
+            }
+            
+            // Calculate age on page load if birth date exists
+            if (birthDateInput && birthDateInput.value) {
+                const birthDate = new Date(birthDateInput.value);
+                const age = calculateAge(birthDate);
+                
+                if (age !== null) {
+                    if (ageDisplay) {
+                        ageDisplay.textContent = `Age: ${age} years old`;
+                    }
+                    if (ageField) {
+                        ageField.value = age;
+                    }
                 }
             }
             
             // Calculate age when birth date changes
-            if (birthDateInput && ageDisplay) {
+            if (birthDateInput) {
                 birthDateInput.addEventListener('change', function() {
                     const birthDate = new Date(this.value);
-                    const today = new Date();
-                    let age = today.getFullYear() - birthDate.getFullYear();
-                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    const age = calculateAge(birthDate);
                     
-                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                        age--;
-                    }
-                    
-                    if (age >= 0) {
-                        ageDisplay.textContent = `Age: ${age} years old`;
-                        // Update age field in educational background if it exists
-                        const ageField = document.getElementById('age');
+                    if (age !== null) {
+                        if (ageDisplay) {
+                            ageDisplay.textContent = `Age: ${age} years old`;
+                        }
                         if (ageField) {
                             ageField.value = age;
                         }
                     } else {
-                        ageDisplay.textContent = 'Invalid birth date';
+                        if (ageDisplay) {
+                            ageDisplay.textContent = 'Invalid birth date';
+                        }
+                        if (ageField) {
+                            ageField.value = '';
+                        }
                     }
                 });
             }
