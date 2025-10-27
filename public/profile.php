@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Add status and timestamps
                 $app_sql_parts[] = "status";
                 $app_values[] = "?";
-                $app_params[] = "Draft";
+                $app_params[] = "Submitted";
                 
                 $app_sql_parts[] = "created_at";
                 $app_values[] = "NOW()";

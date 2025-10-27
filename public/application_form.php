@@ -214,13 +214,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $message .= ' Remaining attempts: ' . ($maxAttempts - $submissionAttempts - 1);
                         $messageType = 'danger';
                     } else {
-                        // Check if this is a resubmission of a rejected application or updating a draft
-                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND (status = 'Rejected' OR status = 'Draft') ORDER BY created_at DESC LIMIT 1");
+                        // Check if this is a resubmission of a rejected application or updating a submitted application
+                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND (status = 'Rejected' OR status = 'Submitted') ORDER BY created_at DESC LIMIT 1");
                         $stmt->execute([$user['id']]);
                         $existing_application = $stmt->fetch();
                         
                         if ($existing_application) {
-                            // Update existing application (rejected or draft)
+                            // Update existing application (rejected or submitted)
                             $sql = "UPDATE applications SET 
                                 pdf_file = ?, 
                                 pdf_validated = ?, 
