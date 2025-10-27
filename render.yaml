@@ -38,6 +38,9 @@ services:
         value: https://sendemail-alsstt22ha-uc.a.run.app
       - key: ENVIRONMENT
         value: production
+      - key: ENCRYPTION_KEY
+        sync: false
+        value: <GENERATE_AND_SET_IN_RENDER_DASHBOARD>
 
 databases:
   - name: psau-db
