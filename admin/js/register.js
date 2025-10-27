@@ -22,6 +22,9 @@ let recaptchaResponse = null;
 document.addEventListener('DOMContentLoaded', function() {
     const currentStep = document.getElementById('currentStep')?.value;
     
+    // Reset OTP sent state when entering a new step
+    window.otpSent = false;
+    
     // OTP verification functionality
     if (currentStep === '1' || currentStep === '3') {
         setupOtpVerification();

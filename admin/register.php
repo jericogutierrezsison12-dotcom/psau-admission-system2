@@ -122,7 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => $password,
                 'role' => $role,
             ];
+            // Clear any existing OTP to ensure fresh OTP is sent
+            unset($_SESSION['admin_email_otp']);
             $step = 3;
+        } else {
+            $step = 2;
         }
     } elseif ($postedStep === 3) {
         // Step 3: Verify their own email OTP
