@@ -58,11 +58,17 @@
                                                 <td><?php echo htmlspecialchars($applicant['strand']); ?></td>
                                                 <td>
                                                     <?php if (!empty($applicant['document_file_path'])): ?>
-                                                        <a href="../<?php echo htmlspecialchars($applicant['document_file_path']); ?>" 
-                                                           target="_blank" 
-                                                           class="btn btn-sm btn-outline-primary">
-                                                            <i class="bi bi-file-earmark-text"></i> View
-                                                        </a>
+                                                        <?php if (file_exists('../' . $applicant['document_file_path'])): ?>
+                                                            <a href="../<?php echo htmlspecialchars($applicant['document_file_path']); ?>" 
+                                                               target="_blank" 
+                                                               class="btn btn-sm btn-outline-primary">
+                                                                <i class="bi bi-file-earmark-text"></i> View PDF
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <span class="text-warning">
+                                                                <i class="bi bi-exclamation-triangle"></i> File Missing
+                                                            </span>
+                                                        <?php endif; ?>
                                                     <?php else: ?>
                                                         <span class="text-muted">No documents</span>
                                                     <?php endif; ?>
