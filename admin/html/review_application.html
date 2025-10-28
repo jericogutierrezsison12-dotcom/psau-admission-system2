@@ -103,10 +103,10 @@
                                             <td><?php echo htmlspecialchars($application['document_file_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['document_file_path']): ?>
-                                                <a href="../<?php echo htmlspecialchars($application['document_file_path']); ?>" 
+                                                <a href="view_file.php?app_id=<?php echo $application['id']; ?>&type=pdf" 
                                                    class="btn btn-sm btn-primary" 
                                                    target="_blank">
-                                                    <i class="bi bi-eye"></i> View
+                                                    <i class="bi bi-eye"></i> View PDF
                                                 </a>
                                                 <?php else: ?>
                                                 <span class="text-muted">No file uploaded</span>
@@ -119,10 +119,10 @@
                                             <td><?php echo htmlspecialchars($application['image_2x2_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['image_2x2_path']): ?>
-                                                <a href="../<?php echo htmlspecialchars($application['image_2x2_path']); ?>" 
+                                                <a href="view_file.php?app_id=<?php echo $application['id']; ?>&type=image" 
                                                    class="btn btn-sm btn-primary" 
                                                    target="_blank">
-                                                    <i class="bi bi-eye"></i> View
+                                                    <i class="bi bi-eye"></i> View Image
                                                 </a>
                                                 <?php else: ?>
                                                 <span class="text-muted">No image uploaded</span>

@@ -58,10 +58,10 @@
                                                 <td><?php echo htmlspecialchars($applicant['strand']); ?></td>
                                                 <td>
                                                     <?php if (!empty($applicant['document_file_path'])): ?>
-                                                        <a href="../<?php echo htmlspecialchars($applicant['document_file_path']); ?>" 
+                                                        <a href="view_file.php?app_id=<?php echo $applicant['application_id']; ?>&type=pdf" 
                                                            target="_blank" 
                                                            class="btn btn-sm btn-outline-primary">
-                                                            <i class="bi bi-file-earmark-text"></i> View
+                                                            <i class="bi bi-file-earmark-text"></i> View PDF
                                                         </a>
                                                     <?php else: ?>
                                                         <span class="text-muted">No documents</span>
