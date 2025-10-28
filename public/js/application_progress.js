@@ -16,6 +16,12 @@ $(document).ready(function() {
             progressBar.style.width = progress + '%';
         }
     }, 300);
+    
+    // Set up AJAX functionality
+    setupAjaxNavigation();
+    
+    // Set up auto-refresh
+    setupAutoRefresh();
 });
 
 /**
@@ -284,5 +290,222 @@ function formatTime(timeString) {
         hour: 'numeric',
         minute: 'numeric',
         hour12: true
+    });
+}
+
+/**
+ * Set up AJAX navigation for application progress
+ */
+function setupAjaxNavigation() {
+    // Handle navigation links with AJAX
+    const navLinks = document.querySelectorAll('a[href*="dashboard.php"], a[href*="application_form.php"], a[href*="course_selection.php"]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const href = this.getAttribute('href');
+            loadPageViaAjax(href);
+        });
+    });
+    
+    // Handle back to dashboard link
+    const backLink = document.querySelector('a[href="dashboard.php"]');
+    if (backLink) {
+        backLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            loadDashboardViaAjax();
+        });
+    }
+}
+
+/**
+ * Load page via AJAX
+ */
+function loadPageViaAjax(url) {
+    showLoadingOverlay('Loading page...');
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(html => {
+        hideLoadingOverlay();
+        // Replace main content
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.innerHTML = html;
+            // Re-initialize JavaScript for the new content
+            if (url.includes('dashboard.php')) {
+                // Load dashboard JavaScript
+                loadScript('js/dashboard.js');
+            } else if (url.includes('application_form.php')) {
+                // Load form JavaScript
+                loadScript('js/application_form.js');
+            } else if (url.includes('course_selection.php')) {
+                // Load course selection JavaScript
+                loadScript('js/course_selection.js');
+            }
+        }
+    })
+    .catch(error => {
+        hideLoadingOverlay();
+        console.error('Error loading page:', error);
+        showError('Failed to load page. Please try again.');
+        // Fallback to normal navigation
+        window.location.href = url;
+    });
+}
+
+/**
+ * Load dashboard via AJAX
+ */
+function loadDashboardViaAjax() {
+    loadPageViaAjax('dashboard.php');
+}
+
+/**
+ * Set up auto-refresh for application progress
+ */
+function setupAutoRefresh() {
+    // Refresh application progress data every 60 seconds
+    setInterval(() => {
+        refreshApplicationProgress();
+    }, 60000);
+}
+
+/**
+ * Refresh application progress data via AJAX
+ */
+function refreshApplicationProgress() {
+    fetch('application_progress.php', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Parse the response and update only the progress content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Update progress content
+        const newProgressContent = doc.querySelector('#application-progress-content');
+        const currentProgressContent = document.querySelector('#application-progress-content');
+        if (newProgressContent && currentProgressContent) {
+            currentProgressContent.innerHTML = newProgressContent.innerHTML;
+            // Re-render the content
+            renderApplicationContent();
+        }
+        
+        console.log('Application progress data refreshed');
+    })
+    .catch(error => {
+        console.error('Error refreshing application progress:', error);
+    });
+}
+
+/**
+ * Show loading overlay
+ */
+function showLoadingOverlay(message = 'Loading...') {
+    // Remove existing overlay if any
+    hideLoadingOverlay();
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>${message}</p>
+        </div>
+    `;
+    
+    // Add styles
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    const loadingContent = overlay.querySelector('.loading-content');
+    loadingContent.style.cssText = `
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert-danger');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show';
+    alert.innerHTML = `
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at the top of main content
+    const mainContent = document.querySelector('.main-content .container-fluid');
+    if (mainContent) {
+        mainContent.insertBefore(alert, mainContent.firstChild);
+    }
+}
+
+/**
+ * Load script dynamically
+ */
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
     });
 } 
