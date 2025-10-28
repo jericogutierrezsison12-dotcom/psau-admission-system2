@@ -103,12 +103,11 @@
                                             <td><?php echo htmlspecialchars($application['document_file_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['document_file_path']): ?>
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-primary view-document" 
-                                                        data-document-url="view_file.php?path=<?php echo urlencode($application['document_file_path']); ?>&type=pdf"
-                                                        data-document-id="document_file">
+                                                <a href="/<?php echo htmlspecialchars($application['document_file_path']); ?>" 
+                                                   class="btn btn-sm btn-primary" 
+                                                   target="_blank">
                                                     <i class="bi bi-eye"></i> View
-                                                </button>
+                                                </a>
                                                 <?php else: ?>
                                                 <span class="text-muted">No file uploaded</span>
                                                 <?php endif; ?>
@@ -120,12 +119,11 @@
                                             <td><?php echo htmlspecialchars($application['image_2x2_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['image_2x2_path']): ?>
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-primary view-document" 
-                                                        data-document-url="view_file.php?path=<?php echo urlencode($application['image_2x2_path']); ?>&type=image"
-                                                        data-document-id="image_2x2">
+                                                <a href="/<?php echo htmlspecialchars($application['image_2x2_path']); ?>" 
+                                                   class="btn btn-sm btn-primary" 
+                                                   target="_blank">
                                                     <i class="bi bi-eye"></i> View
-                                                </button>
+                                                </a>
                                                 <?php else: ?>
                                                 <span class="text-muted">No image uploaded</span>
                                                 <?php endif; ?>
