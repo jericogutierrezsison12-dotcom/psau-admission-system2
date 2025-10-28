@@ -103,20 +103,13 @@
                                             <td><?php echo htmlspecialchars($application['document_file_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['document_file_path']): ?>
-                                                    <?php if (file_exists('../' . $application['document_file_path'])): ?>
-                                                        <a href="../<?php echo htmlspecialchars($application['document_file_path']); ?>" 
-                                                           class="btn btn-sm btn-primary" 
-                                                           target="_blank">
-                                                            <i class="bi bi-eye"></i> View PDF
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="text-warning">
-                                                            <i class="bi bi-exclamation-triangle"></i> File Missing
-                                                            <small class="d-block text-muted">Path: <?php echo htmlspecialchars($application['document_file_path']); ?></small>
-                                                        </span>
-                                                    <?php endif; ?>
+                                                <a href="../<?php echo htmlspecialchars($application['document_file_path']); ?>" 
+                                                   class="btn btn-sm btn-primary" 
+                                                   target="_blank">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
                                                 <?php else: ?>
-                                                    <span class="text-muted">No file uploaded</span>
+                                                <span class="text-muted">No file uploaded</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -126,20 +119,13 @@
                                             <td><?php echo htmlspecialchars($application['image_2x2_size_formatted']); ?></td>
                                             <td>
                                                 <?php if ($application['image_2x2_path']): ?>
-                                                    <?php if (file_exists('../' . $application['image_2x2_path'])): ?>
-                                                        <a href="../<?php echo htmlspecialchars($application['image_2x2_path']); ?>" 
-                                                           class="btn btn-sm btn-primary" 
-                                                           target="_blank">
-                                                            <i class="bi bi-eye"></i> View Image
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="text-warning">
-                                                            <i class="bi bi-exclamation-triangle"></i> Image Missing
-                                                            <small class="d-block text-muted">Path: <?php echo htmlspecialchars($application['image_2x2_path']); ?></small>
-                                                        </span>
-                                                    <?php endif; ?>
+                                                <a href="../<?php echo htmlspecialchars($application['image_2x2_path']); ?>" 
+                                                   class="btn btn-sm btn-primary" 
+                                                   target="_blank">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
                                                 <?php else: ?>
-                                                    <span class="text-muted">No image uploaded</span>
+                                                <span class="text-muted">No image uploaded</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
