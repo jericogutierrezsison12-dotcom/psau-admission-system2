@@ -102,16 +102,12 @@
                                             <td>Application Documents (PDF)</td>
                                             <td><?php echo htmlspecialchars($application['document_file_size_formatted']); ?></td>
                                             <td>
-                                                <?php if ($application['document_file_path'] && file_exists('../' . $application['document_file_path'])): ?>
+                                                <?php if ($application['document_file_path']): ?>
                                                 <a href="../<?php echo htmlspecialchars($application['document_file_path']); ?>" 
                                                    class="btn btn-sm btn-primary" 
                                                    target="_blank">
-                                                    <i class="bi bi-eye"></i> View PDF
+                                                    <i class="bi bi-eye"></i> View
                                                 </a>
-                                                <?php elseif ($application['document_file_path']): ?>
-                                                <span class="text-warning">
-                                                    <i class="bi bi-exclamation-triangle"></i> File Missing
-                                                </span>
                                                 <?php else: ?>
                                                 <span class="text-muted">No file uploaded</span>
                                                 <?php endif; ?>
@@ -122,16 +118,12 @@
                                             <td>2x2 Picture</td>
                                             <td><?php echo htmlspecialchars($application['image_2x2_size_formatted']); ?></td>
                                             <td>
-                                                <?php if ($application['image_2x2_path'] && file_exists('../' . $application['image_2x2_path'])): ?>
+                                                <?php if ($application['image_2x2_path']): ?>
                                                 <a href="../<?php echo htmlspecialchars($application['image_2x2_path']); ?>" 
                                                    class="btn btn-sm btn-primary" 
                                                    target="_blank">
-                                                    <i class="bi bi-eye"></i> View Image
+                                                    <i class="bi bi-eye"></i> View
                                                 </a>
-                                                <?php elseif ($application['image_2x2_path']): ?>
-                                                <span class="text-warning">
-                                                    <i class="bi bi-exclamation-triangle"></i> Image Missing
-                                                </span>
                                                 <?php else: ?>
                                                 <span class="text-muted">No image uploaded</span>
                                                 <?php endif; ?>
