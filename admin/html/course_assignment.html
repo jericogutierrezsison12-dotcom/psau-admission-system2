@@ -58,11 +58,12 @@
                                                 <td><?php echo htmlspecialchars($applicant['strand']); ?></td>
                                                 <td>
                                                     <?php if (!empty($applicant['document_file_path'])): ?>
-                                                        <a href="view_file.php?app_id=<?php echo $applicant['application_id']; ?>&type=pdf" 
-                                                           target="_blank" 
-                                                           class="btn btn-sm btn-outline-primary">
-                                                            <i class="bi bi-file-earmark-text"></i> View PDF
-                                                        </a>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-primary view-document" 
+                                                                data-document-url="view_file.php?path=<?php echo urlencode($applicant['document_file_path']); ?>&type=pdf"
+                                                                data-document-id="document_<?php echo $applicant['application_id']; ?>">
+                                                            <i class="bi bi-file-earmark-text"></i> View
+                                                        </button>
                                                     <?php else: ?>
                                                         <span class="text-muted">No documents</span>
                                                     <?php endif; ?>
@@ -188,6 +189,26 @@
                         <button type="submit" name="assign_course" class="btn btn-primary">Assign Course</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Preview Modal -->
+    <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentPreview" class="text-center">
+                        <!-- Document preview will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
