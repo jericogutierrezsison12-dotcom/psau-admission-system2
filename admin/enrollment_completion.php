@@ -4,6 +4,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
+require_once '../firebase/firebase_email.php';
 
 check_admin_login();
 require_page_access('enrollment_completion');
@@ -71,7 +72,8 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     // Log status history
     $stmt4 = $conn->prepare('INSERT INTO status_history (application_id, status, description, performed_by, created_at) VALUES (?, ?, ?, ?, NOW())');
     $desc = $status === 'completed' ? 'Enrollment marked completed by admin' : 'Enrollment cancelled by admin';
-    $stmt4->execute([$application['id'], $newAppStatus, $desc, $admin_name]);
+    $historyStatus = $status === 'completed' ? 'Enrolled' : 'Cancelled';
+    $stmt4->execute([$application['id'], $historyStatus, $desc, $admin_name]);
 
     // EMAIL NOTIFICATION ADDED
     $stmtU = $conn->prepare('SELECT email, first_name, last_name FROM users WHERE id = ?');
