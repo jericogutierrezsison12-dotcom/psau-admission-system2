@@ -57,9 +57,16 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     }
 
     // Update application status
+    // Only allowed values: 'Enrolled' or 'Enrollment Cancelled'
     $newAppStatus = $status === 'completed' ? 'Enrolled' : 'Enrollment Cancelled';
     $stmt3 = $conn->prepare('UPDATE applications SET status = ?, updated_at = NOW() WHERE id = ?');
-    $stmt3->execute([$newAppStatus, $application['id']]);
+    $successStatus = $stmt3->execute([$newAppStatus, $application['id']]);
+    if (!$successStatus) {
+        $err = $stmt3->errorInfo();
+        error_log('Enrollment Completion: Failed to update applications.status: ' . print_r($err, true));
+        global $error;
+        $error = ($error ? $error.' ' : '') . 'Database error: could not update status. Contact IT.';
+    }
 
     // Log status history
     $stmt4 = $conn->prepare('INSERT INTO status_history (application_id, status, description, performed_by, created_at) VALUES (?, ?, ?, ?, NOW())');
