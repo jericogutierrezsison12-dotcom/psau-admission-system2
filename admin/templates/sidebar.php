@@ -131,6 +131,12 @@ include_once __DIR__ . '/mobile_navbar.php';
 				</a>
 			</li>
 			<li>
+				<a href="course_assignment.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'course_assignment.php' ? 'active' : ''; ?>">
+					<i class="bi bi-diagram-3"></i>
+					<span>Assign Programs</span>
+				</a>
+			</li>
+			<li>
 				<a href="view_enrolled_students.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'view_enrolled_students.php' ? 'active' : ''; ?>">
 					<i class="bi bi-mortarboard"></i>
 					<span>Enrolled Students</span>

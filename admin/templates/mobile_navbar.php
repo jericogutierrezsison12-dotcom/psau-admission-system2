@@ -43,10 +43,11 @@ $role = $_SESSION['admin_role'] ?? 'admin';
 				<li class="nav-item"><a class="nav-link" href="manage_admins.php">Manage Admins</a></li>
 				<?php elseif ($role === 'registrar'): ?>
 				<li class="nav-item"><a class="nav-link" href="verify_applications.php">Verify Applications</a></li>
-				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Courses Overview</a></li>
+				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Programs Overview</a></li>
+				<li class="nav-item"><a class="nav-link" href="course_assignment.php">Assign Programs</a></li>
 				<li class="nav-item"><a class="nav-link" href="view_enrolled_students.php">Enrolled Students</a></li>
 				<?php else: ?>
-				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Courses Overview</a></li>
+				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Programs Overview</a></li>
 				<?php endif; ?>
 			</ul>
 			<a href="logout.php" class="btn btn-outline-light">Logout</a>

@@ -168,6 +168,7 @@ try {
                     'verify_applications.php',
                     'review_application.php',
                     'courses_overview.php',
+                    'course_assignment.php',
                     'login.php',
                     'logout.php',
                     'register.php',
