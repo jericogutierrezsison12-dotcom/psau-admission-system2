@@ -94,7 +94,7 @@
                                                 <span class="fw-bold"><?php echo htmlspecialchars($schedule['venue_name'] ?? $schedule['venue']); ?></span>
                                             </div>
                                             <div class="mb-2">
-                                                <span class="fw-bold">Course:</span>
+                                                <span class="fw-bold">Program:</span>
                                                 <span><?php echo htmlspecialchars($schedule['course_code'] . ' - ' . $schedule['course_name']); ?></span>
                                             </div>
                                             <div class="mb-3">
@@ -233,16 +233,16 @@
                             <small class="text-muted" id="capacity-help">Enter the number of students that can enroll in this schedule.</small>
                         </div>
                         <div class="mb-3">
-                            <label for="course_id" class="form-label">Course</label>
+                            <label for="course_id" class="form-label">Program</label>
                             <select class="form-select" id="course_id" name="course_id" required>
-                                <option value="">Select Course</option>
+                                <option value="">Select Program</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>">
                                         <?php echo htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']); ?> (<?php echo $course['slots']; ?> slots)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <div class="invalid-feedback">Please select a course.</div>
+                            <div class="invalid-feedback">Please select a program.</div>
                         </div>
                         <div class="mb-3">
                             <label for="instructions" class="form-label">Instructions</label>

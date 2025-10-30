@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Selection - PSAU Admission System</title>
+    <title>Program Selection - PSAU Admission System</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -29,8 +29,8 @@
         <div class="container-fluid">
             <!-- Page Title -->
             <div class="page-title mb-4">
-                <h2>Course Selection</h2>
-                <p class="lead">Choose your preferred courses for admission</p>
+                <h2>Program Selection</h2>
+                <p class="lead">Choose your preferred programs for admission</p>
             </div>
             
             
@@ -38,7 +38,7 @@
                 <div class="col-lg-10">
                     <div class="card">
                         <div class="card-header">
-                            <h4 class="mb-0">Course Selection</h4>
+                            <h4 class="mb-0">Program Selection</h4>
                         </div>
                         <div class="card-body">
                             <?php if ($message): ?>
@@ -51,15 +51,15 @@
                             <?php if (!$canSelectCourses && !$hasSelectedCourses): ?>
                                 <div class="alert alert-warning">
                                     <i class="bi bi-exclamation-triangle me-2"></i>
-                                    You are not eligible to select courses yet. Please complete your entrance examination first.
+                                    You are not eligible to select programs yet. Please complete your entrance examination first.
                                 </div>
                             <?php elseif ($hasSelectedCourses): ?>
                                 <div class="alert alert-success">
                                     <i class="bi bi-check-circle-fill me-2"></i>
-                                    <strong>Course preferences have been successfully submitted.</strong> You cannot change your selections anymore.
+                                    <strong>Program preferences have been successfully submitted.</strong> You cannot change your selections anymore.
                                 </div>
                                 
-                                <h5 class="mb-4">Your Course Preferences:</h5>
+                                <h5 class="mb-4">Your Program Preferences:</h5>
                                 
                                 <?php if (isset($selectedCourseDetails[1])): ?>
                                 <div class="card preference-card preference-card-1 mb-4">
@@ -96,10 +96,10 @@
                                 
                                 <div class="alert alert-info mt-4">
                                     <h5><i class="bi bi-info-circle me-2"></i>What's Next?</h5>
-                                    <p>Your course preferences have been recorded. The admission committee will consider these preferences along with your entrance examination score for course assignment. You'll be notified once your course has been assigned.</p>
+                                    <p>Your program preferences have been recorded. The admissions team will consider these preferences along with your entrance examination score for program assignment. You'll be notified once your program has been assigned.</p>
                                 </div>
                             <?php else: ?>
-                                <p class="lead mb-4">Please select your preferred courses in order of preference (1st, 2nd, and 3rd choices).</p>
+                                <p class="lead mb-4">Please select your preferred programs in order of preference (1st, 2nd, and 3rd choices).</p>
                                 
                                 <form method="post" action="">
                                     <!-- First Choice (Required) -->
@@ -117,7 +117,7 @@
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <div class="form-text">This is your top priority course.</div>
+                                            <div class="form-text">This is your top priority program.</div>
                                         </div>
                                     </div>
                                     
@@ -136,7 +136,7 @@
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <div class="form-text">Your backup course if your first choice is unavailable.</div>
+                                            <div class="form-text">Your backup program if your first choice is unavailable.</div>
                                         </div>
                                     </div>
                                     
@@ -155,26 +155,26 @@
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <div class="form-text">Your final option if both first and second choices are unavailable.</div>
+                                            <div class="form-text">Your second backup program.</div>
                                         </div>
                                     </div>
                                     
                                     <div class="alert alert-warning">
                                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                        <strong>Important:</strong> Once you submit your course preferences, you will not be able to change them. Please review your choices carefully before submitting.
+                                        <strong>Important:</strong> Once you submit your program preferences, you will not be able to change them. Please review your choices carefully before submitting.
                                     </div>
                                     
                                     <div class="d-grid gap-2">
                                         <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="bi bi-save me-2"></i>Save Course Preferences
+                                            <i class="bi bi-save me-2"></i>Save Program Preferences
                                         </button>
                                     </div>
                                     
                                     <div class="alert alert-info mt-4">
                                         <h5><i class="bi bi-info-circle me-2"></i>Important Information</h5>
-                                        <p>Course assignment is based on your entrance examination score and course availability. 
+                                        <p>Program assignment is based on your entrance examination score and program availability. 
                                         Your preferences will be considered, but cannot be guaranteed. 
-                                        We recommend selecting multiple choices to increase your chances of being placed in a course that interests you.</p>
+                                        We recommend selecting multiple choices to increase your chances of being placed in a program that interests you.</p>
                                     </div>
                                 </form>
                             <?php endif; ?>

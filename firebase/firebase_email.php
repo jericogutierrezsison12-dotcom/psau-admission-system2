@@ -320,7 +320,7 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
     $subject = "PSAU Admission System: Entrance Exam Score Posted";
     
     // Create course selection URL with control number parameter
-    $course_selection_url = 'course_selection.php';
+    // $course_selection_url removed from CTA link per requirement
     
     // Create HTML message
     $message = "
@@ -338,11 +338,10 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
                 <p><strong>Stanine Score:</strong> " . htmlspecialchars($stanine_score) . "</p>
             </div>
             
-            <p>Based on your score, you are eligible to proceed with course selection.</p>
-            <p>Please log in to your account and go to the Course Selection page in the system.</p>
-            <p><a href='" . htmlspecialchars($course_selection_url) . "' style='text-decoration: none;'>Go to Course Selection</a></p>
+            <p>Based on your score, you are eligible to proceed with program selection.</p>
+            <p>Please log in to your account and go to the Program Selection page in the system to choose your program.</p>
             
-            <p>If you have any questions about your score or the course selection process, please contact our admissions office.</p>
+            <p>If you have any questions about your score or the program selection process, please contact our admissions office.</p>
             
             <p>Best regards,<br>PSAU Admissions Team</p>
         </div>

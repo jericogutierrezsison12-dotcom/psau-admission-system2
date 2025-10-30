@@ -100,9 +100,9 @@
                                 </small>
                             </div>
                             <div class="col-md-6">
-                                <label for="course_id" class="form-label">Course</label>
+                                <label for="course_id" class="form-label">Program</label>
                                 <select class="form-select" id="course_id" name="course_id" required>
-                                    <option value="">Select a course...</option>
+                                    <option value="">Select a program...</option>
                                     <?php foreach ($courses as $course): ?>
                                         <option value="<?php echo $course['id']; ?>" 
                                                 <?php echo ($course['id'] == $schedule['course_id']) ? 'selected' : ''; ?>>
@@ -110,7 +110,7 @@
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="invalid-feedback">Please select a course.</div>
+                                <div class="invalid-feedback">Please select a program.</div>
                             </div>
                         </div>
 
