@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to close mobile menu
     function closeMobileMenu() {
+        if (!navbarCollapse || !navbarToggler) return;
         navbarCollapse.classList.remove('show');
         navbarToggler.classList.remove('collapsed');
         navbarToggler.setAttribute('aria-expanded', 'false');
@@ -14,67 +15,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add click event listener to each nav link
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            // If it's a hash link (section navigation)
-            if (link.getAttribute('href').startsWith('#')) {
-                e.preventDefault();
-                const targetId = link.getAttribute('href').substring(1);
-                const targetSection = document.getElementById(targetId);
-                
-                if (targetSection) {
-                    // Close mobile menu
+    if (navLinks && navLinks.length) {
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                // If it's a hash link (section navigation)
+                const href = link.getAttribute('href') || '';
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    const targetId = href.substring(1);
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        closeMobileMenu();
+                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                } else {
                     closeMobileMenu();
-                    
-                    // Smooth scroll to section
-                    targetSection.scrollIntoView({ 
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
                 }
-            } else {
-                // For non-hash links, just close the menu
+            });
+        });
+    }
+
+    // Toggle body scroll when mobile menu is opened/closed
+    if (navbarToggler) {
+        navbarToggler.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            document.body.classList.toggle('menu-open', !isExpanded);
+        });
+    }
+
+    // Close menu when clicking outside
+    if (mobileNav && navbarCollapse) {
+        document.addEventListener('click', function(event) {
+            const isClickInside = mobileNav.contains(event.target);
+            if (!isClickInside && navbarCollapse.classList.contains('show')) {
                 closeMobileMenu();
             }
         });
-    });
-
-    // Toggle body scroll when mobile menu is opened/closed
-    navbarToggler.addEventListener('click', function() {
-        const isExpanded = this.getAttribute('aria-expanded') === 'true';
-        document.body.classList.toggle('menu-open', !isExpanded);
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', function(event) {
-        const isClickInside = mobileNav.contains(event.target);
-        
-        if (!isClickInside && navbarCollapse.classList.contains('show')) {
-            closeMobileMenu();
-        }
-    });
-
-    // Prevent menu close when clicking inside the menu
-    navbarCollapse.addEventListener('click', function(event) {
-        event.stopPropagation();
-    });
+        // Prevent menu close when clicking inside the menu
+        navbarCollapse.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    }
 
     // Handle scroll position
     let lastScrollTop = 0;
-    
-    window.addEventListener('scroll', function() {
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-        
-        if (currentScroll > lastScrollTop && currentScroll > 70) {
-            // Scrolling down & past navbar height
-            mobileNav.style.transform = 'translateY(-100%)';
-        } else {
-            // Scrolling up
-            mobileNav.style.transform = 'translateY(0)';
-        }
-        
-        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-    }, { passive: true });
+    if (mobileNav) {
+        window.addEventListener('scroll', function() {
+            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll > lastScrollTop && currentScroll > 70) {
+                // Scrolling down & past navbar height
+                mobileNav.style.transform = 'translateY(-100%)';
+            } else {
+                // Scrolling up
+                mobileNav.style.transform = 'translateY(0)';
+            }
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+        }, { passive: true });
+    }
 
     // Program search/filter on homepage
     const searchInput = document.getElementById('course-search');
@@ -111,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (searchInput) {
         const debounced = debounce(() => applyFilter(searchInput.value), 100);
+        // Initial filter (no query shows all)
         applyFilter('');
         searchInput.addEventListener('input', debounced);
         searchInput.addEventListener('keyup', debounced);
