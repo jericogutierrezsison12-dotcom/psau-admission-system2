@@ -1,81 +1,42 @@
 <!-- PSAU Admission System Footer -->
 <footer class="mt-5 py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4 mb-4 mb-md-0">
-                <h5>PSAU Admission System</h5>
-                <p class="text-muted small">
-                    The Pampanga State Agricultural University Admission System 
-                    provides a streamlined way for prospective students to apply 
-                    for admission and track their application process.
-                </p>
-                <div class="social-icons mt-3">
-                    <a href="#" title="Facebook">
-                        <i class="bi bi-facebook"></i>
-                    </a>
-                    <a href="#" title="Twitter">
-                        <i class="bi bi-twitter"></i>
-                    </a>
-                    <a href="#" title="Instagram">
-                        <i class="bi bi-instagram"></i>
-                    </a>
-                    <a href="#" title="YouTube">
-                        <i class="bi bi-youtube"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="col-md-3 mb-4 mb-md-0">
-                <h5>Quick Links</h5>
-                <div class="footer-links">
-                    <a href="index.php">Home</a>
-                    <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
-                        <a href="dashboard.php">Dashboard</a>
-                        <a href="application_progress.php">Application Progress</a>
-                    <?php else: ?>
-                        <a href="register.php">Apply Now</a>
-                        <a href="login.php">Login</a>
-                    <?php endif; ?>
-                </div>
-            </div>
-            
-            <div class="col-md-3 mb-4 mb-md-0">
-                <h5>Resources</h5>
-                <div class="footer-links">
-                    <a href="#courses">Academic Programs</a>
-                    <a href="#admission-process">Admission Process</a>
-                    <a href="#exam-info">Exam Information</a>
-                    <a href="#enrollment">Enrollment</a>
-                </div>
-            </div>
-            
-            <div class="col-md-2">
-                <h5>Contact</h5>
-                <div class="footer-links">
-                    <a href="#"><i class="bi bi-geo-alt me-1"></i> Location</a>
-                    <a href="#"><i class="bi bi-envelope me-1"></i> Email Us</a>
-                    <a href="#"><i class="bi bi-telephone me-1"></i> Call Us</a>
-                    <a href="#"><i class="bi bi-question-circle me-1"></i> Help</a>
-                </div>
-            </div>
-        </div>
-        
-        <hr class="mt-4">
-        
-        <div class="row">
-            <div class="col-md-6 text-center text-md-start">
-                <p class="small text-muted mb-0">
-                    &copy; <?php echo date('Y'); ?> Pampanga State Agricultural University. All rights reserved.
-                </p>
-            </div>
-            <div class="col-md-6 text-center text-md-end">
-                <p class="small text-muted mb-0">
-                    <a href="#" class="text-muted text-decoration-none">Privacy Policy</a> | 
-                    <a href="#" class="text-muted text-decoration-none">Terms of Service</a>
-                </p>
-            </div>
-        </div>
-    </div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6 mb-4 mb-md-0">
+				<h5>PSAU Admission System</h5>
+				<p class="text-muted small mb-2">
+					This website is for capstone purposes only and is not the official PSAU admission portal.
+				</p>
+				<ul class="list-unstyled small mb-0">
+					<li class="mb-1"><i class="bi bi-geo-alt me-2"></i>PAC, San Agustin 2011 Magalang, Philippines</li>
+					<li class="mb-1"><i class="bi bi-telephone me-2"></i>(045) 866 0800</li>
+					<li class="mb-1"><i class="bi bi-envelope me-2"></i><a class="text-decoration-none" href="mailto:officeofthepresident@psau.edu.ph">officeofthepresident@psau.edu.ph</a></li>
+					<li class="mb-1"><i class="bi bi-globe me-2"></i><a class="text-decoration-none" href="http://psau.edu.ph/" target="_blank" rel="noopener">psau.edu.ph</a></li>
+				</ul>
+			</div>
+
+			<div class="col-md-6 d-flex align-items-end justify-content-md-end">
+				<div>
+					<h5>Connect</h5>
+					<div class="social-icons mt-2">
+						<a href="https://www.facebook.com/PSAUofficial" target="_blank" rel="noopener" title="Facebook">
+							<i class="bi bi-facebook"></i>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<hr class="mt-4">
+
+		<div class="row">
+			<div class="col-12 text-center">
+				<p class="small text-muted mb-0">
+					&copy; <?php echo date('Y'); ?> Pampanga State Agricultural University
+				</p>
+			</div>
+		</div>
+	</div>
 </footer>
 
 <!-- Footer Scripts (optional) -->
