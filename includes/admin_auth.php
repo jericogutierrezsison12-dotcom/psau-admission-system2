@@ -116,7 +116,7 @@ function can_access_page($page_name) {
             'view_all_users', 'view_enrolled_students', 'manage_admins'
         ],
         'registrar' => [
-            'verify_applications', 'courses_overview', 'view_enrolled_students'
+            'verify_applications', 'courses_overview', 'view_enrolled_students', 'course_assignment'
         ],
         'department' => [
             'courses_overview'
