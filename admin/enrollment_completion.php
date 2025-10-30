@@ -65,6 +65,31 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     $stmt4 = $conn->prepare('INSERT INTO status_history (application_id, status, description, performed_by, created_at) VALUES (?, ?, ?, ?, NOW())');
     $desc = $status === 'completed' ? 'Enrollment marked completed by admin' : 'Enrollment cancelled by admin';
     $stmt4->execute([$application['id'], $newAppStatus, $desc, $admin_name]);
+
+    // EMAIL NOTIFICATION ADDED
+    $stmtU = $conn->prepare('SELECT email, first_name, last_name FROM users WHERE id = ?');
+    $stmtU->execute([$user_id]);
+    $userInfo = $stmtU->fetch(PDO::FETCH_ASSOC);
+    if ($userInfo && function_exists('firebase_send_email')) {
+        $subject = ($status === 'completed') ?
+            'Enrollment Completed - PSAU Admission System' :
+            'Enrollment Cancelled - PSAU Admission System';
+        $bodyMsg = ($status === 'completed') ?
+            "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment has been successfully completed. Welcome to PSAU!</p>" :
+            "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment was cancelled. For details, please contact admissions.</p>";
+        try {
+            $email_sent_result = firebase_send_email($userInfo['email'], $subject, $bodyMsg);
+            if (!isset($email_sent_result['success']) || !$email_sent_result['success']) {
+                error_log("Failed to send enrollment status email: " . json_encode($email_sent_result));
+                global $error;
+                $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email was not sent.';
+            }
+        } catch (Exception $e) {
+            error_log('Enrollment Completion Email error: ' . $e->getMessage());
+            global $error;
+            $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email could not be sent.';
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -141,17 +141,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update user password
                 $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-                $stmt->execute([$hashed_password, $user_id]);
+                $executeResult = $stmt->execute([$hashed_password, $user_id]);
                 
-                // Clear any existing remember tokens for this user
-                clear_remember_token($conn, $user_id);
-                
-                // Success message
-                $success = true;
-                $step = 4; // Move to success step
-                
-                // Unset password reset session
-                unset($_SESSION['password_reset']);
+                if (!$executeResult) {
+                    $errorInfo = $stmt->errorInfo();
+                    error_log("Password Reset DB Error: " . print_r($errorInfo, true));
+                    $errors['reset'] = 'Failed to update password in the database. Please contact support.';
+                } else {
+                    // Clear any existing remember tokens for this user
+                    clear_remember_token($conn, $user_id);
+                    // Success message
+                    $success = true;
+                    $step = 4; // Move to success step
+                    // Unset password reset session
+                    unset($_SESSION['password_reset']);
+                }
             } catch (PDOException $e) {
                 error_log("Password Reset Error: " . $e->getMessage());
                 $errors['reset'] = 'An error occurred during password reset. Please try again.';
