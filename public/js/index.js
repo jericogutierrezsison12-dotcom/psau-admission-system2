@@ -84,9 +84,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return (text || '').toString().toLowerCase().trim();
     }
 
-    function filterPrograms(query) {
-        if (!courseGrid) return;
-        const items = Array.from(courseGrid.children || []);
+    function getProgramItems() {
+        if (!courseGrid) return [];
+        const cards = courseGrid.querySelectorAll('.course-card');
+        if (cards && cards.length) return Array.from(cards);
+        return Array.from(courseGrid.children || []);
+    }
+
+    function applyFilter(query) {
+        const items = getProgramItems();
         const q = normalize(query);
         items.forEach(el => {
             const text = normalize(el.textContent);
@@ -95,11 +101,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function debounce(fn, delay) {
+        let t;
+        return function(...args) {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, args), delay);
+        }
+    }
+
     if (searchInput) {
-        // Initial filter (show all)
-        filterPrograms('');
-        searchInput.addEventListener('input', function() {
-            filterPrograms(this.value);
-        });
+        const debounced = debounce(() => applyFilter(searchInput.value), 100);
+        applyFilter('');
+        searchInput.addEventListener('input', debounced);
+        searchInput.addEventListener('keyup', debounced);
     }
 }); 
