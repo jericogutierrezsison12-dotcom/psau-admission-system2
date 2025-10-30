@@ -72,7 +72,7 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     // Log status history
     $stmt4 = $conn->prepare('INSERT INTO status_history (application_id, status, description, performed_by, created_at) VALUES (?, ?, ?, ?, NOW())');
     $desc = $status === 'completed' ? 'Enrollment marked completed by admin' : 'Enrollment cancelled by admin';
-    $historyStatus = $status === 'completed' ? 'Enrolled' : 'Cancelled';
+    $historyStatus = $status === 'completed' ? 'Enrolled' : 'Enrollment Cancelled';
     $stmt4->execute([$application['id'], $historyStatus, $desc, $admin_name]);
 
     // EMAIL NOTIFICATION ADDED
