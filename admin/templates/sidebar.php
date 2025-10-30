@@ -28,7 +28,7 @@ include_once __DIR__ . '/mobile_navbar.php';
 					<span>Content Management</span>
 				</a>
 				<ul class="dropdown-menu" aria-labelledby="contentManagementDropdown">
-					<li><a class="dropdown-item" href="course_management.php"><i class="bi bi-book me-2"></i>Manage Course</a></li>
+					<li><a class="dropdown-item" href="course_management.php"><i class="bi bi-book me-2"></i>Manage Program</a></li>
 					<li><a class="dropdown-item" href="manage_content.php"><i class="bi bi-file-text me-2"></i>Manage Content</a></li>
 					<li><a class="dropdown-item" href="manage_announcement.php"><i class="bi bi-megaphone me-2"></i>Manage Announcements</a></li>
 					<li><a class="dropdown-item" href="manage_faqs.php"><i class="bi bi-question-circle me-2"></i>Manage FAQs</a></li>
@@ -59,7 +59,7 @@ include_once __DIR__ . '/mobile_navbar.php';
 			<li>
 				<a href="course_assignment.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'course_assignment.php' ? 'active' : ''; ?>">
 					<i class="bi bi-mortarboard"></i>
-					<span>Assign Courses</span>
+					<span>Assign Programs</span>
 				</a>
 			</li>
 			<li>
@@ -77,7 +77,7 @@ include_once __DIR__ . '/mobile_navbar.php';
 			<li>
 				<a href="courses_overview.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses_overview.php' ? 'active' : ''; ?>">
 					<i class="bi bi-book"></i>
-					<span>Courses Overview</span>
+					<span>Programs Overview</span>
 				</a>
 			</li>
 			<li>
@@ -127,7 +127,7 @@ include_once __DIR__ . '/mobile_navbar.php';
 			<li>
 				<a href="courses_overview.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses_overview.php' ? 'active' : ''; ?>">
 					<i class="bi bi-book"></i>
-					<span>Courses Overview</span>
+					<span>Programs Overview</span>
 				</a>
 			</li>
 			<li>
@@ -141,7 +141,7 @@ include_once __DIR__ . '/mobile_navbar.php';
 			<li>
 				<a href="courses_overview.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses_overview.php' ? 'active' : ''; ?>">
 					<i class="bi bi-book"></i>
-					<span>Courses Overview</span>
+					<span>Programs Overview</span>
 				</a>
 			</li>
 		<?php endif; ?>

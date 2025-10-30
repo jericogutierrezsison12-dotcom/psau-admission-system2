@@ -22,7 +22,7 @@ $role = $_SESSION['admin_role'] ?? 'admin';
 				<li class="nav-item dropdown">
 					<a class="nav-link dropdown-toggle" href="#" id="contentMgmtDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Content Management</a>
 					<ul class="dropdown-menu" aria-labelledby="contentMgmtDropdown">
-						<li><a class="dropdown-item" href="course_management.php">Manage Course</a></li>
+						<li><a class="dropdown-item" href="course_management.php">Manage Program</a></li>
 						<li><a class="dropdown-item" href="manage_content.php">Manage Content</a></li>
 						<li><a class="dropdown-item" href="manage_announcement.php">Manage Announcements</a></li>
 						<li><a class="dropdown-item" href="manage_faqs.php">Manage FAQs</a></li>
@@ -31,10 +31,10 @@ $role = $_SESSION['admin_role'] ?? 'admin';
 				<li class="nav-item"><a class="nav-link" href="schedule_exam.php">Schedule Exams</a></li>
 				<li class="nav-item"><a class="nav-link" href="manual_score_entry.php">Manual Score Entry</a></li>
 				<li class="nav-item"><a class="nav-link" href="bulk_score_upload.php">Bulk Score Upload</a></li>
-				<li class="nav-item"><a class="nav-link" href="course_assignment.php">Assign Courses</a></li>
+				<li class="nav-item"><a class="nav-link" href="course_assignment.php">Assign Programs</a></li>
 				<li class="nav-item"><a class="nav-link" href="enrollment_schedule.php">Set Enrollment</a></li>
 				<li class="nav-item"><a class="nav-link" href="view_all_applicants.php">Applicants by Status</a></li>
-				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Courses Overview</a></li>
+				<li class="nav-item"><a class="nav-link" href="courses_overview.php">Programs Overview</a></li>
 				<li class="nav-item"><a class="nav-link" href="view_logs.php">View Logs</a></li>
 				<li class="nav-item"><a class="nav-link" href="clear_attempts.php">Clear Application Attempts</a></li>
 				<li class="nav-item"><a class="nav-link" href="enrollment_completion.php">Enrollment Completion</a></li>
