@@ -75,4 +75,31 @@ document.addEventListener('DOMContentLoaded', function() {
         
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
     }, { passive: true });
+
+    // Program search/filter on homepage
+    const searchInput = document.getElementById('course-search');
+    const courseGrid = document.querySelector('.course-grid');
+
+    function normalize(text) {
+        return (text || '').toString().toLowerCase().trim();
+    }
+
+    function filterPrograms(query) {
+        if (!courseGrid) return;
+        const items = Array.from(courseGrid.children || []);
+        const q = normalize(query);
+        items.forEach(el => {
+            const text = normalize(el.textContent);
+            const matches = q === '' || text.includes(q);
+            el.style.display = matches ? '' : 'none';
+        });
+    }
+
+    if (searchInput) {
+        // Initial filter (show all)
+        filterPrograms('');
+        searchInput.addEventListener('input', function() {
+            filterPrograms(this.value);
+        });
+    }
 }); 
