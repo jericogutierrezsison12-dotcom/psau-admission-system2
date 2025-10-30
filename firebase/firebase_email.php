@@ -320,7 +320,7 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
     $subject = "PSAU Admission System: Entrance Exam Score Posted";
     
     // Create course selection URL with control number parameter
-    $course_selection_url = 'https://psau-admission-system-16ip.onrender.com/select_course.php?control_number=' . urlencode($control_number);
+    $course_selection_url = 'course_selection.php';
     
     // Create HTML message
     $message = "
@@ -339,8 +339,8 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
             </div>
             
             <p>Based on your score, you are eligible to proceed with course selection.</p>
-            <p>Please click the link below to select your preferred course:</p>
-            <p><a href='" . htmlspecialchars($course_selection_url) . "' style='background-color: #2E7D32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Select Your Course</a></p>
+            <p>Please log in to your account and go to the Course Selection page in the system.</p>
+            <p><a href='" . htmlspecialchars($course_selection_url) . "' style='text-decoration: none;'>Go to Course Selection</a></p>
             
             <p>If you have any questions about your score or the course selection process, please contact our admissions office.</p>
             

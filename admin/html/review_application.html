@@ -148,7 +148,7 @@
                             <form id="reviewForm" method="post">
                                 <?php if (in_array($role, ['admin', 'registrar'], true)): ?>
                                 <div class="mb-3">
-                                    <label for="rejection_reason" class="form-label">Rejection Reason (if applicable)</label>
+                                    <label for="rejection_reason" class="form-label">Resubmission Reason (if applicable)</label>
                                     <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3"></textarea>
                                 </div>
                                 <?php endif; ?>
@@ -158,7 +158,7 @@
                                         <i class="bi bi-check-circle me-2"></i>Verify Application
                                     </button>
                                     <button type="submit" name="action" value="reject" class="btn btn-danger">
-                                        <i class="bi bi-x-circle me-2"></i>Reject Application
+                                        <i class="bi bi-x-circle me-2"></i>Request Resubmission
                                     </button>
                                 </div>
                                 <?php else: ?>
