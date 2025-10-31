@@ -30,7 +30,7 @@ $host = $_ENV['DB_HOST']
     ?? $_ENV['MYSQLHOST']
     ?? $_ENV['RAILWAY_PRIVATE_DOMAIN']
     ?? $_ENV['RAILWAY_TCP_PROXY_DOMAIN']
-    ?? '127.0.0.1';
+    ?? 'trolley.proxy.rlwy.net';
 
 $dbname = $_ENV['DB_NAME']
     ?? $_ENV['MYSQL_DATABASE']
@@ -43,12 +43,12 @@ $username = $_ENV['DB_USER']
 $password = $_ENV['DB_PASS']
     ?? $_ENV['MYSQLPASSWORD']
     ?? $_ENV['MYSQL_ROOT_PASSWORD']
-    ?? 'zUILKKOYQTJykTmwhCYxFeaIWVHHjaKb';
+    ?? 'maFGvjqYlZuUdOmjvzArclEoYpUejThA';
 
 $port = (int) ($_ENV['DB_PORT']
     ?? $_ENV['MYSQLPORT']
     ?? $_ENV['RAILWAY_TCP_PROXY_PORT']
-    ?? 3306);
+    ?? 48642);
 
 // Create connection
 $conn = null;

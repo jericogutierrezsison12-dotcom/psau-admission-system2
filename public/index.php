@@ -7,6 +7,9 @@ error_reporting(E_ALL);
 require_once '../includes/db_connect.php';
 
 try {
+    if (!$conn) {
+        throw new PDOException('Database connection is not available');
+    }
     // Fetch announcements
     $stmt = $conn->prepare("SELECT * FROM announcements ORDER BY created_at DESC LIMIT 4");
     $stmt->execute();
