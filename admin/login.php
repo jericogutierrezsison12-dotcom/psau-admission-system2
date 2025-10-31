@@ -85,21 +85,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log('Password validation failed: empty');
         }
         
-        // Verify the reCAPTCHA token
-        if (!empty($recaptcha_token)) {
-            error_log('Verifying reCAPTCHA token...');
-            if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
-                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
-                error_log('reCAPTCHA verification failed');
-            } else {
-                error_log('reCAPTCHA verification successful');
-            }
-        } else {
-            // Check if we're on localhost
-            $is_localhost = (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1');
-            if ($is_localhost) {
-                error_log('Localhost detected, allowing login without reCAPTCHA token');
-                // On localhost, we can proceed without reCAPTCHA token
+        // Verify the reCAPTCHA token only if secret is configured
+        $recaptcha_secret = getenv('RECAPTCHA_SECRET') ?: ($_ENV['RECAPTCHA_SECRET'] ?? '');
+        if (!empty($recaptcha_secret)) {
+            if (!empty($recaptcha_token)) {
+                error_log('Verifying reCAPTCHA token...');
+                if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
+                    $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
+                    error_log('reCAPTCHA verification failed');
+                } else {
+                    error_log('reCAPTCHA verification successful');
+                }
             } else {
                 $errors['recaptcha'] = 'CAPTCHA verification is required';
                 error_log('reCAPTCHA token required but not provided');

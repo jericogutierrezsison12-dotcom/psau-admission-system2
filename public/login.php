@@ -88,21 +88,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If no validation errors, attempt to login
         if (empty($errors)) {
-            // Verify reCAPTCHA token
+            // Verify reCAPTCHA token only if secret is configured
+            $recaptcha_secret = getenv('RECAPTCHA_SECRET') ?: ($_ENV['RECAPTCHA_SECRET'] ?? '');
             $recaptcha_token = $_POST['recaptcha_token'] ?? '';
-            if (!verify_recaptcha($recaptcha_token, 'login')) {
-                $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
+            if (!empty($recaptcha_secret)) {
+                if (!verify_recaptcha($recaptcha_token, 'login')) {
+                    $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
+                }
             }
         }
         
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Check if user exists with the provided email or mobile number (encrypted comparison)
+                // Try fast encrypted equality (may not match due to randomized IVs)
                 $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
                 $encId = enc_contact($login_identifier);
                 $stmt->execute([$encId, $encId]);
                 $user = $stmt->fetch();
+                // Fallback: scan verified users and compare decrypted email/mobile
+                if (!$user) {
+                    $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
+                    $stmt->execute();
+                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $needle = strtolower(trim($login_identifier));
+                    foreach ($rows as $row) {
+                        $decEmail = '';
+                        $decMobile = '';
+                        try { $decEmail = dec_contact($row['email'] ?? ''); } catch (Exception $e) { $decEmail = ''; }
+                        try { $decMobile = dec_contact($row['mobile_number'] ?? ''); } catch (Exception $e) { $decMobile = ''; }
+                        if (strtolower(trim($decEmail)) === $needle || strtolower(trim($decMobile)) === $needle) {
+                            $user = $row;
+                            break;
+                        }
+                    }
+                }
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
