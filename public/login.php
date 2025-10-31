@@ -144,8 +144,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         $block_info = $block_check;
                     } else {
-                        // Show remaining attempts
-                        $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
+                        // Show remaining attempts (guard missing key on error paths)
+                        $attempts = (is_array($block_check) && isset($block_check['attempts'])) ? (int)$block_check['attempts'] : null;
+                        $remaining = (is_array($block_check) && array_key_exists('remaining', $block_check))
+                            ? (int)$block_check['remaining']
+                            : (isset($attempts) ? max(0, 5 - $attempts) : null);
+                        if ($remaining === null) {
+                            $errors['attempts'] = 'Failed login attempt.';
+                        } else {
+                            $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
+                        }
                     }
                 }
             } catch (PDOException $e) {
