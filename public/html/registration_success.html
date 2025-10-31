@@ -24,7 +24,13 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Registration Date:</strong></p>
-                        <p class="text-muted"><?php echo date('F j, Y \a\t g:i A', strtotime($user['created_at'])); ?></p>
+                        <p class="text-muted"><?php 
+                            $ts = null; 
+                            if (isset($user) && is_array($user) && !empty($user['created_at'])) { 
+                                $ts = strtotime($user['created_at']); 
+                            } 
+                            echo date('F j, Y \a\t g:i A', $ts ?: time()); 
+                        ?></p>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Application Control Number:</strong></p>
