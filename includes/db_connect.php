@@ -26,11 +26,11 @@ if (file_exists(__DIR__ . '/secret_key.php')) {
 }
 
 // Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
+$host = $_ENV['DB_HOST'] ?? 'yamanote.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
 $password = $_ENV['DB_PASS'] ?? 'IaUWDcKClkXCxBMsWoPDmVwgLjtICxyg';
-$port = $_ENV['DB_PORT'] ?? 40148;
+$port = $_ENV['DB_PORT'] ?? 47606;
 
 // Create connection
 $conn = null;

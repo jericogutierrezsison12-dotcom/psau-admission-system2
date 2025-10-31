@@ -4,6 +4,7 @@ services:
     env: php
     plan: free
     buildCommand: composer install --no-dev --optimize-autoloader
+    postDeployCommand: php scripts/provision_database.php
     startCommand: vendor/bin/heroku-php-apache2 public/
     envVars:
       - key: DB_HOST
@@ -38,6 +39,9 @@ services:
         value: https://sendemail-alsstt22ha-uc.a.run.app
       - key: ENVIRONMENT
         value: production
+      # Optional: set ENCRYPTION_KEY as base64 32-byte value to enable encryption at runtime
+      # - key: ENCRYPTION_KEY
+      #   value: YOUR_BASE64_32_BYTE_KEY
 
 databases:
   - name: psau-db
