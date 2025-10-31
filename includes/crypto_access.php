@@ -69,6 +69,3 @@ class CryptoAccess {
 
 // global instance helper if needed
 $crypto = new CryptoAccess($conn);
-?>
-
-
