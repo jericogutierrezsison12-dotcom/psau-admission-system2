@@ -1,44 +1,37 @@
 <?php
 /**
- * PSAU Admission System - End-to-End Encryption Library
- * AES-256-GCM helpers for field/file encryption
+ * PSAU Admission System - Encryption Library v2
+ * Unified AES-256-GCM with explicit prefix and backward compatibility.
+ * New format: psau:v2:<b64(iv(12) + tag(16) + ciphertext)>
  */
 
-class PSAUEncryption {
+final class PSAUEncryption {
+    private const PREFIX = 'psau:v2:';
     private static $encryption_key = null;
     private static $initialized = false;
 
     private static function initialize() {
         if (self::$initialized) return;
         $keyBytes = null;
-        // Prefer base64 env first
         $keyB64 = getenv('ENCRYPTION_KEY_B64') ?: ($_ENV['ENCRYPTION_KEY_B64'] ?? '');
         if (!empty($keyB64)) {
             $decoded = base64_decode($keyB64, true);
-            if ($decoded !== false) {
-                $keyBytes = $decoded;
-            }
+            if ($decoded !== false) { $keyBytes = $decoded; }
         }
-        // Fallback: legacy ENCRYPTION_KEY env (base64)
         if ($keyBytes === null) {
             $legacy = getenv('ENCRYPTION_KEY') ?: ($_ENV['ENCRYPTION_KEY'] ?? '');
             if (!empty($legacy)) {
                 $decoded = base64_decode($legacy, true);
-                if ($decoded !== false) {
-                    $keyBytes = $decoded;
-                }
+                if ($decoded !== false) { $keyBytes = $decoded; }
             }
         }
-        // Fallback: includes/secret_key.php variable
         if ($keyBytes === null) {
             $secretPath = __DIR__ . '/secret_key.php';
             if (file_exists($secretPath)) {
                 include $secretPath;
                 if (isset($ENCRYPTION_KEY_B64) && !empty($ENCRYPTION_KEY_B64)) {
                     $decoded = base64_decode($ENCRYPTION_KEY_B64, true);
-                    if ($decoded !== false) {
-                        $keyBytes = $decoded;
-                    }
+                    if ($decoded !== false) { $keyBytes = $decoded; }
                 }
             }
         }
@@ -49,27 +42,50 @@ class PSAUEncryption {
         self::$initialized = true;
     }
 
+    private static function isNewFormat($value) {
+        return is_string($value) && str_starts_with($value, self::PREFIX);
+    }
+
     public static function encrypt($data, $context = '') {
         self::initialize();
         if ($data === null || $data === '') return '';
+        // Avoid double-encrypting if already in new format
+        if (self::isNewFormat($data)) return $data;
         $iv = random_bytes(12);
         $aad = hash('sha256', $context . self::$encryption_key, true);
         $cipher = openssl_encrypt($data, 'aes-256-gcm', self::$encryption_key, OPENSSL_RAW_DATA, $iv, $tag, $aad);
         if ($cipher === false) throw new Exception('Encryption failed');
-        return base64_encode($iv . $tag . $cipher);
+        return self::PREFIX . base64_encode($iv . $tag . $cipher);
     }
 
-    public static function decrypt($encoded, $context = '') {
+    public static function decrypt($value, $context = '') {
         self::initialize();
-        if ($encoded === null || $encoded === '') return '';
-        $raw = base64_decode($encoded);
-        $iv = substr($raw, 0, 12);
-        $tag = substr($raw, 12, 16);
-        $cipher = substr($raw, 28);
-        $aad = hash('sha256', $context . self::$encryption_key, true);
-        $plain = openssl_decrypt($cipher, 'aes-256-gcm', self::$encryption_key, OPENSSL_RAW_DATA, $iv, $tag, $aad);
-        if ($plain === false) throw new Exception('Decryption failed');
-        return $plain;
+        if ($value === null || $value === '') return '';
+        // New format
+        if (self::isNewFormat($value)) {
+            $encoded = substr($value, strlen(self::PREFIX));
+            $raw = base64_decode($encoded, true);
+            if ($raw === false || strlen($raw) < 28) throw new Exception('Invalid ciphertext');
+            $iv = substr($raw, 0, 12);
+            $tag = substr($raw, 12, 16);
+            $cipher = substr($raw, 28);
+            $aad = hash('sha256', $context . self::$encryption_key, true);
+            $plain = openssl_decrypt($cipher, 'aes-256-gcm', self::$encryption_key, OPENSSL_RAW_DATA, $iv, $tag, $aad);
+            if ($plain === false) throw new Exception('Decryption failed');
+            return $plain;
+        }
+        // Backward compatibility: try legacy raw base64(iv+tag+cipher)
+        $raw = base64_decode($value, true);
+        if (is_string($raw) && strlen($raw) >= 28) {
+            $iv = substr($raw, 0, 12);
+            $tag = substr($raw, 12, 16);
+            $cipher = substr($raw, 28);
+            $aad = hash('sha256', $context . self::$encryption_key, true);
+            $plain = openssl_decrypt($cipher, 'aes-256-gcm', self::$encryption_key, OPENSSL_RAW_DATA, $iv, $tag, $aad);
+            if ($plain !== false) return $plain;
+        }
+        // Treat as plaintext if nothing worked
+        return $value;
     }
 
     public static function encryptFile($content, $filePath) {
@@ -88,4 +104,3 @@ function enc_academic($v){ return PSAUEncryption::encrypt($v, 'academic'); }
 function dec_academic($v){ return PSAUEncryption::decrypt($v, 'academic'); }
 function enc_application($v){ return PSAUEncryption::encrypt($v, 'application'); }
 function dec_application($v){ return PSAUEncryption::decrypt($v, 'application'); }
-?>
