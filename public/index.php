@@ -117,5 +117,5 @@ try {
 } catch (PDOException $e) {
     // Log the error and display a user-friendly message
     error_log("Database Error: " . $e->getMessage());
-    include 'html/error.html'; // You should create this file with a user-friendly error message
+    include __DIR__ . '/html/error.html'; // User-friendly error page
 }
