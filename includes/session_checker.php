@@ -5,7 +5,7 @@
  */
 
 // Start session if not already started
-if (session_status() == PHP_SESSION_NONE) {
+if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -52,7 +52,7 @@ function is_user_logged_in($redirect_url = '../public/login.php') {
  */
 function is_admin_logged_in($redirect_url = 'login.php') {
     // Always start a session if not already started
-    if (session_status() == PHP_SESSION_NONE) {
+    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
         session_start();
     }
     
@@ -70,7 +70,7 @@ function is_admin_logged_in($redirect_url = 'login.php') {
  */
 function redirect_if_logged_in($redirect_url, $type = 'user') {
     // Always start a session if not already started
-    if (session_status() == PHP_SESSION_NONE) {
+    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
         session_start();
     }
     
