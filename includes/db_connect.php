@@ -60,6 +60,19 @@ try {
     $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     // Set charset to utf8
     $conn->exec("SET NAMES utf8");
+    // Auto-provision on first run if core tables are missing
+    try {
+        $chk = $conn->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'");
+        $chk->execute();
+        $hasUsers = (int)$chk->fetchColumn() > 0;
+        if (!$hasUsers) {
+            // Run provisioner to create all tables
+            require_once __DIR__ . '/../scripts/provision_database.php';
+        }
+    } catch (Throwable $e) {
+        // Ignore auto-provision errors here; normal pages can still handle gracefully
+        error_log('Auto-provision check failed: ' . $e->getMessage());
+    }
 } catch(PDOException $e) {
     // Log error instead of displaying it directly
     error_log("Connection failed: " . $e->getMessage());
