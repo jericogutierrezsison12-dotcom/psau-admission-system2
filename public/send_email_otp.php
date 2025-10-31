@@ -50,14 +50,21 @@ try {
 		'expires' => time() + (10 * 60),
 	];
 
-	// Store OTP request in database for rate limiting
-	$stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
-	$stmt->execute([
-		$email,
-		'registration_' . $otp,
-		$_SERVER['REMOTE_ADDR'] ?? '',
-		$_SERVER['HTTP_USER_AGENT'] ?? ''
-	]);
+    // Store OTP request in database for rate limiting (best-effort)
+    try {
+        if ($conn) {
+            $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+            $stmt->execute([
+                $email,
+                'registration_' . $otp,
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            ]);
+        }
+    } catch (Throwable $logErr) {
+        error_log('otp_requests insert failed: ' . $logErr->getMessage());
+        // continue; do not block OTP sending on logging failure
+    }
 
 	// Build email content
 	require_once '../firebase/firebase_email.php';
