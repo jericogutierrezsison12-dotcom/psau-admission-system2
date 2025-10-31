@@ -70,10 +70,24 @@ $messageType = '';
 $maxAttempts = 5;
 $disableUpload = false;
 $applicationStatus = '';
+// Ensure safe defaults when user is not available
+if (!$user || !is_array($user)) {
+    $user = [
+        'id' => null,
+        'first_name' => '',
+        'last_name' => '',
+        'email' => '',
+        'mobile_number' => '',
+        'control_number' => '',
+        'created_at' => null,
+    ];
+}
+// Default canSubmit to false; will be computed below if user exists
+$canSubmit = false;
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
-if ($user) {
+if (!empty($user['id'])) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
     $canSubmit = $attemptCheck['can_submit'];
@@ -389,11 +403,11 @@ include_once 'html/application_form.html';
 // Pass user data and existing application data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'email' => $user['email']
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? ''
     ]) . ';
-    const existingApplication = ' . json_encode($existing_application) . ';
+    const existingApplication = ' . json_encode($existing_application ?? null) . ';
     
     // Pre-fill form fields if existing application data exists
     if (existingApplication) {

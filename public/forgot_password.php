@@ -32,11 +32,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Please enter a valid email address';
         } else {
-            // Check if user exists with this email
+            // Try fast lookup by encrypted equality (may fail due to randomized IVs)
             $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE email = ? AND is_verified = 1");
             $stmt->execute([enc_contact($email)]);
             $user = $stmt->fetch();
-            
+
+            // Fallback: scan verified users and compare decrypted email (works regardless of IV)
+            if (!$user) {
+                try {
+                    $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE is_verified = 1");
+                    $stmt->execute();
+                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $needle = strtolower(trim($email));
+                    foreach ($rows as $row) {
+                        $decEmail = '';
+                        try { $decEmail = dec_contact($row['email'] ?? ''); } catch (Exception $e) { $decEmail = ''; }
+                        if (strtolower(trim($decEmail)) === $needle) {
+                            $user = $row;
+                            break;
+                        }
+                    }
+                } catch (PDOException $e) {
+                    // ignore, will report not found below
+                }
+            }
+
             if (!$user) {
                 $errors['email'] = 'No verified account found with this email address';
             } else {

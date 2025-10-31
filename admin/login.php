@@ -35,20 +35,26 @@ $device_id = get_device_identifier();
 cleanup_expired_blocks();
 
 // Initial check if device is blocked - only check if blocked, don't track attempt
-$stmt = $conn->prepare("SELECT * FROM admin_login_attempts 
-                       WHERE device_id = ? 
-                       AND is_blocked = 1 
-                       AND block_expires > ?");
-$stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
+try {
+    $stmt = $conn->prepare("SELECT * FROM admin_login_attempts 
+                           WHERE device_id = ? 
+                           AND is_blocked = 1 
+                           AND block_expires > ?");
+    $stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
 
-if ($stmt->rowCount() > 0) {
-    $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
-    $time_left = strtotime($block_data['block_expires']) - time();
-    $block_info = [
-        'blocked' => true, 
-        'expires' => $block_data['block_expires'],
-        'minutes_left' => ceil($time_left / 60)
-    ];
+    if ($stmt->rowCount() > 0) {
+        $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        $time_left = strtotime($block_data['block_expires']) - time();
+        $block_info = [
+            'blocked' => true, 
+            'expires' => $block_data['block_expires'],
+            'minutes_left' => ceil($time_left / 60)
+        ];
+    }
+} catch (PDOException $e) {
+    // Table or column may not exist yet; skip device block check gracefully
+    error_log('Admin device block check skipped: ' . $e->getMessage());
+    $block_info = null;
 }
 
 // Process login form submission

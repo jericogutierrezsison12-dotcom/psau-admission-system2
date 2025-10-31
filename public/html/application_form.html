@@ -43,7 +43,7 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="upload-container">
-                        <?php if (!$canSubmit): ?>
+                        <?php if (empty($canSubmit)): ?>
                             <div class="text-center py-4">
                                 <i class="bi bi-exclamation-circle display-1 text-warning"></i>
                                 <h4 class="mt-3">Application Already In Progress</h4>
@@ -55,7 +55,7 @@
                         <?php else: ?>
                             <h4 class="mb-4">Upload Your Grades Document</h4>
                             
-                            <?php if ($disableUpload): ?>
+                            <?php if (!empty($disableUpload)): ?>
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle me-2"></i>
                                 <strong>Your application has been submitted.</strong>
@@ -175,10 +175,10 @@
                             <h5 class="mb-0">Applicant Information</h5>
                         </div>
                         <div class="card-body">
-                            <p><strong>Name:</strong> <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></p>
-                            <p><strong>Control Number:</strong> <?php echo htmlspecialchars($user['control_number']); ?></p>
-                            <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
-                            <p><strong>Mobile:</strong> <?php echo htmlspecialchars($user['mobile_number']); ?></p>
+                            <p><strong>Name:</strong> <?php echo htmlspecialchars((($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))); ?></p>
+                            <p><strong>Control Number:</strong> <?php echo htmlspecialchars($user['control_number'] ?? ''); ?></p>
+                            <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email'] ?? ''); ?></p>
+                            <p><strong>Mobile:</strong> <?php echo htmlspecialchars($user['mobile_number'] ?? ''); ?></p>
                         </div>
                     </div>
                     
@@ -187,7 +187,7 @@
                             <h5 class="mb-0">Application Status</h5>
                         </div>
                         <div class="card-body">
-                            <?php if ($canSubmit): ?>
+                            <?php if (!empty($canSubmit)): ?>
                                 <p class="text-center">You can submit an application.</p>
                             <?php else: ?>
                                 <p class="text-center">You cannot submit an application.</p>
