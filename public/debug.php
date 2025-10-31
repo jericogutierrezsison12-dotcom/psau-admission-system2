@@ -1,4 +1,38 @@
 <?php
+// Simple diagnostics page
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+header('Content-Type: text/plain');
+echo "DEBUG\n";
+
+require_once __DIR__ . '/../includes/db_connect.php';
+
+try {
+    $stmt = $conn->query('SELECT DATABASE() as db');
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo 'Connected DB: ' . ($row['db'] ?? '(unknown)') . "\n";
+
+    $tables = [
+        'users', 'announcements', 'courses', 'exam_instructions', 'enrollment_instructions',
+        'exam_required_documents', 'required_documents', 'applications', 'exam_schedules', 'logs'
+    ];
+    foreach ($tables as $t) {
+        try {
+            $conn->query("SELECT 1 FROM `{$t}` LIMIT 1");
+            echo "[OK] $t\n";
+        } catch (Throwable $te) {
+            echo "[MISS] $t - " . $te->getMessage() . "\n";
+        }
+    }
+} catch (Throwable $e) {
+    echo 'DB_ERROR: ' . $e->getMessage() . "\n";
+}
+
+?>
+
+<?php
 // Temporary debug endpoint - remove after troubleshooting
 header('Content-Type: text/plain');
 require_once __DIR__ . '/../includes/db_connect.php';

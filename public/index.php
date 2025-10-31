@@ -1,5 +1,9 @@
 <?php
 session_start();
+// Temporary error visibility for white screen debugging (safe to remove later)
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 require_once '../includes/db_connect.php';
 
 try {
@@ -35,8 +39,14 @@ try {
 
     // Include the HTML template
     ob_start();
-    include 'html/index.html';
-    $template = ob_get_clean();
+    $templatePath = __DIR__ . '/html/index.html';
+    if (file_exists($templatePath)) {
+        include $templatePath;
+        $template = ob_get_clean();
+    } else {
+        ob_end_clean();
+        $template = '<!doctype html><html><head><meta charset="utf-8"><title>PSAU Admission</title></head><body><h1>Home</h1><p>Template missing at public/html/index.html</p></body></html>';
+    }
 
     // Replace announcement placeholders
     $announcement_html = '';
