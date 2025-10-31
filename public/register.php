@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 /**
  * PSAU Admission System - Registration Page
  * Allows new applicants to register with OTP verification
