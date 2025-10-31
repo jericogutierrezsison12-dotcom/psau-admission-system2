@@ -1,5 +1,5 @@
-# Secrets
-includes/secret_key.php
+# Secrets (temporarily track secret_key.php for deployment)
+# includes/secret_key.php
 .env
 
 # Runtime/uploads
