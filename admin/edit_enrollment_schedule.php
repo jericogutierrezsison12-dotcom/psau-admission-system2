@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
+require_once '../includes/encryption.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
@@ -232,7 +233,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE ea.schedule_id = ?
             ');
             $stmt->execute([$schedule_id]);
-            $assigned_students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $assigned_students = [];
+            foreach ($rows as $r) {
+                try {
+                    $r['first_name'] = dec_personal($r['first_name'] ?? '');
+                    $r['last_name'] = dec_personal($r['last_name'] ?? '');
+                    $r['email'] = dec_contact($r['email'] ?? '');
+                } catch (Exception $e) {}
+                $assigned_students[] = $r;
+            }
 
             // Send email notifications to all assigned students
             foreach ($assigned_students as $student) {

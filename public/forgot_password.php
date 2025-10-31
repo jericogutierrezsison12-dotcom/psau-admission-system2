@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
 require_once '../includes/otp_attempt_tracking.php';
+require_once '../includes/encryption.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -33,13 +34,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Check if user exists with this email
             $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE email = ? AND is_verified = 1");
-            $stmt->execute([$email]);
+            $stmt->execute([enc_contact($email)]);
             $user = $stmt->fetch();
             
             if (!$user) {
                 $errors['email'] = 'No verified account found with this email address';
             } else {
                 // Store user data in session for later use
+                // Decrypt for session use
+                try {
+                    $user['first_name'] = dec_personal($user['first_name'] ?? '');
+                    $user['last_name'] = dec_personal($user['last_name'] ?? '');
+                    $user['email'] = dec_contact($user['email'] ?? '');
+                    $user['mobile_number'] = dec_contact($user['mobile_number'] ?? '');
+                } catch (Exception $e) {}
+
                 $_SESSION['password_reset'] = [
                     'user_id' => $user['id'],
                     'email' => $user['email'],

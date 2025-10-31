@@ -1,3 +1,22 @@
+# Secrets
+includes/secret_key.php
+.env
+
+# Runtime/uploads
+uploads/
+images/
+
+# Dependencies/build
+vendor/
+node_modules/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+
 # Dependencies
 /vendor/
 composer.phar

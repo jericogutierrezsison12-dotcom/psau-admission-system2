@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
+require_once '../includes/encryption.php';
 require_once '../includes/admin_auth.php';
 
 // Start session if not started
@@ -25,14 +26,10 @@ $search_condition = '';
 $status_condition = '';
 $date_condition = '';
 
+// For encrypted fields, we'll filter in PHP after decryption. Keep DB filtering for control_number and course fields only.
 if (!empty($search_term)) {
     $search_condition = " AND (
         u.control_number LIKE :search OR 
-        u.first_name LIKE :search OR 
-        u.last_name LIKE :search OR 
-        u.email LIKE :search OR 
-        u.mobile_number LIKE :search OR
-        CONCAT(u.first_name, ' ', u.last_name) LIKE :search OR
         EXISTS (
             SELECT 1 FROM course_assignments ca2 
             JOIN courses c2 ON ca2.course_id = c2.id 
@@ -113,7 +110,31 @@ try {
     }
     
     $stmt->execute();
-    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $students = [];
+    foreach ($rows as $row) {
+        try {
+            $row['first_name'] = dec_personal($row['first_name'] ?? '');
+            $row['last_name'] = dec_personal($row['last_name'] ?? '');
+            $row['email'] = dec_contact($row['email'] ?? '');
+            $row['mobile_number'] = dec_contact($row['mobile_number'] ?? '');
+        } catch (Exception $e) {}
+        $students[] = $row;
+    }
+
+    // Apply PHP-side filtering for decrypted fields when search term provided
+    if (!empty($search_term)) {
+        $needle = mb_strtolower($search_term);
+        $students = array_values(array_filter($students, function($s) use ($needle) {
+            $full = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
+            foreach ([$s['first_name'] ?? '', $s['last_name'] ?? '', $full, $s['email'] ?? '', $s['mobile_number'] ?? '', $s['control_number'] ?? ''] as $field) {
+                if ($field !== null && $field !== '' && mb_stripos((string)$field, $needle) !== false) {
+                    return true;
+                }
+            }
+            return false;
+        }));
+    }
     
     // Get status counts
     $count_query = "
@@ -129,25 +150,11 @@ try {
         GROUP BY ea.status
     ";
     
-    $count_stmt = $conn->prepare($count_query);
-    if (!empty($search_term)) {
-        $count_stmt->bindParam(':search', $search_param);
-    }
-    if (!empty($status_filter)) {
-        $count_stmt->bindParam(':status_filter', $status_filter);
-    }
-    if (!empty($date_from)) {
-        $count_stmt->bindParam(':date_from', $date_from);
-    }
-    if (!empty($date_to)) {
-        $count_stmt->bindParam(':date_to', $date_to);
-    }
-    $count_stmt->execute();
-    $status_counts = $count_stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Organize counts
-    foreach ($status_counts as $count) {
-        $counts[$count['status']] = $count['count'];
+    // Recompute counts from the (possibly filtered) $students to reflect decrypted search
+    $counts = [ 'completed' => 0, 'cancelled' => 0, 'pending' => 0 ];
+    foreach ($students as $s) {
+        $st = $s['enrollment_status'] ?? 'pending';
+        if (isset($counts[$st])) $counts[$st]++;
     }
     
 } catch (PDOException $e) {

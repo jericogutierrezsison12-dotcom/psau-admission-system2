@@ -3,6 +3,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
+require_once '../includes/encryption.php';
 
 is_admin_logged_in('login.php');
 require_page_access('view_all_users');
@@ -62,21 +63,36 @@ try {
             ) a ON a.user_id = u.id';
     $params = [];
     if ($q !== '') {
-        $sql .= ' WHERE (
-            u.control_number LIKE :q OR
-            u.email LIKE :q OR
-            u.mobile_number LIKE :q OR
-            u.first_name LIKE :q OR
-            u.last_name LIKE :q OR
-            CONCAT(u.first_name, " ", u.last_name) LIKE :q
-        )';
+        // Keep DB-side filter to control_number only; decrypted fields filtered in PHP
+        $sql .= ' WHERE (u.control_number LIKE :q)';
         $params[':q'] = "%$q%";
     }
     $sql .= ' ORDER BY attempt_count DESC, u.created_at DESC';
     $stmt = $conn->prepare($sql);
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Decrypt and apply PHP-side search on names/email/mobile
+    $users = [];
+    foreach ($rows as $r) {
+        try {
+            $r['first_name'] = dec_personal($r['first_name'] ?? '');
+            $r['last_name'] = dec_personal($r['last_name'] ?? '');
+            $r['email'] = dec_contact($r['email'] ?? '');
+            $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
+        } catch (Exception $e) {}
+        $users[] = $r;
+    }
+    if ($q !== '') {
+        $needle = mb_strtolower($q);
+        $users = array_values(array_filter($users, function($u) use ($needle) {
+            $full = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+            foreach ([$u['first_name'] ?? '', $u['last_name'] ?? '', $full, $u['email'] ?? '', $u['mobile_number'] ?? '', $u['control_number'] ?? ''] as $f) {
+                if ($f !== '' && mb_stripos((string)$f, $needle) !== false) return true;
+            }
+            return false;
+        }));
+    }
 } catch (PDOException $e) {}
 
 include 'html/view_all_users.html';

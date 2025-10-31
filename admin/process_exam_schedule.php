@@ -7,6 +7,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
+require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 if (session_status() === PHP_SESSION_NONE) {
@@ -158,7 +159,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_schedule') {
                     $stmt->bindParam(1, $exam_date, PDO::PARAM_STR);
                     $stmt->bindParam(2, $limit_value, PDO::PARAM_INT);
                     $stmt->execute();
-                    $auto_applicants = $stmt->fetchAll();
+                    $rows = $stmt->fetchAll();
+                    $auto_applicants = [];
+                    foreach ($rows as $r) {
+                        try {
+                            $r['first_name'] = dec_personal($r['first_name'] ?? '');
+                            $r['last_name'] = dec_personal($r['last_name'] ?? '');
+                            $r['email'] = dec_contact($r['email'] ?? '');
+                            $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
+                        } catch (Exception $e) {}
+                        $auto_applicants[] = $r;
+                    }
                     $assigned_count = 0;
                     
                     foreach ($auto_applicants as $applicant) {
@@ -281,6 +292,13 @@ else if (isset($_POST['action']) && $_POST['action'] === 'assign_applicants') {
                 ");
                 $stmt->execute([$applicant_id]);
                 $applicant = $stmt->fetch();
+                if ($applicant) {
+                    try {
+                        $applicant['first_name'] = dec_personal($applicant['first_name'] ?? '');
+                        $applicant['last_name'] = dec_personal($applicant['last_name'] ?? '');
+                        $applicant['email'] = dec_contact($applicant['email'] ?? '');
+                    } catch (Exception $e) {}
+                }
                 
                 if ($applicant) {
                     // Update application status

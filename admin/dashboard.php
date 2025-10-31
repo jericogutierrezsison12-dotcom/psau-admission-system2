@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 is_admin_logged_in('login.php');
@@ -92,7 +93,12 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC 
                          LIMIT 5");
-    $pending_applications = $stmt->fetchAll();
+    $rows = $stmt->fetchAll();
+    $pending_applications = [];
+    foreach ($rows as $r) {
+        try { $r['first_name'] = dec_personal($r['first_name'] ?? ''); $r['last_name'] = dec_personal($r['last_name'] ?? ''); } catch (Exception $e) {}
+        $pending_applications[] = $r;
+    }
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -121,7 +127,12 @@ try {
         LIMIT 5
     ");
     $stmt->execute();
-    $recent_scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $recent_scores = [];
+    foreach ($rows as $r) {
+        try { $r['first_name'] = dec_personal($r['first_name'] ?? ''); $r['last_name'] = dec_personal($r['last_name'] ?? ''); } catch (Exception $e) {}
+        $recent_scores[] = $r;
+    }
 } catch (PDOException $e) {
     $error_message = "Error fetching score statistics: " . $e->getMessage();
 }

@@ -6,6 +6,7 @@
 
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
+require_once '../includes/encryption.php';
 require_once '../includes/session_checker.php';
 
 // Check if user is logged in
@@ -17,6 +18,19 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get current user data (includes educational background from applications table)
 $user = get_current_user_data($conn);
+// Decrypt fields for display if present
+if ($user) {
+    try {
+        $user['first_name'] = dec_personal($user['first_name'] ?? '');
+        $user['last_name'] = dec_personal($user['last_name'] ?? '');
+        $user['gender'] = dec_personal($user['gender'] ?? '');
+        $user['birth_date'] = dec_personal($user['birth_date'] ?? '');
+        $user['mobile_number'] = dec_contact($user['mobile_number'] ?? '');
+        $user['email'] = dec_contact($user['email'] ?? '');
+    } catch (Exception $e) {
+        // If decryption fails, keep raw values
+    }
+}
 if (!$user) {
     header('Location: login.php');
     exit;
@@ -52,19 +66,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Add personal info fields
         $sql_parts[] = "first_name = ?";
-        $params[] = $first_name;
+        $params[] = enc_personal($first_name);
         
         $sql_parts[] = "last_name = ?";
-        $params[] = $last_name;
+        $params[] = enc_personal($last_name);
         
         $sql_parts[] = "gender = ?";
-        $params[] = $gender;
+        $params[] = enc_personal($gender);
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = !empty($birth_date) ? $birth_date : null;
+        $params[] = !empty($birth_date) ? enc_personal($birth_date) : null;
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = $mobile_number;
+        $params[] = enc_contact($mobile_number);
         
 
         // Check if password change was requested

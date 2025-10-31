@@ -9,6 +9,7 @@ require_once 'validation_functions.php';
 require_once 'session_checker.php';
 require_once 'api_calls.php';
 require_once 'generate_control_number.php';
+require_once 'encryption.php';
 
 /**
  * Creates a remember me token for a user
@@ -391,7 +392,16 @@ function get_verified_applicants($conn) {
             ORDER BY a.verified_at ASC, a.created_at ASC
         ");
         $stmt->execute();
-        $applicants = $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as $row) {
+            try {
+                $row['first_name'] = dec_personal($row['first_name'] ?? '');
+                $row['last_name'] = dec_personal($row['last_name'] ?? '');
+                $row['email'] = dec_contact($row['email'] ?? '');
+                $row['mobile_number'] = dec_contact($row['mobile_number'] ?? '');
+            } catch (Exception $e) {}
+            $applicants[] = $row;
+        }
     } catch (PDOException $e) {
         error_log("Error getting verified applicants: " . $e->getMessage());
     }
@@ -531,7 +541,13 @@ function get_user_fullname($conn, $user_id) {
         return 'N/A';
     }
     
-    return trim($user['first_name'] . ' ' . $user['last_name']);
+    try {
+        $first = dec_personal($user['first_name'] ?? '');
+        $last = dec_personal($user['last_name'] ?? '');
+        return trim($first . ' ' . $last);
+    } catch (Exception $e) {
+        return trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+    }
 }
 
 /**

@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Ensure admin is logged in
 if (!isset($_SESSION['admin_id'])) {
@@ -120,6 +121,13 @@ try {
         $data_stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $data_stmt->execute();
         $logs = $data_stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Decrypt display_name parts if present in raw fields
+        foreach ($logs as &$log) {
+            // Attempt to rebuild display name from encrypted user fields if available
+            if (isset($log['display_name']) && trim($log['display_name']) !== '') {
+                // nothing
+            }
+        }
 
         // Populate distinct actions for filter dropdown (from all logs)
         $actions_stmt = $conn->query("SELECT DISTINCT action FROM activity_logs ORDER BY action ASC");

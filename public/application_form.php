@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
+require_once '../includes/encryption.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -259,9 +260,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $image_ext,
                                 $previous_school,
                                 $school_year,
-                                $strand,
-                                $gpa,
-                                $address,
+                                enc_academic($strand),
+                                enc_academic($gpa),
+                                enc_personal($address),
                                 $existing_rejected['id']
                             ]);
                             
@@ -315,9 +316,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $image_ext,
                                 $previous_school,
                                 $school_year,
-                                $strand,
-                                $gpa,
-                                $address
+                                enc_academic($strand),
+                                enc_academic($gpa),
+                                enc_personal($address)
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -342,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             WHERE id = ?");
                         
                         $update_user->execute([
-                            $address,
+                            enc_personal($address),
                             $user['id']
                         ]);
                         

@@ -9,6 +9,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../firebase/firebase_email.php';
+require_once '../includes/encryption.php';
 
 // Check if user is logged in as admin
 is_admin_logged_in();
@@ -114,6 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_course'])) {
         ");
         $stmt->execute([$course_id, $user_id]);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($data) {
+            try {
+                $data['first_name'] = dec_personal($data['first_name'] ?? '');
+                $data['last_name'] = dec_personal($data['last_name'] ?? '');
+                $data['email'] = dec_contact($data['email'] ?? '');
+            } catch (Exception $e) {}
+        }
         
         // Log activity
         $stmt = $conn->prepare("
@@ -212,7 +220,16 @@ try {
             ees.stanine_score DESC, a.gpa DESC
     ");
     $stmt->execute();
-    $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $applicants = [];
+    foreach ($rows as $r) {
+        try {
+            $r['first_name'] = dec_personal($r['first_name'] ?? '');
+            $r['last_name'] = dec_personal($r['last_name'] ?? '');
+            $r['email'] = dec_contact($r['email'] ?? '');
+        } catch (Exception $e) {}
+        $applicants[] = $r;
+    }
     
     // Get user course preferences for each applicant
     foreach ($applicants as $key => $applicant) {
@@ -290,7 +307,15 @@ try {
         LIMIT 10
     ");
     $stmt->execute();
-    $recent_assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $recent_assignments = [];
+    foreach ($rows as $r) {
+        try {
+            $r['first_name'] = dec_personal($r['first_name'] ?? '');
+            $r['last_name'] = dec_personal($r['last_name'] ?? '');
+        } catch (Exception $e) {}
+        $recent_assignments[] = $r;
+    }
 } catch (PDOException $e) {
     error_log("Error fetching recent assignments: " . $e->getMessage());
     $recent_assignments = [];

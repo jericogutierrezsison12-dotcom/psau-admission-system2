@@ -15,11 +15,21 @@ if (file_exists(__DIR__ . '/../.env')) {
     }
 }
 
+// Load PHP-provided encryption key if present (works on Render without shell env)
+if (file_exists(__DIR__ . '/secret_key.php')) {
+    // secret_key.php should define $ENCRYPTION_KEY_B64
+    include_once __DIR__ . '/secret_key.php';
+    if (!empty($ENCRYPTION_KEY_B64)) {
+        putenv('ENCRYPTION_KEY=' . $ENCRYPTION_KEY_B64);
+        $_ENV['ENCRYPTION_KEY'] = $ENCRYPTION_KEY_B64;
+    }
+}
+
 // Database credentials - use environment variables if available, otherwise Railway defaults
 $host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
+$password = $_ENV['DB_PASS'] ?? 'IaUWDcKClkXCxBMsWoPDmVwgLjtICxyg';
 $port = $_ENV['DB_PORT'] ?? 40148;
 
 // Create connection

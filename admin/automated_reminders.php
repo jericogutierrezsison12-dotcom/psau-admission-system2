@@ -8,6 +8,7 @@
 require_once __DIR__ . '/../includes/db_connect.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../firebase/firebase_email.php';
+require_once __DIR__ . '/../includes/encryption.php';
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
@@ -43,7 +44,16 @@ function sendEntranceExamReminders($conn) {
         
         $stmt = $conn->prepare($query);
         $stmt->execute();
-        $exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $exams = [];
+        foreach ($rows as $r) {
+            try {
+                $r['first_name'] = dec_personal($r['first_name'] ?? '');
+                $r['last_name'] = dec_personal($r['last_name'] ?? '');
+                $r['email'] = dec_contact($r['email'] ?? '');
+            } catch (Exception $e) {}
+            $exams[] = $r;
+        }
         
         error_log("Found " . count($exams) . " entrance exams scheduled for tomorrow (24-hour reminder)");
         
@@ -143,7 +153,16 @@ function sendEnrollmentReminders($conn) {
         
         $stmt = $conn->prepare($query);
         $stmt->execute();
-        $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $enrollments = [];
+        foreach ($rows as $r) {
+            try {
+                $r['first_name'] = dec_personal($r['first_name'] ?? '');
+                $r['last_name'] = dec_personal($r['last_name'] ?? '');
+                $r['email'] = dec_contact($r['email'] ?? '');
+            } catch (Exception $e) {}
+            $enrollments[] = $r;
+        }
         
         error_log("Found " . count($enrollments) . " enrollments scheduled for tomorrow (24-hour reminder)");
         
