@@ -10,6 +10,45 @@ require_once 'session_checker.php';
 require_once 'api_calls.php';
 require_once 'generate_control_number.php';
 require_once 'encryption.php';
+/**
+ * Decrypt a single user row's sensitive fields
+ */
+function decrypt_user_row($row) {
+    if (!is_array($row)) return $row;
+    try {
+        if (array_key_exists('first_name', $row)) { $row['first_name'] = dec_personal($row['first_name'] ?? ''); }
+        if (array_key_exists('last_name', $row)) { $row['last_name'] = dec_personal($row['last_name'] ?? ''); }
+        if (array_key_exists('email', $row)) { $row['email'] = dec_contact($row['email'] ?? ''); }
+        if (array_key_exists('mobile_number', $row)) { $row['mobile_number'] = dec_contact($row['mobile_number'] ?? ''); }
+        if (array_key_exists('address', $row)) { $row['address'] = dec_personal($row['address'] ?? ''); }
+        if (array_key_exists('birth_date', $row)) { $row['birth_date'] = dec_personal($row['birth_date'] ?? ''); }
+        if (array_key_exists('gender', $row)) { $row['gender'] = dec_personal($row['gender'] ?? ''); }
+    } catch (Exception $e) {}
+    return $row;
+}
+
+/**
+ * Decrypt an array of user rows
+ */
+function decrypt_user_rows($rows) {
+    if (!is_array($rows)) return $rows;
+    $out = [];
+    foreach ($rows as $r) { $out[] = decrypt_user_row($r); }
+    return $out;
+}
+
+/**
+ * Decrypt an application row's sensitive fields
+ */
+function decrypt_application_row($row) {
+    if (!is_array($row)) return $row;
+    try {
+        if (array_key_exists('strand', $row)) { $row['strand'] = dec_academic($row['strand'] ?? ''); }
+        if (array_key_exists('gpa', $row)) { $row['gpa'] = dec_academic($row['gpa'] ?? ''); }
+        if (array_key_exists('address', $row)) { $row['address'] = dec_personal($row['address'] ?? ''); }
+    } catch (Exception $e) {}
+    return $row;
+}
 
 /**
  * Creates a remember me token for a user

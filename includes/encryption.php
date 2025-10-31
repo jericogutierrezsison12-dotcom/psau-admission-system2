@@ -10,17 +10,42 @@ class PSAUEncryption {
 
     private static function initialize() {
         if (self::$initialized) return;
-        $key = getenv('ENCRYPTION_KEY');
-        if (empty($key)) {
-            $key = random_bytes(32);
-            error_log("Generated new encryption key. Save to .env as ENCRYPTION_KEY=" . base64_encode($key));
-        } else {
-            $key = base64_decode($key);
+        $keyBytes = null;
+        // Prefer base64 env first
+        $keyB64 = getenv('ENCRYPTION_KEY_B64') ?: ($_ENV['ENCRYPTION_KEY_B64'] ?? '');
+        if (!empty($keyB64)) {
+            $decoded = base64_decode($keyB64, true);
+            if ($decoded !== false) {
+                $keyBytes = $decoded;
+            }
         }
-        if (strlen($key) !== 32) {
-            throw new Exception('Invalid encryption key length (must be 32 bytes)');
+        // Fallback: legacy ENCRYPTION_KEY env (base64)
+        if ($keyBytes === null) {
+            $legacy = getenv('ENCRYPTION_KEY') ?: ($_ENV['ENCRYPTION_KEY'] ?? '');
+            if (!empty($legacy)) {
+                $decoded = base64_decode($legacy, true);
+                if ($decoded !== false) {
+                    $keyBytes = $decoded;
+                }
+            }
         }
-        self::$encryption_key = $key;
+        // Fallback: includes/secret_key.php variable
+        if ($keyBytes === null) {
+            $secretPath = __DIR__ . '/secret_key.php';
+            if (file_exists($secretPath)) {
+                include $secretPath;
+                if (isset($ENCRYPTION_KEY_B64) && !empty($ENCRYPTION_KEY_B64)) {
+                    $decoded = base64_decode($ENCRYPTION_KEY_B64, true);
+                    if ($decoded !== false) {
+                        $keyBytes = $decoded;
+                    }
+                }
+            }
+        }
+        if ($keyBytes === null || strlen($keyBytes) !== 32) {
+            throw new Exception('Missing or invalid ENCRYPTION_KEY_B64. Provide a base64-encoded 32-byte key.');
+        }
+        self::$encryption_key = $keyBytes;
         self::$initialized = true;
     }
 
