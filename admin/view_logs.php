@@ -106,6 +106,8 @@ try {
                 al.*, 
                 COALESCE(a.username, u.control_number, 'Unknown') AS username,
                 TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,''))) AS display_name,
+                u.first_name AS enc_first_name,
+                u.last_name AS enc_last_name,
                 COALESCE(a.role, 'user') AS role,
                 CASE WHEN a.id IS NOT NULL THEN a.role ELSE 'user' END AS user_type
             FROM activity_logs al
@@ -121,11 +123,17 @@ try {
         $data_stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $data_stmt->execute();
         $logs = $data_stmt->fetchAll(PDO::FETCH_ASSOC);
-        // Decrypt display_name parts if present in raw fields
+        // Decrypt to build readable display_name
         foreach ($logs as &$log) {
-            // Attempt to rebuild display name from encrypted user fields if available
-            if (isset($log['display_name']) && trim($log['display_name']) !== '') {
-                // nothing
+            if (!empty($log['enc_first_name']) || !empty($log['enc_last_name'])) {
+                try {
+                    $first = dec_personal($log['enc_first_name'] ?? '');
+                    $last = dec_personal($log['enc_last_name'] ?? '');
+                    $name = trim(($first ? $first : '') . ' ' . ($last ? $last : ''));
+                    if ($name !== '') {
+                        $log['display_name'] = $name;
+                    }
+                } catch (Exception $e) {}
             }
         }
 
