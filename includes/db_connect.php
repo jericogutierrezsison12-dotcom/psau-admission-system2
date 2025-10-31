@@ -25,12 +25,30 @@ if (file_exists(__DIR__ . '/secret_key.php')) {
     }
 }
 
-// Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'yamanote.proxy.rlwy.net';
-$dbname = $_ENV['DB_NAME'] ?? 'railway';
-$username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'IaUWDcKClkXCxBMsWoPDmVwgLjtICxyg';
-$port = $_ENV['DB_PORT'] ?? 47606;
+// Database credentials - prefer standardized DB_* envs, then fall back to common Railway/MySQL envs, then safe defaults
+$host = $_ENV['DB_HOST']
+    ?? $_ENV['MYSQLHOST']
+    ?? $_ENV['RAILWAY_PRIVATE_DOMAIN']
+    ?? $_ENV['RAILWAY_TCP_PROXY_DOMAIN']
+    ?? '127.0.0.1';
+
+$dbname = $_ENV['DB_NAME']
+    ?? $_ENV['MYSQL_DATABASE']
+    ?? 'railway';
+
+$username = $_ENV['DB_USER']
+    ?? $_ENV['MYSQLUSER']
+    ?? 'root';
+
+$password = $_ENV['DB_PASS']
+    ?? $_ENV['MYSQLPASSWORD']
+    ?? $_ENV['MYSQL_ROOT_PASSWORD']
+    ?? 'zUILKKOYQTJykTmwhCYxFeaIWVHHjaKb';
+
+$port = (int) ($_ENV['DB_PORT']
+    ?? $_ENV['MYSQLPORT']
+    ?? $_ENV['RAILWAY_TCP_PROXY_PORT']
+    ?? 3306);
 
 // Create connection
 $conn = null;
