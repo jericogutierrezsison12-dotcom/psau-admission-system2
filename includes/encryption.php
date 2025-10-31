@@ -43,7 +43,8 @@ final class PSAUEncryption {
     }
 
     private static function isNewFormat($value) {
-        return is_string($value) && str_starts_with($value, self::PREFIX);
+        if (!is_string($value)) return false;
+        return substr($value, 0, strlen(self::PREFIX)) === self::PREFIX;
     }
 
     public static function encrypt($data, $context = '') {
