@@ -8,6 +8,3 @@ $ENCRYPTION_KEY_B64 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 
 // Token to protect the provisioning endpoint
 $PROVISION_TOKEN = 'psau-provision-setup-2025';
-?>
-
-
