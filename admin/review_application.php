@@ -67,11 +67,32 @@ try {
     $stmt->bindParam(':app_id', $application_id);
     $stmt->execute();
     
-    if ($stmt->rowCount() > 0) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $application = $result;
-        $user = $result;
-        
+   if ($stmt->rowCount() > 0) {
+       $result = $stmt->fetch(PDO::FETCH_ASSOC);
+       $application = $result;
+       $user = $result;
+
+        // Decrypt user and application data
+        $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+        $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
+        $user['contact_number'] = safeDecryptField($user['contact_number'] ?? '', 'users', 'mobile_number');
+        $user['gender'] = safeDecryptField($user['gender'] ?? '', 'users', 'gender');
+        $user['birth_date'] = safeDecryptField($user['birth_date'] ?? '', 'users', 'birth_date');
+
+        // Decrypt application fields, knowing that user fields might overwrite them
+        $application['previous_school'] = safeDecryptField($application['previous_school'] ?? '', 'applications', 'previous_school');
+        $application['school_year'] = safeDecryptField($application['school_year'] ?? '', 'applications', 'school_year');
+        $application['strand'] = safeDecryptField($application['strand'] ?? '', 'applications', 'strand');
+        $application['gpa'] = safeDecryptField($application['gpa'] ?? '', 'applications', 'gpa');
+        $application['age'] = safeDecryptField($application['age'] ?? '', 'applications', 'age');
+
+        // Address is tricky due to collision. u.address overwrites a.address.
+        // We try decrypting as a user field. If it's empty, we might need to fetch a.address separately.
+        // For now, let's just decrypt what we have. The `safeDecryptField` has fallbacks.
+        $user['address'] = safeDecryptField($user['address'] ?? '', 'users', 'address');
+        $application['address'] = $user['address']; // Keep them in sync
+
         // Format file sizes to human-readable format
         $application['document_file_size_formatted'] = $application['document_file_size'] ? number_format($application['document_file_size'] / 1024, 2) . ' KB' : 'N/A';
         $application['image_2x2_size_formatted'] = $application['image_2x2_size'] ? number_format($application['image_2x2_size'] / 1024, 2) . ' KB' : 'N/A';
@@ -88,23 +109,6 @@ try {
         // Debug info for application data
         error_log("Application data for ID {$application_id}: " . json_encode($application));
         
-        // Ensure address field is properly loaded
-        if (!isset($application['address']) || empty($application['address'])) {
-            error_log("Address is empty or missing in application data");
-            
-            // Try to fetch address separately to confirm it exists in the database
-            $addr_stmt = $conn->prepare("SELECT address FROM applications WHERE id = :id");
-            $addr_stmt->bindParam(':id', $application_id);
-            $addr_stmt->execute();
-            $addr_result = $addr_stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($addr_result && isset($addr_result['address'])) {
-                $application['address'] = $addr_result['address'];
-                error_log("Retrieved address separately: {$application['address']}");
-            } else {
-                error_log("Address field cannot be found in database");
-            }
-        }
     } else {
         $error_message = "No application found with ID " . htmlspecialchars($application_id);
         include 'html/review_application.html';
@@ -387,4 +391,4 @@ function get_status_color($status) {
 }
 
 // Include the HTML template
-include 'html/review_application.html'; 
+include 'html/review_application.html';

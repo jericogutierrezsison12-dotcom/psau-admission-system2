@@ -343,4 +343,64 @@ function encryptApplicationData($data) {
 function decryptApplicationData($encrypted_data) {
     return PSAUEncryption::decrypt($encrypted_data, 'application_data');
 }
+
+/**
+ * Safely decrypt a single field with graceful fallbacks.
+ * Tries context-aware database decryption first, then legacy wrappers,
+ * and finally returns the original value if not encrypted.
+ *
+ * @param string $value
+ * @param string $table
+ * @param string $field
+ * @return string
+ */
+function safeDecryptField($value, $table, $field) {
+    if ($value === null || $value === '') {
+        return $value ?? '';
+    }
+
+    // Heuristic: looks like base64 and long enough
+    $maybeEncrypted = is_string($value) && strlen($value) > 60 && preg_match('/^[A-Za-z0-9+\/=]+$/', $value);
+
+    // Try table/field-based decryption first
+    if ($maybeEncrypted) {
+        try {
+            return PSAUEncryption::decryptFromDatabase($value, $table, $field);
+        } catch (Exception $e) {
+            // Fall through to legacy context wrappers
+        }
+    }
+
+    // Legacy wrapper fallbacks per table/field groups
+    try {
+        switch ($table) {
+            case 'users':
+                // Contact fields
+                if (in_array($field, ['email', 'mobile_number'], true)) {
+                    return decryptContactData($value);
+                }
+                // Personal fields
+                if (in_array($field, ['first_name', 'last_name', 'address', 'gender', 'birth_date'], true)) {
+                    return decryptPersonalData($value);
+                }
+                break;
+            case 'applications':
+                // Academic fields stored with academic context in legacy code
+                if (in_array($field, ['previous_school', 'school_year', 'strand', 'gpa', 'age', 'address'], true)) {
+                    return decryptAcademicData($value);
+                }
+                break;
+            default:
+                // Unknown table: return as-is
+                return $value;
+        }
+    } catch (Exception $e) {
+        // If wrapper fails or value is plaintext, return original
+        return $value;
+    }
+
+    // If no mapping matched, just return original
+    return $value;
+}
+
 ?>

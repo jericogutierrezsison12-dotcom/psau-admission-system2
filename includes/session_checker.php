@@ -107,19 +107,14 @@ function get_current_user_data($conn) {
             return null;
         }
         
-        // Decrypt sensitive user data
-        try {
-            $user['first_name'] = !empty($user['first_name']) ? decryptPersonalData($user['first_name']) : '';
-            $user['last_name'] = !empty($user['last_name']) ? decryptPersonalData($user['last_name']) : '';
-            $user['email'] = !empty($user['email']) ? decryptContactData($user['email']) : '';
-            $user['mobile_number'] = !empty($user['mobile_number']) ? decryptContactData($user['mobile_number']) : '';
-            $user['address'] = !empty($user['address']) ? decryptPersonalData($user['address']) : '';
-            $user['gender'] = !empty($user['gender']) ? decryptPersonalData($user['gender']) : '';
-            $user['birth_date'] = !empty($user['birth_date']) ? decryptPersonalData($user['birth_date']) : '';
-        } catch (Exception $e) {
-            // If decryption fails, data might be unencrypted, use as-is
-            error_log("Warning: Could not decrypt user data, using as-is: " . $e->getMessage());
-        }
+        // Decrypt sensitive user data with safe fallbacks
+        $user['first_name']    = safeDecryptField($user['first_name']    ?? '', 'users', 'first_name');
+        $user['last_name']     = safeDecryptField($user['last_name']     ?? '', 'users', 'last_name');
+        $user['email']         = safeDecryptField($user['email']         ?? '', 'users', 'email');
+        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
+        $user['address']       = safeDecryptField($user['address']       ?? '', 'users', 'address');
+        $user['gender']        = safeDecryptField($user['gender']        ?? '', 'users', 'gender');
+        $user['birth_date']    = safeDecryptField($user['birth_date']    ?? '', 'users', 'birth_date');
         
         // Fetch educational background from applications table
         $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
@@ -131,32 +126,16 @@ function get_current_user_data($conn) {
         $app_stmt->execute();
         $education = $app_stmt->fetch();
         
-        // Merge educational background data with user data (decrypt if needed)
+        // Merge educational background data with user data (safe decrypt)
         if ($education) {
-            try {
-                $user['previous_school'] = !empty($education['previous_school']) ? decryptAcademicData($education['previous_school']) : '';
-                $user['school_year'] = !empty($education['school_year']) ? decryptAcademicData($education['school_year']) : '';
-                $user['strand'] = !empty($education['strand']) ? decryptAcademicData($education['strand']) : '';
-                $user['gpa'] = !empty($education['gpa']) ? decryptAcademicData($education['gpa']) : '';
-                $user['age'] = !empty($education['age']) ? decryptAcademicData($education['age']) : '';
-                // Use application address if user address is empty
-                if (empty($user['address']) && !empty($education['address'])) {
-                    try {
-                        $user['address'] = decryptAcademicData($education['address']);
-                    } catch (Exception $e) {
-                        $user['address'] = $education['address']; // Use as-is if decryption fails
-                    }
-                }
-            } catch (Exception $e) {
-                // If decryption fails, use as-is (backwards compatibility)
-                $user['previous_school'] = $education['previous_school'] ?? '';
-                $user['school_year'] = $education['school_year'] ?? '';
-                $user['strand'] = $education['strand'] ?? '';
-                $user['gpa'] = $education['gpa'] ?? '';
-                $user['age'] = $education['age'] ?? '';
-                if (empty($user['address']) && !empty($education['address'])) {
-                    $user['address'] = $education['address'];
-                }
+            $user['previous_school'] = safeDecryptField($education['previous_school'] ?? '', 'applications', 'previous_school');
+            $user['school_year']     = safeDecryptField($education['school_year']     ?? '', 'applications', 'school_year');
+            $user['strand']          = safeDecryptField($education['strand']          ?? '', 'applications', 'strand');
+            $user['gpa']             = safeDecryptField($education['gpa']             ?? '', 'applications', 'gpa');
+            $user['age']             = safeDecryptField($education['age']             ?? '', 'applications', 'age');
+            // Use application address if user address empty
+            if (empty($user['address']) && !empty($education['address'])) {
+                $user['address'] = safeDecryptField($education['address'], 'applications', 'address');
             }
         }
         
@@ -226,18 +205,4 @@ try {
 } catch (Exception $e) {
     // Fail open on route enforcement error
 }
-// Fetch user data
-$userData = array();
-if (isset($_SESSION['user_id'])) {
-    $userData = get_current_user_data($conn);
-    // Decrypt educational fields using context-aware decryption
-    if (!empty($userData['application'])) {
-        $app = $userData['application'];
-        $app['previous_school'] = PSAUEncryption::decryptFromDatabase($app['previous_school'], 'applications', 'previous_school');
-        $app['school_year'] = PSAUEncryption::decryptFromDatabase($app['school_year'], 'applications', 'school_year');
-        $app['strand'] = PSAUEncryption::decryptFromDatabase($app['strand'], 'applications', 'strand');
-        $app['gpa'] = PSAUEncryption::decryptFromDatabase($app['gpa'], 'applications', 'gpa');
-        $app['age'] = PSAUEncryption::decryptFromDatabase($app['age'], 'applications', 'age');
-        $userData['application'] = $app;
-    }
-}
+// Fetch user data (deprecated global hydration block removed)

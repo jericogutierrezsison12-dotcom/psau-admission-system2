@@ -31,47 +31,12 @@ if ($user) {
         $hasApplication = true;
         $status = $application['status'];
         
-        // Decrypt application data if needed
-        try {
-            if (!empty($application['previous_school'])) {
-                try {
-                    $application['previous_school'] = PSAUEncryption::decryptFromDatabase($application['previous_school'], 'applications', 'previous_school');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails (backwards compatibility)
-                }
-            }
-            if (!empty($application['strand'])) {
-                try {
-                    $application['strand'] = PSAUEncryption::decryptFromDatabase($application['strand'], 'applications', 'strand');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
-                }
-            }
-            if (!empty($application['gpa'])) {
-                try {
-                    $application['gpa'] = PSAUEncryption::decryptFromDatabase($application['gpa'], 'applications', 'gpa');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
-                }
-            }
-            if (!empty($application['address'])) {
-                try {
-                    $application['address'] = PSAUEncryption::decryptFromDatabase($application['address'], 'applications', 'address');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
-                }
-            }
-            if (!empty($application['school_year'])) {
-                try {
-                    $application['school_year'] = PSAUEncryption::decryptFromDatabase($application['school_year'], 'applications', 'school_year');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
-                }
-            }
-        } catch (Exception $e) {
-            // If decryption fails completely, use as-is (backwards compatibility)
-            error_log("Warning: Could not decrypt application data in application_progress: " . $e->getMessage());
-        }
+        // Decrypt application data with safe fallbacks
+        $application['previous_school'] = safeDecryptField($application['previous_school'] ?? '', 'applications', 'previous_school');
+        $application['strand']          = safeDecryptField($application['strand']          ?? '', 'applications', 'strand');
+        $application['gpa']             = safeDecryptField($application['gpa']             ?? '', 'applications', 'gpa');
+        $application['address']         = safeDecryptField($application['address']         ?? '', 'applications', 'address');
+        $application['school_year']     = safeDecryptField($application['school_year']     ?? '', 'applications', 'school_year');
         
         // Set status class for styling
         switch ($status) {

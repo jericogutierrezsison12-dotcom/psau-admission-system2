@@ -37,6 +37,13 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
     $pending_applications = $stmt->fetchAll();
+    // Decrypt user fields for display consistency
+    foreach ($pending_applications as &$app) {
+        $app['first_name'] = safeDecryptField($app['first_name'] ?? '', 'users', 'first_name');
+        $app['last_name'] = safeDecryptField($app['last_name'] ?? '', 'users', 'last_name');
+        $app['email'] = safeDecryptField($app['email'] ?? '', 'users', 'email');
+    }
+    unset($app);
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -107,13 +114,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         ");
         $stmt->execute([$application_id]);
         $user = $stmt->fetch();
-        
+
         if ($user) {
             // Send verification email
             $verification_email = [
-                'first_name' => $user['first_name'],
-                'last_name' => $user['last_name'],
-                'email' => $user['email']
+                'first_name' => safeDecryptField($user['first_name'] ?? '', 'users', 'first_name'),
+                'last_name' => safeDecryptField($user['last_name'] ?? '', 'users', 'last_name'),
+                'email' => safeDecryptField($user['email'] ?? '', 'users', 'email')
             ];
             send_verification_email($verification_email);
         }

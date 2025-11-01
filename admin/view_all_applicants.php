@@ -44,10 +44,17 @@ try {
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Decrypt user names and emails for consistent display
+    foreach ($applicants as &$applicant) {
+        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+    }
+    unset($applicant);
 } catch (PDOException $e) {
     error_log("Error fetching applicants: " . $e->getMessage());
     $error_message = "Error fetching applicants. Please try again later.";
 }
 
 // Include the HTML template
-include 'html/view_all_applicants.html'; 
+include 'html/view_all_applicants.html';
