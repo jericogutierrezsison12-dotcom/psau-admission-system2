@@ -94,9 +94,9 @@ error_log('Application data: ' . print_r($application, true));
 // Pass data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'email' => $user['email']
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? ''
     ]) . ';
     const applicationData = {
         application: ' . json_encode($application) . '

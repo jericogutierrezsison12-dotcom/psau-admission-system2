@@ -190,10 +190,10 @@ $applicationData = [
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
     'user' => [
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'email' => $user['email'],
-        'control_number' => $user['control_number']
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? '',
+        'control_number' => $user['control_number'] ?? ''
     ]
 ];
 
