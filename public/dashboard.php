@@ -35,35 +35,35 @@ if ($user) {
         try {
             if (!empty($application['previous_school'])) {
                 try {
-                    $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                    $application['previous_school'] = PSAUEncryption::decryptFromDatabase($application['previous_school'], 'applications', 'previous_school');
                 } catch (Exception $e) {
-                    // Use as-is if decryption fails (backwards compatibility)
+                    // Use as-is if decryption fails
                 }
             }
             if (!empty($application['strand'])) {
                 try {
-                    $application['strand'] = decryptAcademicData($application['strand']);
+                    $application['strand'] = PSAUEncryption::decryptFromDatabase($application['strand'], 'applications', 'strand');
                 } catch (Exception $e) {
                     // Use as-is if decryption fails
                 }
             }
             if (!empty($application['gpa'])) {
                 try {
-                    $application['gpa'] = decryptAcademicData($application['gpa']);
+                    $application['gpa'] = PSAUEncryption::decryptFromDatabase($application['gpa'], 'applications', 'gpa');
                 } catch (Exception $e) {
                     // Use as-is if decryption fails
                 }
             }
             if (!empty($application['address'])) {
                 try {
-                    $application['address'] = decryptAcademicData($application['address']);
+                    $application['address'] = PSAUEncryption::decryptFromDatabase($application['address'], 'applications', 'address');
                 } catch (Exception $e) {
                     // Use as-is if decryption fails
                 }
             }
             if (!empty($application['school_year'])) {
                 try {
-                    $application['school_year'] = decryptAcademicData($application['school_year']);
+                    $application['school_year'] = PSAUEncryption::decryptFromDatabase($application['school_year'], 'applications', 'school_year');
                 } catch (Exception $e) {
                     // Use as-is if decryption fails
                 }
@@ -178,4 +178,4 @@ if ($hasApplication) {
 }
 
 // Include the HTML template
-include_once 'html/dashboard.html'; 
+include_once 'html/dashboard.html';
