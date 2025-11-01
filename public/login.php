@@ -98,8 +98,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Find user by encrypted email or mobile number
-                $user = find_user_by_encrypted_identifier($conn, $login_identifier);
+                // First, try direct database query (for backwards compatibility with unencrypted data)
+                // This will work if data is not encrypted
+                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1 LIMIT 1");
+                $stmt->execute([$login_identifier, $login_identifier]);
+                $user = $stmt->fetch();
+                
+                // If not found with direct query, try encrypted lookup
+                if (!$user) {
+                    error_log("Login: Direct query found no user, trying encrypted lookup...");
+                    $user = find_user_by_encrypted_identifier($conn, $login_identifier);
+                } else {
+                    error_log("Login: User found via direct query - ID: " . $user['id']);
+                    // Check if functions.php is loaded (contains looks_encrypted function)
+                    if (function_exists('looks_encrypted')) {
+                        // Try to decrypt the data if it looks encrypted
+                        if (!empty($user['email']) && looks_encrypted($user['email'])) {
+                            try {
+                                $user['email'] = decryptContactData($user['email']);
+                                error_log("Login: Decrypted email successfully");
+                            } catch (Exception $e) {
+                                error_log("Login: Could not decrypt email: " . $e->getMessage());
+                            }
+                        }
+                        if (!empty($user['mobile_number']) && looks_encrypted($user['mobile_number'])) {
+                            try {
+                                $user['mobile_number'] = decryptContactData($user['mobile_number']);
+                                error_log("Login: Decrypted mobile successfully");
+                            } catch (Exception $e) {
+                                error_log("Login: Could not decrypt mobile: " . $e->getMessage());
+                            }
+                        }
+                    } else {
+                        error_log("Login: looks_encrypted function not available, skipping decryption check");
+                    }
+                }
                 
                 // Debug logging
                 if (!$user) {
