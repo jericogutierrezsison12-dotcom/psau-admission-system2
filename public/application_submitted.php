@@ -13,6 +13,10 @@ is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
+if (!$user || !isset($user['id'])) {
+    header('Location: login.php');
+    exit;
+}
 $user_id = $user['id'];
 
 // Check if application ID is provided
