@@ -73,6 +73,7 @@ $applicationStatus = '';
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
+$canSubmit = false; // Initialize to false
 if ($user) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
@@ -406,35 +407,35 @@ if ($existing_application) {
     try {
         if (!empty($existing_application['previous_school'])) {
             try {
-                $existing_application['previous_school'] = PSAUEncryption::decryptFromDatabase($existing_application['previous_school'], 'applications', 'previous_school');
+                $existing_application['previous_school'] = decryptAcademicData($existing_application['previous_school']);
             } catch (Exception $e) {
                 // Use as-is if decryption fails
             }
         }
         if (!empty($existing_application['school_year'])) {
             try {
-                $existing_application['school_year'] = PSAUEncryption::decryptFromDatabase($existing_application['school_year'], 'applications', 'school_year');
+                $existing_application['school_year'] = decryptAcademicData($existing_application['school_year']);
             } catch (Exception $e) {
                 // Use as-is if decryption fails
             }
         }
         if (!empty($existing_application['strand'])) {
             try {
-                $existing_application['strand'] = PSAUEncryption::decryptFromDatabase($existing_application['strand'], 'applications', 'strand');
+                $existing_application['strand'] = decryptAcademicData($existing_application['strand']);
             } catch (Exception $e) {
                 // Use as-is if decryption fails
             }
         }
         if (!empty($existing_application['gpa'])) {
             try {
-                $existing_application['gpa'] = PSAUEncryption::decryptFromDatabase($existing_application['gpa'], 'applications', 'gpa');
+                $existing_application['gpa'] = decryptAcademicData($existing_application['gpa']);
             } catch (Exception $e) {
                 // Use as-is if decryption fails
             }
         }
         if (!empty($existing_application['address'])) {
             try {
-                $existing_application['address'] = PSAUEncryption::decryptFromDatabase($existing_application['address'], 'applications', 'address');
+                $existing_application['address'] = decryptAcademicData($existing_application['address']);
             } catch (Exception $e) {
                 // Use as-is if decryption fails
             }
@@ -473,4 +474,4 @@ echo '<script>
             }
         });
     }
-</script>';
+</script>'; 

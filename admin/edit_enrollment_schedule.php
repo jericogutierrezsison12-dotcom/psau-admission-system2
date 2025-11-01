@@ -233,6 +233,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ');
             $stmt->execute([$schedule_id]);
             $assigned_students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Decrypt user data
+            require_once '../includes/encryption.php';
+            foreach ($assigned_students as &$student) {
+                $student['first_name'] = safeDecryptField($student['first_name'] ?? '', 'users', 'first_name');
+                $student['last_name'] = safeDecryptField($student['last_name'] ?? '', 'users', 'last_name');
+                $student['email'] = safeDecryptField($student['email'] ?? '', 'users', 'email');
+            }
+            unset($student);
 
             // Send email notifications to all assigned students
             foreach ($assigned_students as $student) {

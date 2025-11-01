@@ -115,6 +115,16 @@ try {
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Decrypt user data
+    require_once '../includes/encryption.php';
+    foreach ($students as &$student) {
+        $student['first_name'] = safeDecryptField($student['first_name'] ?? '', 'users', 'first_name');
+        $student['last_name'] = safeDecryptField($student['last_name'] ?? '', 'users', 'last_name');
+        $student['email'] = safeDecryptField($student['email'] ?? '', 'users', 'email');
+        $student['mobile_number'] = safeDecryptField($student['mobile_number'] ?? '', 'users', 'mobile_number');
+    }
+    unset($student);
+    
     // Get status counts
     $count_query = "
         SELECT 

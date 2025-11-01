@@ -47,6 +47,15 @@ function sendEntranceExamReminders($conn) {
         
         error_log("Found " . count($exams) . " entrance exams scheduled for tomorrow (24-hour reminder)");
         
+        // Decrypt user data
+        require_once __DIR__ . '/../includes/encryption.php';
+        foreach ($exams as &$exam) {
+            $exam['email'] = safeDecryptField($exam['email'] ?? '', 'users', 'email');
+            $exam['first_name'] = safeDecryptField($exam['first_name'] ?? '', 'users', 'first_name');
+            $exam['last_name'] = safeDecryptField($exam['last_name'] ?? '', 'users', 'last_name');
+        }
+        unset($exam);
+        
         foreach ($exams as $exam) {
             // Format date and time
             $exam_date = date('l, F j, Y', strtotime($exam['exam_date']));
@@ -146,6 +155,15 @@ function sendEnrollmentReminders($conn) {
         $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         error_log("Found " . count($enrollments) . " enrollments scheduled for tomorrow (24-hour reminder)");
+        
+        // Decrypt user data
+        require_once __DIR__ . '/../includes/encryption.php';
+        foreach ($enrollments as &$enrollment) {
+            $enrollment['email'] = safeDecryptField($enrollment['email'] ?? '', 'users', 'email');
+            $enrollment['first_name'] = safeDecryptField($enrollment['first_name'] ?? '', 'users', 'first_name');
+            $enrollment['last_name'] = safeDecryptField($enrollment['last_name'] ?? '', 'users', 'last_name');
+        }
+        unset($enrollment);
         
         foreach ($enrollments as $enrollment) {
             // Format date and time

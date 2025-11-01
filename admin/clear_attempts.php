@@ -21,6 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("SELECT id, control_number, first_name, last_name FROM users WHERE control_number = ?");
             $stmt->execute([$control_number]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Decrypt user data
+            if ($user) {
+                require_once '../includes/encryption.php';
+                $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+                $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+            }
 
             if (!$user) {
                 $message = 'User not found for control number.';

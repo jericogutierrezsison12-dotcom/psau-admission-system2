@@ -159,6 +159,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_schedule') {
                     $stmt->bindParam(2, $limit_value, PDO::PARAM_INT);
                     $stmt->execute();
                     $auto_applicants = $stmt->fetchAll();
+                    
+                    // Decrypt user data
+                    require_once __DIR__ . '/../includes/encryption.php';
+                    foreach ($auto_applicants as &$applicant) {
+                        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+                        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+                        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+                        $applicant['mobile_number'] = safeDecryptField($applicant['mobile_number'] ?? '', 'users', 'mobile_number');
+                    }
+                    unset($applicant);
+                    
                     $assigned_count = 0;
                     
                     foreach ($auto_applicants as $applicant) {
@@ -281,6 +292,14 @@ else if (isset($_POST['action']) && $_POST['action'] === 'assign_applicants') {
                 ");
                 $stmt->execute([$applicant_id]);
                 $applicant = $stmt->fetch();
+                
+                // Decrypt user data
+                if ($applicant) {
+                    require_once __DIR__ . '/../includes/encryption.php';
+                    $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+                    $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+                    $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+                }
                 
                 if ($applicant) {
                     // Update application status

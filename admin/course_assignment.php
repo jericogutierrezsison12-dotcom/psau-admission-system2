@@ -115,6 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_course'])) {
         $stmt->execute([$course_id, $user_id]);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         
+        // Decrypt user data
+        require_once '../includes/encryption.php';
+        $data['first_name'] = safeDecryptField($data['first_name'] ?? '', 'users', 'first_name');
+        $data['last_name'] = safeDecryptField($data['last_name'] ?? '', 'users', 'last_name');
+        $data['email'] = safeDecryptField($data['email'] ?? '', 'users', 'email');
+        
         // Log activity
         $stmt = $conn->prepare("
             INSERT INTO activity_logs 
@@ -214,6 +220,15 @@ try {
     $stmt->execute();
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Decrypt user data for applicants list
+    require_once '../includes/encryption.php';
+    foreach ($applicants as &$applicant) {
+        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+    }
+    unset($applicant);
+    
     // Get user course preferences for each applicant
     foreach ($applicants as $key => $applicant) {
         $stmt = $conn->prepare("
@@ -291,6 +306,14 @@ try {
     ");
     $stmt->execute();
     $recent_assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt user data for recent assignments
+    require_once '../includes/encryption.php';
+    foreach ($recent_assignments as &$assignment) {
+        $assignment['first_name'] = safeDecryptField($assignment['first_name'] ?? '', 'users', 'first_name');
+        $assignment['last_name'] = safeDecryptField($assignment['last_name'] ?? '', 'users', 'last_name');
+    }
+    unset($assignment);
 } catch (PDOException $e) {
     error_log("Error fetching recent assignments: " . $e->getMessage());
     $recent_assignments = [];

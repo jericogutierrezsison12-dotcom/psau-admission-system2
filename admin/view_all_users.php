@@ -77,6 +77,16 @@ try {
     foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt user data for display
+    require_once '../includes/encryption.php';
+    foreach ($users as &$user) {
+        $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+        $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
+        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
+    }
+    unset($user);
 } catch (PDOException $e) {}
 
 include 'html/view_all_users.html';

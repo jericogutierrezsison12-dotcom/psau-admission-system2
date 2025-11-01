@@ -13,6 +13,10 @@ is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
+if (!$user || !isset($user['id'])) {
+    header('Location: login.php');
+    exit;
+}
 $user_id = $user['id'];
 
 // Check if application ID is provided
@@ -36,42 +40,54 @@ try {
     
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Decrypt application data if needed
+    // Decrypt application data if needed (only if looks encrypted)
     if ($application) {
         try {
+            require_once '../includes/functions.php'; // For looks_encrypted
+            
             if (!empty($application['previous_school'])) {
-                try {
-                    $application['previous_school'] = PSAUEncryption::decryptFromDatabase($application['previous_school'], 'applications', 'previous_school');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['previous_school'])) {
+                    try {
+                        $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['strand'])) {
-                try {
-                    $application['strand'] = PSAUEncryption::decryptFromDatabase($application['strand'], 'applications', 'strand');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['strand'])) {
+                    try {
+                        $application['strand'] = decryptAcademicData($application['strand']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['gpa'])) {
-                try {
-                    $application['gpa'] = PSAUEncryption::decryptFromDatabase($application['gpa'], 'applications', 'gpa');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['gpa'])) {
+                    try {
+                        $application['gpa'] = decryptAcademicData($application['gpa']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['address'])) {
-                try {
-                    $application['address'] = PSAUEncryption::decryptFromDatabase($application['address'], 'applications', 'address');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['address'])) {
+                    try {
+                        $application['address'] = decryptAcademicData($application['address']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['school_year'])) {
-                try {
-                    $application['school_year'] = PSAUEncryption::decryptFromDatabase($application['school_year'], 'applications', 'school_year');
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['school_year'])) {
+                    try {
+                        $application['school_year'] = decryptAcademicData($application['school_year']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -87,18 +103,20 @@ try {
 
 // Include HTML template
 include_once __DIR__ . '/html/application_submitted.html';
+
+// Debug: Log application data
+error_log('Application data: ' . print_r($application, true));
+
 // Pass data to JavaScript
-if ($user) {
-    echo '<script>
-        const userData = ' . json_encode([
-            'first_name' => $user['first_name'],
-            'last_name' => $user['last_name'],
-            'email' => $user['email']
-        ]) . ';
-        const applicationData = {
-            application: ' . json_encode($application) . '
-        };
-        console.log("PHP Debug - Application data:", applicationData);
-    </script>';
-}
-?>
+echo '<script>
+    const userData = ' . json_encode([
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? ''
+    ]) . ';
+    const applicationData = {
+        application: ' . json_encode($application) . '
+    };
+    console.log("PHP Debug - Application data:", applicationData);
+</script>';
+?> 

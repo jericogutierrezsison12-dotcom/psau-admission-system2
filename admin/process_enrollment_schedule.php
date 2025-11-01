@@ -216,6 +216,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     ');
                     $stmt->execute([$course_id]);
                     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Decrypt user data
+                    require_once __DIR__ . '/../includes/encryption.php';
+                    foreach ($applicants as &$applicant) {
+                        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+                        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+                        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+                    }
+                    unset($applicant);
 
                     $current_count = 0;
                     foreach ($applicants as $applicant) {
@@ -335,6 +344,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt3 = $conn->prepare('SELECT first_name, last_name, email FROM users WHERE id = ?');
             $stmt3->execute([$applicant_id]);
             $user = $stmt3->fetch(PDO::FETCH_ASSOC);
+            
+            // Decrypt user data
+            if ($user) {
+                require_once __DIR__ . '/../includes/encryption.php';
+                $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+                $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+                $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
+            }
+            
             // Fetch full schedule info (with venue, course_code, course_name, instructions, requirements)
             $stmt4 = $conn->prepare('SELECT es.*, c.course_code, c.course_name FROM enrollment_schedules es LEFT JOIN courses c ON es.course_id = c.id WHERE es.id = ?');
             $stmt4->execute([$schedule['id']]);

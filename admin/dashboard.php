@@ -93,6 +93,14 @@ try {
                          ORDER BY a.created_at DESC 
                          LIMIT 5");
     $pending_applications = $stmt->fetchAll();
+    
+    // Decrypt user data
+    require_once __DIR__ . '/../includes/encryption.php';
+    foreach ($pending_applications as &$app) {
+        $app['first_name'] = safeDecryptField($app['first_name'] ?? '', 'users', 'first_name');
+        $app['last_name'] = safeDecryptField($app['last_name'] ?? '', 'users', 'last_name');
+    }
+    unset($app);
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -122,6 +130,14 @@ try {
     ");
     $stmt->execute();
     $recent_scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt user data
+    require_once __DIR__ . '/../includes/encryption.php';
+    foreach ($recent_scores as &$score) {
+        $score['first_name'] = safeDecryptField($score['first_name'] ?? '', 'users', 'first_name');
+        $score['last_name'] = safeDecryptField($score['last_name'] ?? '', 'users', 'last_name');
+    }
+    unset($score);
 } catch (PDOException $e) {
     $error_message = "Error fetching score statistics: " . $e->getMessage();
 }
@@ -173,6 +189,14 @@ try {
                                         LIMIT 5
                                     ");
                                     $recent_course_assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    
+                                    // Decrypt user data
+                                    require_once __DIR__ . '/../includes/encryption.php';
+                                    foreach ($recent_course_assignments as &$assignment) {
+                                        $assignment['first_name'] = safeDecryptField($assignment['first_name'] ?? '', 'users', 'first_name');
+                                        $assignment['last_name'] = safeDecryptField($assignment['last_name'] ?? '', 'users', 'last_name');
+                                    }
+                                    unset($assignment);
                                 } catch (PDOException $e) {
                                     $recent_course_assignments = [];
                                 }

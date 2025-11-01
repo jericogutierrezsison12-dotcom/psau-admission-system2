@@ -18,7 +18,16 @@ $results = [];
 function find_user_by_control_number(PDO $conn, $control_number) {
     $stmt = $conn->prepare('SELECT id, first_name, last_name FROM users WHERE control_number = ?');
     $stmt->execute([$control_number]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Decrypt user data
+    if ($user) {
+        require_once __DIR__ . '/../includes/encryption.php';
+        $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+        $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+    }
+    
+    return $user;
 }
 
 function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
@@ -81,6 +90,15 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     $stmtU = $conn->prepare('SELECT email, first_name, last_name FROM users WHERE id = ?');
     $stmtU->execute([$user_id]);
     $userInfo = $stmtU->fetch(PDO::FETCH_ASSOC);
+    
+    // Decrypt user data
+    if ($userInfo) {
+        require_once __DIR__ . '/../includes/encryption.php';
+        $userInfo['email'] = safeDecryptField($userInfo['email'] ?? '', 'users', 'email');
+        $userInfo['first_name'] = safeDecryptField($userInfo['first_name'] ?? '', 'users', 'first_name');
+        $userInfo['last_name'] = safeDecryptField($userInfo['last_name'] ?? '', 'users', 'last_name');
+    }
+    
     if ($userInfo && function_exists('firebase_send_email')) {
         $subject = ($status === 'completed') ?
             'Enrollment Completed - PSAU Admission System' :

@@ -43,6 +43,16 @@ try {
     $stmt->execute([$schedule_id]);
     $applicants = $stmt->fetchAll();
     
+    // Decrypt user data for display
+    require_once '../includes/encryption.php';
+    foreach ($applicants as &$applicant) {
+        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
+        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
+        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
+        $applicant['mobile_number'] = safeDecryptField($applicant['mobile_number'] ?? '', 'users', 'mobile_number');
+    }
+    unset($applicant);
+    
     // Display header info
     echo '<div class="mb-3">';
     echo '<h5>Exam Details:</h5>';

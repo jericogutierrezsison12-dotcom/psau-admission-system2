@@ -23,12 +23,27 @@ class PSAUEncryption {
         }
         
         if (empty($key)) {
-            // CRITICAL: Do NOT generate a new key - this breaks decryption!
-            // Instead, throw an error so we know the key is missing
-            error_log("CRITICAL ERROR: ENCRYPTION_KEY environment variable is not set!");
-            error_log("Please set ENCRYPTION_KEY in your Render environment variables.");
-            error_log("If you already have encrypted data, you MUST use the same key that was used to encrypt it.");
-            throw new Exception("ENCRYPTION_KEY environment variable is required but not set. Please configure it in your Render dashboard under Environment Variables.");
+            // Check for secret_key.php file as fallback
+            $secretPath = __DIR__ . '/secret_key.php';
+            if (file_exists($secretPath)) {
+                include $secretPath;
+                if (isset($ENCRYPTION_KEY) && !empty($ENCRYPTION_KEY)) {
+                    $key = $ENCRYPTION_KEY;
+                } elseif (isset($ENCRYPTION_KEY_B64) && !empty($ENCRYPTION_KEY_B64)) {
+                    $key = $ENCRYPTION_KEY_B64;
+                }
+            }
+        }
+        
+        if (empty($key)) {
+            // If no key found, set a warning but don't throw immediately
+            // We'll check again during encrypt operations
+            error_log("WARNING: ENCRYPTION_KEY environment variable is not set!");
+            error_log("Please set ENCRYPTION_KEY in your environment variables.");
+            // Don't throw here - allow decryption to handle plaintext gracefully
+            self::$encryption_key = null;
+            self::$initialized = true;
+            return;
         } else {
             // Key is base64 encoded, decode it
             $decoded_key = base64_decode($key, true);
@@ -78,6 +93,11 @@ class PSAUEncryption {
             return '';
         }
         
+        // Check if key is available for encryption
+        if (self::$encryption_key === null) {
+            throw new Exception("ENCRYPTION_KEY environment variable is required for encryption. Please configure it in your environment variables.");
+        }
+        
         // Generate random IV (12 bytes for GCM)
         $iv = random_bytes(12);
         
@@ -108,9 +128,9 @@ class PSAUEncryption {
     
     /**
      * Decrypt sensitive data
-     * @param string $encrypted_data Base64 encoded encrypted data
+     * @param string $encrypted_data Base64 encoded encrypted data or plaintext
      * @param string $context Additional context for authentication
-     * @return string Decrypted data
+     * @return string Decrypted data or original if not encrypted
      */
     public static function decrypt($encrypted_data, $context = '') {
         self::initialize();
@@ -119,10 +139,26 @@ class PSAUEncryption {
             return '';
         }
         
-        // Decode base64
-        $data = base64_decode($encrypted_data);
-        if ($data === false) {
-            throw new Exception("Invalid base64 data");
+        // Check if it looks like encrypted data (base64, long enough)
+        // Encrypted data is typically base64 and longer than 60 characters
+        $looks_encrypted = (strlen($encrypted_data) > 60 && preg_match('/^[A-Za-z0-9+\/=]+$/', $encrypted_data));
+        
+        if (!$looks_encrypted) {
+            // Doesn't look encrypted, return as-is (plaintext)
+            return $encrypted_data;
+        }
+        
+        // If no encryption key available, can't decrypt - return as-is
+        if (self::$encryption_key === null) {
+            error_log("WARNING: Cannot decrypt data - ENCRYPTION_KEY not set. Returning as-is.");
+            return $encrypted_data;
+        }
+        
+        // Try to decode base64
+        $data = base64_decode($encrypted_data, true);
+        if ($data === false || strlen($data) < 28) {
+            // Not valid base64 or too short - likely plaintext
+            return $encrypted_data;
         }
         
         // Extract IV (first 12 bytes), tag (next 16 bytes), and encrypted data
@@ -133,7 +169,7 @@ class PSAUEncryption {
         // Create additional authenticated data
         $aad = hash('sha256', $context . self::$encryption_key, true);
         
-        // Decrypt the data
+        // Try to decrypt the data
         $decrypted = openssl_decrypt(
             $encrypted,
             'aes-256-gcm',
@@ -145,7 +181,9 @@ class PSAUEncryption {
         );
         
         if ($decrypted === false) {
-            throw new Exception("Decryption failed: " . openssl_error_string());
+            // Decryption failed - might be plaintext or wrong key, return as-is
+            error_log("Decryption failed for data (context: $context), returning as-is");
+            return $encrypted_data;
         }
         
         return $decrypted;
@@ -343,64 +381,4 @@ function encryptApplicationData($data) {
 function decryptApplicationData($encrypted_data) {
     return PSAUEncryption::decrypt($encrypted_data, 'application_data');
 }
-
-/**
- * Safely decrypt a single field with graceful fallbacks.
- * Tries context-aware database decryption first, then legacy wrappers,
- * and finally returns the original value if not encrypted.
- *
- * @param string $value
- * @param string $table
- * @param string $field
- * @return string
- */
-function safeDecryptField($value, $table, $field) {
-    if ($value === null || $value === '') {
-        return $value ?? '';
-    }
-
-    // Heuristic: looks like base64 and long enough
-    $maybeEncrypted = is_string($value) && strlen($value) > 60 && preg_match('/^[A-Za-z0-9+\/=]+$/', $value);
-
-    // Try table/field-based decryption first
-    if ($maybeEncrypted) {
-        try {
-            return PSAUEncryption::decryptFromDatabase($value, $table, $field);
-        } catch (Exception $e) {
-            // Fall through to legacy context wrappers
-        }
-    }
-
-    // Legacy wrapper fallbacks per table/field groups
-    try {
-        switch ($table) {
-            case 'users':
-                // Contact fields
-                if (in_array($field, ['email', 'mobile_number'], true)) {
-                    return decryptContactData($value);
-                }
-                // Personal fields
-                if (in_array($field, ['first_name', 'last_name', 'address', 'gender', 'birth_date'], true)) {
-                    return decryptPersonalData($value);
-                }
-                break;
-            case 'applications':
-                // Academic fields stored with academic context in legacy code
-                if (in_array($field, ['previous_school', 'school_year', 'strand', 'gpa', 'age', 'address'], true)) {
-                    return decryptAcademicData($value);
-                }
-                break;
-            default:
-                // Unknown table: return as-is
-                return $value;
-        }
-    } catch (Exception $e) {
-        // If wrapper fails or value is plaintext, return original
-        return $value;
-    }
-
-    // If no mapping matched, just return original
-    return $value;
-}
-
 ?>

@@ -129,6 +129,12 @@ try {
         exit();
     }
 
+    // Decrypt user data
+    require_once '../includes/encryption.php';
+    $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
+    $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
+    $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
+
     error_log("Retrieved user details for user_id: $user_id, email: {$user['email']}");
 
     // Get reminder count for this user and type

@@ -880,3 +880,50 @@ function find_user_by_encrypted_identifier($conn, $identifier) {
         return null;
     }
 }
+
+/**
+ * Safely decrypt a field from database with proper error handling
+ * @param string $value The encrypted or plaintext value
+ * @param string $table_name Table name (for context)
+ * @param string $field_name Field name (for context)
+ * @return string Decrypted value or original if decryption fails
+ */
+function safeDecryptField($value, $table_name, $field_name) {
+    if (empty($value)) {
+        return '';
+    }
+    
+    // Determine encryption type based on field name
+    $is_personal = in_array($field_name, ['first_name', 'last_name', 'gender', 'birth_date', 'address']);
+    $is_contact = in_array($field_name, ['email', 'mobile_number']);
+    $is_academic = in_array($field_name, ['previous_school', 'school_year', 'strand', 'gpa', 'age']);
+    $is_application = in_array($field_name, ['previous_school', 'school_year', 'strand', 'gpa', 'address']);
+    
+    // Check if it looks encrypted
+    if (!function_exists('looks_encrypted')) {
+        require_once __DIR__ . '/functions.php';
+    }
+    
+    if (!looks_encrypted($value)) {
+        // Doesn't look encrypted, return as-is
+        return $value;
+    }
+    
+    try {
+        // Try to decrypt based on field type
+        if ($is_personal) {
+            return decryptPersonalData($value);
+        } elseif ($is_contact) {
+            return decryptContactData($value);
+        } elseif ($is_academic || $is_application) {
+            return decryptAcademicData($value);
+        } else {
+            // Unknown type, try personal data as default
+            return decryptPersonalData($value);
+        }
+    } catch (Exception $e) {
+        // If decryption fails, return original value
+        error_log("Warning: Could not decrypt field $table_name.$field_name: " . $e->getMessage());
+        return $value;
+    }
+}

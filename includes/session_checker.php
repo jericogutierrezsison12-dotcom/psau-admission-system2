@@ -11,6 +11,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Include encryption for decryption
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/functions.php'; // For looks_encrypted function
 
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
@@ -107,14 +108,65 @@ function get_current_user_data($conn) {
             return null;
         }
         
-        // Decrypt sensitive user data with safe fallbacks
-        $user['first_name']    = safeDecryptField($user['first_name']    ?? '', 'users', 'first_name');
-        $user['last_name']     = safeDecryptField($user['last_name']     ?? '', 'users', 'last_name');
-        $user['email']         = safeDecryptField($user['email']         ?? '', 'users', 'email');
-        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
-        $user['address']       = safeDecryptField($user['address']       ?? '', 'users', 'address');
-        $user['gender']        = safeDecryptField($user['gender']        ?? '', 'users', 'gender');
-        $user['birth_date']    = safeDecryptField($user['birth_date']    ?? '', 'users', 'birth_date');
+        // Decrypt sensitive user data (only if it looks encrypted)
+        try {
+            // Check if functions are available
+            if (!function_exists('looks_encrypted')) {
+                require_once __DIR__ . '/functions.php';
+            }
+            
+            // Only decrypt if data looks encrypted
+            if (!empty($user['first_name'])) {
+                if (looks_encrypted($user['first_name'])) {
+                    $user['first_name'] = decryptPersonalData($user['first_name']);
+                }
+                // Otherwise use as-is (unencrypted data)
+            }
+            
+            if (!empty($user['last_name'])) {
+                if (looks_encrypted($user['last_name'])) {
+                    $user['last_name'] = decryptPersonalData($user['last_name']);
+                }
+            }
+            
+            if (!empty($user['email'])) {
+                if (looks_encrypted($user['email'])) {
+                    $user['email'] = decryptContactData($user['email']);
+                }
+            }
+            
+            if (!empty($user['mobile_number'])) {
+                if (looks_encrypted($user['mobile_number'])) {
+                    $user['mobile_number'] = decryptContactData($user['mobile_number']);
+                }
+            }
+            
+            if (!empty($user['address'])) {
+                if (looks_encrypted($user['address'])) {
+                    $user['address'] = decryptPersonalData($user['address']);
+                }
+            }
+            
+            if (!empty($user['gender'])) {
+                if (looks_encrypted($user['gender'])) {
+                    try {
+                        $user['gender'] = decryptPersonalData($user['gender']);
+                    } catch (Exception $e) {
+                        // If decryption fails, use as-is
+                        error_log("Warning: Could not decrypt gender: " . $e->getMessage());
+                    }
+                }
+            }
+            
+            if (!empty($user['birth_date'])) {
+                if (looks_encrypted($user['birth_date'])) {
+                    $user['birth_date'] = decryptPersonalData($user['birth_date']);
+                }
+            }
+        } catch (Exception $e) {
+            // If decryption fails, data might be unencrypted, use as-is
+            error_log("Warning: Could not decrypt user data, using as-is: " . $e->getMessage());
+        }
         
         // Fetch educational background from applications table
         $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
@@ -126,16 +178,55 @@ function get_current_user_data($conn) {
         $app_stmt->execute();
         $education = $app_stmt->fetch();
         
-        // Merge educational background data with user data (safe decrypt)
+        // Merge educational background data with user data (decrypt if needed)
         if ($education) {
-            $user['previous_school'] = safeDecryptField($education['previous_school'] ?? '', 'applications', 'previous_school');
-            $user['school_year']     = safeDecryptField($education['school_year']     ?? '', 'applications', 'school_year');
-            $user['strand']          = safeDecryptField($education['strand']          ?? '', 'applications', 'strand');
-            $user['gpa']             = safeDecryptField($education['gpa']             ?? '', 'applications', 'gpa');
-            $user['age']             = safeDecryptField($education['age']             ?? '', 'applications', 'age');
-            // Use application address if user address empty
-            if (empty($user['address']) && !empty($education['address'])) {
-                $user['address'] = safeDecryptField($education['address'], 'applications', 'address');
+            try {
+                // Only decrypt if data looks encrypted
+                if (!empty($education['previous_school'])) {
+                    $user['previous_school'] = looks_encrypted($education['previous_school']) ? decryptAcademicData($education['previous_school']) : $education['previous_school'];
+                } else {
+                    $user['previous_school'] = '';
+                }
+                
+                if (!empty($education['school_year'])) {
+                    $user['school_year'] = looks_encrypted($education['school_year']) ? decryptAcademicData($education['school_year']) : $education['school_year'];
+                } else {
+                    $user['school_year'] = '';
+                }
+                
+                if (!empty($education['strand'])) {
+                    $user['strand'] = looks_encrypted($education['strand']) ? decryptAcademicData($education['strand']) : $education['strand'];
+                } else {
+                    $user['strand'] = '';
+                }
+                
+                if (!empty($education['gpa'])) {
+                    $user['gpa'] = looks_encrypted($education['gpa']) ? decryptAcademicData($education['gpa']) : $education['gpa'];
+                } else {
+                    $user['gpa'] = '';
+                }
+                
+                if (!empty($education['age'])) {
+                    $user['age'] = looks_encrypted($education['age']) ? decryptAcademicData($education['age']) : $education['age'];
+                } else {
+                    $user['age'] = '';
+                }
+                
+                // Use application address if user address is empty
+                if (empty($user['address']) && !empty($education['address'])) {
+                    $user['address'] = looks_encrypted($education['address']) ? decryptAcademicData($education['address']) : $education['address'];
+                }
+            } catch (Exception $e) {
+                // If decryption fails, use as-is (backwards compatibility)
+                error_log("Warning: Could not decrypt education data: " . $e->getMessage());
+                $user['previous_school'] = $education['previous_school'] ?? '';
+                $user['school_year'] = $education['school_year'] ?? '';
+                $user['strand'] = $education['strand'] ?? '';
+                $user['gpa'] = $education['gpa'] ?? '';
+                $user['age'] = $education['age'] ?? '';
+                if (empty($user['address']) && !empty($education['address'])) {
+                    $user['address'] = $education['address'];
+                }
             }
         }
         
@@ -205,4 +296,3 @@ try {
 } catch (Exception $e) {
     // Fail open on route enforcement error
 }
-// Fetch user data (deprecated global hydration block removed)
