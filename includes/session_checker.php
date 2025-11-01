@@ -226,3 +226,18 @@ try {
 } catch (Exception $e) {
     // Fail open on route enforcement error
 }
+// Fetch user data
+$userData = array();
+if (isset($_SESSION['user_id'])) {
+    $userData = get_current_user_data($conn);
+    // Decrypt educational fields using context-aware decryption
+    if (!empty($userData['application'])) {
+        $app = $userData['application'];
+        $app['previous_school'] = PSAUEncryption::decryptFromDatabase($app['previous_school'], 'applications', 'previous_school');
+        $app['school_year'] = PSAUEncryption::decryptFromDatabase($app['school_year'], 'applications', 'school_year');
+        $app['strand'] = PSAUEncryption::decryptFromDatabase($app['strand'], 'applications', 'strand');
+        $app['gpa'] = PSAUEncryption::decryptFromDatabase($app['gpa'], 'applications', 'gpa');
+        $app['age'] = PSAUEncryption::decryptFromDatabase($app['age'], 'applications', 'age');
+        $userData['application'] = $app;
+    }
+}
