@@ -16,6 +16,8 @@ $user = get_current_user_data($conn);
 $user_id = $user['id'] ?? null;
 
 if (!$user_id) {
+    // Debug: User data missing
+    error_log('User data missing in course_selection.php for user_id: ' . ($_SESSION['user_id'] ?? 'none'));
     header('Location: login.php');
     exit;
 }
@@ -159,4 +161,4 @@ if ($hasSelectedCourses) {
 
 // Include the HTML template
 include 'html/course_selection.html';
-?> 
+?>

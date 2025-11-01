@@ -14,6 +14,12 @@ is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
+if (!$user || !isset($user['id'])) {
+    // Debug: User data missing
+    error_log('User data missing in dashboard.php for user_id: ' . ($_SESSION['user_id'] ?? 'none'));
+    header('Location: login.php');
+    exit;
+}
 
 // Ensure user is available, redirect if not
 if (!$user || !isset($user['id'])) {
@@ -196,4 +202,4 @@ if ($hasApplication) {
 }
 
 // Include the HTML template
-include_once 'html/dashboard.html'; 
+include_once 'html/dashboard.html';
