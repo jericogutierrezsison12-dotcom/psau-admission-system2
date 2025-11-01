@@ -16,22 +16,46 @@ class PSAUEncryption {
             return;
         }
         
-        // Get encryption key from environment or generate new one
+        // Get encryption key from environment (check both getenv and $_ENV)
         $key = getenv('ENCRYPTION_KEY');
+        if (empty($key) && isset($_ENV['ENCRYPTION_KEY'])) {
+            $key = $_ENV['ENCRYPTION_KEY'];
+        }
+        
         if (empty($key)) {
-            // Generate a new key if none exists
-            $key = self::generateEncryptionKey();
-            error_log("Generated new encryption key. Please save this to your .env file: ENCRYPTION_KEY=" . base64_encode($key));
+            // CRITICAL: Do NOT generate a new key - this breaks decryption!
+            // Instead, throw an error so we know the key is missing
+            error_log("CRITICAL ERROR: ENCRYPTION_KEY environment variable is not set!");
+            error_log("Please set ENCRYPTION_KEY in your Render environment variables.");
+            error_log("If you already have encrypted data, you MUST use the same key that was used to encrypt it.");
+            throw new Exception("ENCRYPTION_KEY environment variable is required but not set. Please configure it in your Render dashboard under Environment Variables.");
         } else {
-            $key = base64_decode($key);
+            // Key is base64 encoded, decode it
+            $decoded_key = base64_decode($key, true);
+            if ($decoded_key === false || strlen($decoded_key) !== 32) {
+                // Try using the key directly if base64 decode fails
+                if (strlen($key) === 32) {
+                    $decoded_key = $key;
+                } else {
+                    error_log("CRITICAL ERROR: ENCRYPTION_KEY is not valid base64 or not 32 bytes!");
+                    error_log("Key length: " . strlen($key));
+                    throw new Exception("Invalid ENCRYPTION_KEY format. Must be a base64-encoded 32-byte key.");
+                }
+            }
+            $key = $decoded_key;
         }
         
         if (strlen($key) !== 32) {
+            error_log("CRITICAL ERROR: Encryption key length is " . strlen($key) . " bytes, expected 32 bytes!");
             throw new Exception("Invalid encryption key length. Must be 32 bytes.");
         }
         
         self::$encryption_key = $key;
         self::$initialized = true;
+        
+        // Log key status (first 4 chars only for security)
+        $key_preview = base64_encode(substr($key, 0, 4));
+        error_log("Encryption initialized successfully. Key preview: " . $key_preview . "... (Key loaded from " . (getenv('ENCRYPTION_KEY') ? 'getenv' : '$_ENV') . ")");
     }
     
     /**

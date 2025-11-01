@@ -137,6 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Debug logging
                 if (!$user) {
                     error_log("Login attempt: User not found for identifier: " . substr($login_identifier, 0, 5) . "...");
+                    // Check if encryption key might be the issue
+                    if (empty(getenv('ENCRYPTION_KEY')) && empty($_ENV['ENCRYPTION_KEY'])) {
+                        error_log("CRITICAL: ENCRYPTION_KEY is not set! This will cause decryption to fail.");
+                    }
                 } else {
                     error_log("Login attempt: User found - ID: " . $user['id'] . ", Email: " . substr($user['email'] ?? 'N/A', 0, 5) . "...");
                     error_log("Login attempt: Password verification - User has password hash: " . (!empty($user['password']) ? 'Yes' : 'No'));
