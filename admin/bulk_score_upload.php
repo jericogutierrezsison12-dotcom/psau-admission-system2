@@ -8,7 +8,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 // Try to load Composer autoloader if present
 $hasPhpSpreadsheet = false;
 if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
@@ -184,13 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                 ");
                 $stmt->execute([$control_number]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($user) {
-                    try {
-                        $user['first_name'] = dec_personal($user['first_name'] ?? '');
-                        $user['last_name'] = dec_personal($user['last_name'] ?? '');
-                        $user['email'] = dec_contact($user['email'] ?? '');
-                    } catch (Exception $e) {}
-                }
 
                 if ($user && $user['application_id']) {
                     // Update application status
@@ -294,15 +286,7 @@ try {
     
     $stmt = $conn->prepare($query);
     $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $recent_uploads = [];
-    foreach ($rows as $r) {
-        try {
-            $r['first_name'] = dec_personal($r['first_name'] ?? '');
-            $r['last_name'] = dec_personal($r['last_name'] ?? '');
-        } catch (Exception $e) {}
-        $recent_uploads[] = $r;
-    }
+    $recent_uploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Error fetching recent uploads: " . $e->getMessage());
     $recent_uploads = [];

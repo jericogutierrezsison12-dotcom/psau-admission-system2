@@ -9,7 +9,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../includes/admin_auth.php';
 require_once '../firebase/firebase_email.php';
-require_once '../includes/encryption.php';
 
 // Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
@@ -37,15 +36,7 @@ try {
                          JOIN users u ON a.user_id = u.id 
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
-    $rows = $stmt->fetchAll();
-    foreach ($rows as $r) {
-        try {
-            $r['first_name'] = dec_personal($r['first_name'] ?? '');
-            $r['last_name'] = dec_personal($r['last_name'] ?? '');
-            $r['email'] = dec_contact($r['email'] ?? '');
-        } catch (Exception $e) {}
-        $pending_applications[] = $r;
-    }
+    $pending_applications = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -118,11 +109,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $user = $stmt->fetch();
         
         if ($user) {
-            try {
-                $user['first_name'] = dec_personal($user['first_name'] ?? '');
-                $user['last_name'] = dec_personal($user['last_name'] ?? '');
-                $user['email'] = dec_contact($user['email'] ?? '');
-            } catch (Exception $e) {}
             // Send verification email
             $verification_email = [
                 'first_name' => $user['first_name'],

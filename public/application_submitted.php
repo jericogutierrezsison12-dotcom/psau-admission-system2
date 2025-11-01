@@ -6,6 +6,7 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
@@ -34,6 +35,49 @@ try {
     }
     
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Decrypt application data if needed
+    if ($application) {
+        try {
+            if (!empty($application['previous_school'])) {
+                try {
+                    $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['strand'])) {
+                try {
+                    $application['strand'] = decryptAcademicData($application['strand']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['gpa'])) {
+                try {
+                    $application['gpa'] = decryptAcademicData($application['gpa']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['address'])) {
+                try {
+                    $application['address'] = decryptAcademicData($application['address']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['school_year'])) {
+                try {
+                    $application['school_year'] = decryptAcademicData($application['school_year']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Warning: Could not decrypt application data in application_submitted: " . $e->getMessage());
+        }
+    }
 } catch (PDOException $e) {
     // Handle database error
     error_log('Error retrieving application: ' . $e->getMessage());

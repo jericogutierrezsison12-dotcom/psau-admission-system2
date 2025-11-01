@@ -4,7 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 // Ensure admin is logged in
 if (!isset($_SESSION['admin_id'])) {
@@ -91,12 +90,7 @@ $logs_query = $base_query . " ORDER BY al.created_at DESC";
 
 $stmt = $conn->prepare($logs_query);
 $stmt->execute($params);
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$logs = [];
-foreach ($rows as $r) {
-    // display_name may be built in SQL; if needed, try to decrypt names here in the future
-    $logs[] = $r;
-}
+$logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Set headers for CSV download
 $filename = 'activity_logs_' . date('Y-m-d_H-i-s') . '.csv';

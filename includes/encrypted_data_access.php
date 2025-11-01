@@ -20,9 +20,9 @@ class EncryptedDataAccess {
      */
     public function getUserData($user_id) {
         $sql = "SELECT id, control_number, 
-                       first_name_encrypted, last_name_encrypted, 
-                       email_encrypted, mobile_number_encrypted,
-                       address_encrypted, birth_date_encrypted, gender_encrypted,
+                       first_name, last_name, 
+                       email, mobile_number,
+                       address, birth_date, gender,
                        is_verified, created_at
                 FROM users WHERE id = ?";
         
@@ -38,13 +38,13 @@ class EncryptedDataAccess {
         return [
             'id' => $user['id'],
             'control_number' => $user['control_number'],
-            'first_name' => decryptPersonalData($user['first_name_encrypted']),
-            'last_name' => decryptPersonalData($user['last_name_encrypted']),
-            'email' => decryptContactData($user['email_encrypted']),
-            'mobile_number' => decryptContactData($user['mobile_number_encrypted']),
-            'address' => decryptPersonalData($user['address_encrypted']),
-            'birth_date' => decryptPersonalData($user['birth_date_encrypted']),
-            'gender' => decryptPersonalData($user['gender_encrypted']),
+            'first_name' => !empty($user['first_name']) ? decryptPersonalData($user['first_name']) : '',
+            'last_name' => !empty($user['last_name']) ? decryptPersonalData($user['last_name']) : '',
+            'email' => !empty($user['email']) ? decryptContactData($user['email']) : '',
+            'mobile_number' => !empty($user['mobile_number']) ? decryptContactData($user['mobile_number']) : '',
+            'address' => !empty($user['address']) ? decryptPersonalData($user['address']) : '',
+            'birth_date' => !empty($user['birth_date']) ? decryptPersonalData($user['birth_date']) : '',
+            'gender' => !empty($user['gender']) ? decryptPersonalData($user['gender']) : '',
             'is_verified' => $user['is_verified'],
             'created_at' => $user['created_at']
         ];
@@ -61,37 +61,37 @@ class EncryptedDataAccess {
         $values = [];
         
         if (isset($data['first_name'])) {
-            $fields[] = 'first_name_encrypted = ?';
+            $fields[] = 'first_name = ?';
             $values[] = encryptPersonalData($data['first_name']);
         }
         
         if (isset($data['last_name'])) {
-            $fields[] = 'last_name_encrypted = ?';
+            $fields[] = 'last_name = ?';
             $values[] = encryptPersonalData($data['last_name']);
         }
         
         if (isset($data['email'])) {
-            $fields[] = 'email_encrypted = ?';
+            $fields[] = 'email = ?';
             $values[] = encryptContactData($data['email']);
         }
         
         if (isset($data['mobile_number'])) {
-            $fields[] = 'mobile_number_encrypted = ?';
+            $fields[] = 'mobile_number = ?';
             $values[] = encryptContactData($data['mobile_number']);
         }
         
         if (isset($data['address'])) {
-            $fields[] = 'address_encrypted = ?';
+            $fields[] = 'address = ?';
             $values[] = encryptPersonalData($data['address']);
         }
         
         if (isset($data['birth_date'])) {
-            $fields[] = 'birth_date_encrypted = ?';
+            $fields[] = 'birth_date = ?';
             $values[] = encryptPersonalData($data['birth_date']);
         }
         
         if (isset($data['gender'])) {
-            $fields[] = 'gender_encrypted = ?';
+            $fields[] = 'gender = ?';
             $values[] = encryptPersonalData($data['gender']);
         }
         
@@ -113,9 +113,7 @@ class EncryptedDataAccess {
      */
     public function getApplicationData($application_id) {
         $sql = "SELECT id, user_id, course_id, status,
-                       gpa_encrypted, strand_encrypted, 
-                       school_name_encrypted, school_address_encrypted,
-                       essay_response_encrypted, personal_statement_encrypted,
+                       gpa, strand, previous_school, address,
                        created_at, updated_at
                 FROM applications WHERE id = ?";
         
@@ -133,12 +131,10 @@ class EncryptedDataAccess {
             'user_id' => $app['user_id'],
             'course_id' => $app['course_id'],
             'status' => $app['status'],
-            'gpa' => decryptAcademicData($app['gpa_encrypted']),
-            'strand' => decryptAcademicData($app['strand_encrypted']),
-            'school_name' => decryptAcademicData($app['school_name_encrypted']),
-            'school_address' => decryptAcademicData($app['school_address_encrypted']),
-            'essay_response' => decryptApplicationData($app['essay_response_encrypted']),
-            'personal_statement' => decryptApplicationData($app['personal_statement_encrypted']),
+            'gpa' => !empty($app['gpa']) ? decryptAcademicData($app['gpa']) : '',
+            'strand' => !empty($app['strand']) ? decryptAcademicData($app['strand']) : '',
+            'previous_school' => !empty($app['previous_school']) ? decryptAcademicData($app['previous_school']) : '',
+            'address' => !empty($app['address']) ? decryptAcademicData($app['address']) : '',
             'created_at' => $app['created_at'],
             'updated_at' => $app['updated_at']
         ];
@@ -155,33 +151,23 @@ class EncryptedDataAccess {
         $values = [];
         
         if (isset($data['gpa'])) {
-            $fields[] = 'gpa_encrypted = ?';
+            $fields[] = 'gpa = ?';
             $values[] = encryptAcademicData($data['gpa']);
         }
         
         if (isset($data['strand'])) {
-            $fields[] = 'strand_encrypted = ?';
+            $fields[] = 'strand = ?';
             $values[] = encryptAcademicData($data['strand']);
         }
         
-        if (isset($data['school_name'])) {
-            $fields[] = 'school_name_encrypted = ?';
-            $values[] = encryptAcademicData($data['school_name']);
+        if (isset($data['previous_school'])) {
+            $fields[] = 'previous_school = ?';
+            $values[] = encryptAcademicData($data['previous_school']);
         }
         
-        if (isset($data['school_address'])) {
-            $fields[] = 'school_address_encrypted = ?';
-            $values[] = encryptAcademicData($data['school_address']);
-        }
-        
-        if (isset($data['essay_response'])) {
-            $fields[] = 'essay_response_encrypted = ?';
-            $values[] = encryptApplicationData($data['essay_response']);
-        }
-        
-        if (isset($data['personal_statement'])) {
-            $fields[] = 'personal_statement_encrypted = ?';
-            $values[] = encryptApplicationData($data['personal_statement']);
+        if (isset($data['address'])) {
+            $fields[] = 'address = ?';
+            $values[] = encryptAcademicData($data['address']);
         }
         
         if (empty($fields)) {
@@ -202,8 +188,8 @@ class EncryptedDataAccess {
      */
     public function getDocumentData($document_id) {
         $sql = "SELECT id, application_id, document_type,
-                       file_name_encrypted, file_path_encrypted, 
-                       file_content_encrypted, ocr_text_encrypted,
+                       file_name, file_path, 
+                       file_content, ocr_text,
                        created_at
                 FROM documents WHERE id = ?";
         
@@ -216,15 +202,16 @@ class EncryptedDataAccess {
         }
         
         // Decrypt sensitive fields
+        $decrypted_file_name = !empty($doc['file_name']) ? decryptPersonalData($doc['file_name']) : '';
         return [
             'id' => $doc['id'],
             'application_id' => $doc['application_id'],
             'document_type' => $doc['document_type'],
-            'file_name' => decryptPersonalData($doc['file_name_encrypted']),
-            'file_path' => decryptPersonalData($doc['file_path_encrypted']),
-            'file_content' => !empty($doc['file_content_encrypted']) ? 
-                PSAUEncryption::decryptFile($doc['file_content_encrypted'], $doc['file_name_encrypted']) : null,
-            'ocr_text' => decryptPersonalData($doc['ocr_text_encrypted']),
+            'file_name' => $decrypted_file_name,
+            'file_path' => !empty($doc['file_path']) ? decryptPersonalData($doc['file_path']) : '',
+            'file_content' => !empty($doc['file_content']) ? 
+                PSAUEncryption::decryptFile($doc['file_content'], $decrypted_file_name) : null,
+            'ocr_text' => !empty($doc['ocr_text']) ? decryptPersonalData($doc['ocr_text']) : '',
             'created_at' => $doc['created_at']
         ];
     }
@@ -236,8 +223,8 @@ class EncryptedDataAccess {
      */
     public function storeDocument($data) {
         $sql = "INSERT INTO documents (application_id, document_type, 
-                                     file_name_encrypted, file_path_encrypted, 
-                                     file_content_encrypted, ocr_text_encrypted) 
+                                     file_name, file_path, 
+                                     file_content, ocr_text) 
                 VALUES (?, ?, ?, ?, ?, ?)";
         
         $stmt = $this->conn->prepare($sql);
@@ -260,33 +247,10 @@ class EncryptedDataAccess {
      * @return array|null User data or null
      */
     public function findUserByEmail($email) {
-        $encrypted_email = encryptContactData($email);
-        
-        $sql = "SELECT id, control_number, 
-                       first_name_encrypted, last_name_encrypted, 
-                       email_encrypted, mobile_number_encrypted,
-                       is_verified, created_at
-                FROM users WHERE email_encrypted = ?";
-        
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$encrypted_email]);
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            return null;
-        }
-        
-        // Decrypt sensitive fields
-        return [
-            'id' => $user['id'],
-            'control_number' => $user['control_number'],
-            'first_name' => decryptPersonalData($user['first_name_encrypted']),
-            'last_name' => decryptPersonalData($user['last_name_encrypted']),
-            'email' => decryptContactData($user['email_encrypted']),
-            'mobile_number' => decryptContactData($user['mobile_number_encrypted']),
-            'is_verified' => $user['is_verified'],
-            'created_at' => $user['created_at']
-        ];
+        // Since email is encrypted, we need to check all users and decrypt
+        // Use the helper function instead
+        require_once 'functions.php';
+        return find_user_by_encrypted_identifier($GLOBALS['conn'], $email);
     }
     
     /**
@@ -295,29 +259,33 @@ class EncryptedDataAccess {
      * @return array|null Admin data or null
      */
     public function findAdminByEmail($email) {
-        $encrypted_email = encryptContactData($email);
+        // Since email is encrypted, we need to check all admins and decrypt
+        $stmt = $this->conn->prepare("SELECT * FROM admins");
+        $stmt->execute();
+        $admins = $stmt->fetchAll();
         
-        $sql = "SELECT id, username_encrypted, email_encrypted, 
-                       mobile_number_encrypted, role, created_at
-                FROM admins WHERE email_encrypted = ?";
-        
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$encrypted_email]);
-        $admin = $stmt->fetch();
-        
-        if (!$admin) {
-            return null;
+        foreach ($admins as $admin) {
+            try {
+                $decrypted_email = !empty($admin['email']) ? decryptContactData($admin['email']) : '';
+                if ($decrypted_email === $email) {
+                    // Decrypt all fields
+                    return [
+                        'id' => $admin['id'],
+                        'username' => !empty($admin['username']) ? decryptPersonalData($admin['username']) : '',
+                        'email' => $decrypted_email,
+                        'mobile_number' => !empty($admin['mobile_number']) ? decryptContactData($admin['mobile_number']) : '',
+                        'role' => $admin['role'],
+                        'created_at' => $admin['created_at']
+                    ];
+                }
+            } catch (Exception $e) {
+                // If decryption fails, compare directly
+                if ($admin['email'] === $email) {
+                    return $admin;
+                }
+            }
         }
-        
-        // Decrypt sensitive fields
-        return [
-            'id' => $admin['id'],
-            'username' => decryptPersonalData($admin['username_encrypted']),
-            'email' => decryptContactData($admin['email_encrypted']),
-            'mobile_number' => decryptContactData($admin['mobile_number_encrypted']),
-            'role' => $admin['role'],
-            'created_at' => $admin['created_at']
-        ];
+        return null;
     }
     
     /**
@@ -326,39 +294,41 @@ class EncryptedDataAccess {
      * @return array Array of matching users
      */
     public function searchUsersByName($search_term) {
-        // For encrypted data, we need to search by hashed values
+        // For encrypted data, we need to search by decrypting all users
         // This is a simplified approach - in production, you might want to use
         // a more sophisticated search solution like Elasticsearch with encrypted fields
         
         $sql = "SELECT id, control_number, 
-                       first_name_encrypted, last_name_encrypted, 
-                       email_encrypted, is_verified, created_at
-                FROM users 
-                WHERE first_name_encrypted LIKE ? 
-                   OR last_name_encrypted LIKE ?";
+                       first_name, last_name, 
+                       email, is_verified, created_at
+                FROM users";
         
-        $search_pattern = '%' . $search_term . '%';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$search_pattern, $search_pattern]);
+        $stmt->execute();
         $users = $stmt->fetchAll();
         
         $results = [];
         foreach ($users as $user) {
-            $first_name = decryptPersonalData($user['first_name_encrypted']);
-            $last_name = decryptPersonalData($user['last_name_encrypted']);
-            
-            // Check if the decrypted name matches the search term
-            if (stripos($first_name, $search_term) !== false || 
-                stripos($last_name, $search_term) !== false) {
-                $results[] = [
-                    'id' => $user['id'],
-                    'control_number' => $user['control_number'],
-                    'first_name' => $first_name,
-                    'last_name' => $last_name,
-                    'email' => decryptContactData($user['email_encrypted']),
-                    'is_verified' => $user['is_verified'],
-                    'created_at' => $user['created_at']
-                ];
+            try {
+                $first_name = !empty($user['first_name']) ? decryptPersonalData($user['first_name']) : '';
+                $last_name = !empty($user['last_name']) ? decryptPersonalData($user['last_name']) : '';
+                
+                // Check if the decrypted name matches the search term
+                if (stripos($first_name, $search_term) !== false || 
+                    stripos($last_name, $search_term) !== false) {
+                    $results[] = [
+                        'id' => $user['id'],
+                        'control_number' => $user['control_number'],
+                        'first_name' => $first_name,
+                        'last_name' => $last_name,
+                        'email' => !empty($user['email']) ? decryptContactData($user['email']) : '',
+                        'is_verified' => $user['is_verified'],
+                        'created_at' => $user['created_at']
+                    ];
+                }
+            } catch (Exception $e) {
+                // Skip if decryption fails
+                continue;
             }
         }
         
@@ -374,7 +344,7 @@ class EncryptedDataAccess {
      * @return bool Success status
      */
     public function logActivity($action, $user_id, $details, $ip_address) {
-        $sql = "INSERT INTO activity_logs (action, user_id, details_encrypted, ip_address_encrypted) 
+        $sql = "INSERT INTO activity_logs (action, user_id, details, ip_address) 
                 VALUES (?, ?, ?, ?)";
         
         $stmt = $this->conn->prepare($sql);
@@ -392,8 +362,8 @@ class EncryptedDataAccess {
      * @return array Array of activity logs
      */
     public function getActivityLogs($limit = 100) {
-        $sql = "SELECT id, action, user_id, details_encrypted, 
-                       ip_address_encrypted, created_at
+        $sql = "SELECT id, action, user_id, details, 
+                       ip_address, created_at
                 FROM activity_logs 
                 ORDER BY created_at DESC 
                 LIMIT ?";
@@ -404,20 +374,34 @@ class EncryptedDataAccess {
         
         $results = [];
         foreach ($logs as $log) {
-            $results[] = [
-                'id' => $log['id'],
-                'action' => $log['action'],
-                'user_id' => $log['user_id'],
-                'details' => decryptPersonalData($log['details_encrypted']),
-                'ip_address' => decryptPersonalData($log['ip_address_encrypted']),
-                'created_at' => $log['created_at']
-            ];
+            try {
+                $results[] = [
+                    'id' => $log['id'],
+                    'action' => $log['action'],
+                    'user_id' => $log['user_id'],
+                    'details' => !empty($log['details']) ? decryptPersonalData($log['details']) : '',
+                    'ip_address' => !empty($log['ip_address']) ? decryptPersonalData($log['ip_address']) : '',
+                    'created_at' => $log['created_at']
+                ];
+            } catch (Exception $e) {
+                // If decryption fails, use as-is
+                $results[] = [
+                    'id' => $log['id'],
+                    'action' => $log['action'],
+                    'user_id' => $log['user_id'],
+                    'details' => $log['details'],
+                    'ip_address' => $log['ip_address'],
+                    'created_at' => $log['created_at']
+                ];
+            }
         }
         
         return $results;
     }
 }
 
-// Global instance for easy access
-$encrypted_data = new EncryptedDataAccess($conn);
+// Global instance for easy access (only create if $conn is available)
+if (isset($conn) && $conn instanceof PDO) {
+    $encrypted_data = new EncryptedDataAccess($conn);
+}
 ?>

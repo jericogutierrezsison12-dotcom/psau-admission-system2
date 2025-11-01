@@ -5,7 +5,6 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
@@ -102,17 +101,7 @@ $stmt = $conn->prepare("
     ORDER BY a.created_at ASC
 ");
 $stmt->execute();
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$verified_applicants = [];
-foreach ($rows as $r) {
-    try {
-        $r['first_name'] = dec_personal($r['first_name'] ?? '');
-        $r['last_name'] = dec_personal($r['last_name'] ?? '');
-        $r['email'] = dec_contact($r['email'] ?? '');
-        $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
-    } catch (Exception $e) {}
-    $verified_applicants[] = $r;
-}
+$verified_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $activeTab = isset($_GET['tab']) && in_array($_GET['tab'], ['schedules', 'create', 'assign']) ? $_GET['tab'] : 'schedules';
 $selectedScheduleId = isset($_GET['schedule_id']) && is_numeric($_GET['schedule_id']) ? intval($_GET['schedule_id']) : '';
@@ -176,17 +165,7 @@ if ($activeTab === 'assign' && $selectedScheduleId) {
             ORDER BY ca.created_at DESC
         ');
         $stmt->execute([$selected_course_id]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $eligible_applicants = [];
-        foreach ($rows as $r) {
-            try {
-                $r['first_name'] = dec_personal($r['first_name'] ?? '');
-                $r['last_name'] = dec_personal($r['last_name'] ?? '');
-                $r['email'] = dec_contact($r['email'] ?? '');
-                $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
-            } catch (Exception $e) {}
-            $eligible_applicants[] = $r;
-        }
+        $eligible_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } else {
     // Get all verified applicants not yet scheduled for enrollment
@@ -210,17 +189,7 @@ if ($activeTab === 'assign' && $selectedScheduleId) {
         ORDER BY ca.created_at DESC
     ');
     $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $eligible_applicants = [];
-    foreach ($rows as $r) {
-        try {
-            $r['first_name'] = dec_personal($r['first_name'] ?? '');
-            $r['last_name'] = dec_personal($r['last_name'] ?? '');
-            $r['email'] = dec_contact($r['email'] ?? '');
-            $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
-        } catch (Exception $e) {}
-        $eligible_applicants[] = $r;
-    }
+    $eligible_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Include the HTML template

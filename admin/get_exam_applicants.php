@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 session_start();
@@ -42,17 +41,7 @@ try {
         ORDER BY u.last_name, u.first_name
     ");
     $stmt->execute([$schedule_id]);
-    $rows = $stmt->fetchAll();
-    $applicants = [];
-    foreach ($rows as $r) {
-        try {
-            $r['first_name'] = dec_personal($r['first_name'] ?? '');
-            $r['last_name'] = dec_personal($r['last_name'] ?? '');
-            $r['email'] = dec_contact($r['email'] ?? '');
-            $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
-        } catch (Exception $e) {}
-        $applicants[] = $r;
-    }
+    $applicants = $stmt->fetchAll();
     
     // Display header info
     echo '<div class="mb-3">';

@@ -70,24 +70,10 @@ $messageType = '';
 $maxAttempts = 5;
 $disableUpload = false;
 $applicationStatus = '';
-// Ensure safe defaults when user is not available
-if (!$user || !is_array($user)) {
-    $user = [
-        'id' => null,
-        'first_name' => '',
-        'last_name' => '',
-        'email' => '',
-        'mobile_number' => '',
-        'control_number' => '',
-        'created_at' => null,
-    ];
-}
-// Default canSubmit to false; will be computed below if user exists
-$canSubmit = false;
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
-if (!empty($user['id'])) {
+if ($user) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
     $canSubmit = $attemptCheck['can_submit'];
@@ -235,6 +221,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $existing_rejected = $stmt->fetch();
                         
                         if ($existing_rejected) {
+                            // Encrypt application data before saving
+                            $encrypted_previous_school = encryptAcademicData($previous_school);
+                            $encrypted_school_year = encryptAcademicData($school_year);
+                            $encrypted_strand = encryptAcademicData($strand);
+                            $encrypted_gpa = encryptAcademicData($gpa);
+                            $encrypted_address = encryptAcademicData($address);
+                            
                             // Update existing application if it was rejected
                             $sql = "UPDATE applications SET 
                                 pdf_file = ?, 
@@ -272,11 +265,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $previous_school,
-                                $school_year,
-                                enc_academic($strand),
-                                enc_academic($gpa),
-                                enc_personal($address),
+                                $encrypted_previous_school,
+                                $encrypted_school_year,
+                                $encrypted_strand,
+                                $encrypted_gpa,
+                                $encrypted_address,
                                 $existing_rejected['id']
                             ]);
                             
@@ -288,6 +281,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             // Verify document path was saved correctly
                             verify_document_path($conn, $application_id);
                         } else {
+                            // Encrypt application data before saving
+                            $encrypted_previous_school = encryptAcademicData($previous_school);
+                            $encrypted_school_year = encryptAcademicData($school_year);
+                            $encrypted_strand = encryptAcademicData($strand);
+                            $encrypted_gpa = encryptAcademicData($gpa);
+                            $encrypted_address = encryptAcademicData($address);
+                            
                             // Insert new application with document info and educational background
                             $sql = "INSERT INTO applications (
                                 user_id, 
@@ -328,11 +328,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $previous_school,
-                                $school_year,
-                                enc_academic($strand),
-                                enc_academic($gpa),
-                                enc_personal($address)
+                                $encrypted_previous_school,
+                                $encrypted_school_year,
+                                $encrypted_strand,
+                                $encrypted_gpa,
+                                $encrypted_address
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -350,14 +350,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                             $user['first_name'] . ' ' . $user['last_name']
                         ]);
                         
-                        // Update user profile with the provided information
+                        // Update user profile with the provided information (encrypt address)
+                        $encrypted_user_address = encryptPersonalData($address);
                         $update_user = $conn->prepare("UPDATE users SET 
                             address = ?, 
                             updated_at = NOW() 
                             WHERE id = ?");
                         
                         $update_user->execute([
-                            enc_personal($address),
+                            $encrypted_user_address,
                             $user['id']
                         ]);
                         
@@ -400,14 +401,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
 // Include the HTML template
 include_once 'html/application_form.html';
 
+// Decrypt existing application data for display if needed
+if ($existing_application) {
+    try {
+        if (!empty($existing_application['previous_school'])) {
+            try {
+                $existing_application['previous_school'] = decryptAcademicData($existing_application['previous_school']);
+            } catch (Exception $e) {
+                // Use as-is if decryption fails
+            }
+        }
+        if (!empty($existing_application['school_year'])) {
+            try {
+                $existing_application['school_year'] = decryptAcademicData($existing_application['school_year']);
+            } catch (Exception $e) {
+                // Use as-is if decryption fails
+            }
+        }
+        if (!empty($existing_application['strand'])) {
+            try {
+                $existing_application['strand'] = decryptAcademicData($existing_application['strand']);
+            } catch (Exception $e) {
+                // Use as-is if decryption fails
+            }
+        }
+        if (!empty($existing_application['gpa'])) {
+            try {
+                $existing_application['gpa'] = decryptAcademicData($existing_application['gpa']);
+            } catch (Exception $e) {
+                // Use as-is if decryption fails
+            }
+        }
+        if (!empty($existing_application['address'])) {
+            try {
+                $existing_application['address'] = decryptAcademicData($existing_application['address']);
+            } catch (Exception $e) {
+                // Use as-is if decryption fails
+            }
+        }
+    } catch (Exception $e) {
+        // If decryption fails, use as-is (backwards compatibility)
+    }
+}
+
 // Pass user data and existing application data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email']
     ]) . ';
-    const existingApplication = ' . json_encode($existing_application ?? null) . ';
+    const existingApplication = ' . json_encode($existing_application) . ';
     
     // Pre-fill form fields if existing application data exists
     if (existingApplication) {

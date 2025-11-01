@@ -9,7 +9,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
 require_once '../includes/otp_attempt_tracking.php';
-require_once '../includes/encryption.php';
 
 // Redirect if already logged in
 redirect_if_logged_in('dashboard.php');
@@ -32,43 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Please enter a valid email address';
         } else {
-            // Try fast lookup by encrypted equality (may fail due to randomized IVs)
+            // Check if user exists with this email
             $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE email = ? AND is_verified = 1");
-            $stmt->execute([enc_contact($email)]);
+            $stmt->execute([$email]);
             $user = $stmt->fetch();
-
-            // Fallback: scan verified users and compare decrypted email (works regardless of IV)
-            if (!$user) {
-                try {
-                    $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE is_verified = 1");
-                    $stmt->execute();
-                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    $needle = strtolower(trim($email));
-                    foreach ($rows as $row) {
-                        $decEmail = '';
-                        try { $decEmail = dec_contact($row['email'] ?? ''); } catch (Exception $e) { $decEmail = ''; }
-                        if (strtolower(trim($decEmail)) === $needle) {
-                            $user = $row;
-                            break;
-                        }
-                    }
-                } catch (PDOException $e) {
-                    // ignore, will report not found below
-                }
-            }
-
+            
             if (!$user) {
                 $errors['email'] = 'No verified account found with this email address';
             } else {
                 // Store user data in session for later use
-                // Decrypt for session use
-                try {
-                    $user['first_name'] = dec_personal($user['first_name'] ?? '');
-                    $user['last_name'] = dec_personal($user['last_name'] ?? '');
-                    $user['email'] = dec_contact($user['email'] ?? '');
-                    $user['mobile_number'] = dec_contact($user['mobile_number'] ?? '');
-                } catch (Exception $e) {}
-
                 $_SESSION['password_reset'] = [
                     'user_id' => $user['id'],
                     'email' => $user['email'],

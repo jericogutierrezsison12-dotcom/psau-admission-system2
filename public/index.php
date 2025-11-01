@@ -1,15 +1,8 @@
 <?php
 session_start();
-// Temporary error visibility for white screen debugging (safe to remove later)
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
 require_once '../includes/db_connect.php';
 
 try {
-    if (!$conn) {
-        throw new PDOException('Database connection is not available');
-    }
     // Fetch announcements
     $stmt = $conn->prepare("SELECT * FROM announcements ORDER BY created_at DESC LIMIT 4");
     $stmt->execute();
@@ -42,14 +35,8 @@ try {
 
     // Include the HTML template
     ob_start();
-    $templatePath = __DIR__ . '/html/index.html';
-    if (file_exists($templatePath)) {
-        include $templatePath;
-        $template = ob_get_clean();
-    } else {
-        ob_end_clean();
-        $template = '<!doctype html><html><head><meta charset="utf-8"><title>PSAU Admission</title></head><body><h1>Home</h1><p>Template missing at public/html/index.html</p></body></html>';
-    }
+    include 'html/index.html';
+    $template = ob_get_clean();
 
     // Replace announcement placeholders
     $announcement_html = '';
@@ -130,5 +117,5 @@ try {
 } catch (PDOException $e) {
     // Log the error and display a user-friendly message
     error_log("Database Error: " . $e->getMessage());
-    include __DIR__ . '/html/error.html'; // User-friendly error page
+    include 'html/error.html'; // You should create this file with a user-friendly error message
 }

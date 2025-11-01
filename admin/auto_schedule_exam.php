@@ -2,7 +2,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
-require_once '../includes/encryption.php';
 
 /**
  * Auto-schedule verified applicants for upcoming exams
@@ -36,17 +35,7 @@ function auto_schedule_verified_applicants($specific_application_id = null) {
         
         $stmt = $conn->prepare($sql);
         $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $verified_applicants = [];
-        foreach ($rows as $r) {
-            try {
-                $r['first_name'] = dec_personal($r['first_name'] ?? '');
-                $r['last_name'] = dec_personal($r['last_name'] ?? '');
-                $r['email'] = dec_contact($r['email'] ?? '');
-                $r['mobile_number'] = dec_contact($r['mobile_number'] ?? '');
-            } catch (Exception $e) {}
-            $verified_applicants[] = $r;
-        }
+        $verified_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         if (empty($verified_applicants)) {
             return ['success' => true, 'message' => 'No new verified applicants to schedule.'];

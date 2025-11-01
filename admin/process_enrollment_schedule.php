@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../includes/db_connect.php';
-require_once '../includes/encryption.php';
 require_once '../firebase/firebase_email.php';
 
 // Ensure admin is logged in
@@ -216,16 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         ORDER BY ca.created_at ASC
                     ');
                     $stmt->execute([$course_id]);
-                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    $applicants = [];
-                    foreach ($rows as $r) {
-                        try {
-                            $r['first_name'] = dec_personal($r['first_name'] ?? '');
-                            $r['last_name'] = dec_personal($r['last_name'] ?? '');
-                            $r['email'] = dec_contact($r['email'] ?? '');
-                        } catch (Exception $e) {}
-                        $applicants[] = $r;
-                    }
+                    $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     $current_count = 0;
                     foreach ($applicants as $applicant) {
@@ -345,13 +335,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt3 = $conn->prepare('SELECT first_name, last_name, email FROM users WHERE id = ?');
             $stmt3->execute([$applicant_id]);
             $user = $stmt3->fetch(PDO::FETCH_ASSOC);
-            if ($user) {
-                try {
-                    $user['first_name'] = dec_personal($user['first_name'] ?? '');
-                    $user['last_name'] = dec_personal($user['last_name'] ?? '');
-                    $user['email'] = dec_contact($user['email'] ?? '');
-                } catch (Exception $e) {}
-            }
             // Fetch full schedule info (with venue, course_code, course_name, instructions, requirements)
             $stmt4 = $conn->prepare('SELECT es.*, c.course_code, c.course_name FROM enrollment_schedules es LEFT JOIN courses c ON es.course_id = c.id WHERE es.id = ?');
             $stmt4->execute([$schedule['id']]);

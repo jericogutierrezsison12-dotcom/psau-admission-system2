@@ -24,7 +24,6 @@ echo "</div>";
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 // Email System - IMPORTANT: The system now uses Firebase for sending emails
 // Firebase email functions - this is the primary email system
@@ -72,17 +71,6 @@ try {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $application = $result;
         $user = $result;
-        // Decrypt selected user fields for display and email
-        try {
-            $user['first_name'] = dec_personal($user['first_name'] ?? '');
-            $user['last_name'] = dec_personal($user['last_name'] ?? '');
-            $user['email'] = dec_contact($user['email'] ?? '');
-            $user['mobile_number'] = dec_contact($user['mobile_number'] ?? '');
-            $application['gpa'] = dec_academic($application['gpa'] ?? '');
-            $application['strand'] = dec_academic($application['strand'] ?? '');
-            $application['school_name'] = dec_academic($application['school_name'] ?? '');
-            $application['school_address'] = dec_academic($application['school_address'] ?? '');
-        } catch (Exception $e) {}
         
         // Format file sizes to human-readable format
         $application['document_file_size_formatted'] = $application['document_file_size'] ? number_format($application['document_file_size'] / 1024, 2) . ' KB' : 'N/A';

@@ -6,7 +6,6 @@ ini_set('display_errors', 1);
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../firebase/firebase_email.php';
-require_once '../includes/encryption.php';
 
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
@@ -120,13 +119,6 @@ try {
     $user_stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $user_stmt->execute();
     $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
-    if ($user) {
-        try {
-            $user['email'] = dec_contact($user['email'] ?? '');
-            $user['first_name'] = dec_personal($user['first_name'] ?? '');
-            $user['last_name'] = dec_personal($user['last_name'] ?? '');
-        } catch (Exception $e) {}
-    }
 
     if (!$user) {
         error_log("User not found for user_id: $user_id");

@@ -7,6 +7,7 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
@@ -29,6 +30,48 @@ if ($user) {
     if ($application) {
         $hasApplication = true;
         $status = $application['status'];
+        
+        // Decrypt application data if needed
+        try {
+            if (!empty($application['previous_school'])) {
+                try {
+                    $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails (backwards compatibility)
+                }
+            }
+            if (!empty($application['strand'])) {
+                try {
+                    $application['strand'] = decryptAcademicData($application['strand']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['gpa'])) {
+                try {
+                    $application['gpa'] = decryptAcademicData($application['gpa']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['address'])) {
+                try {
+                    $application['address'] = decryptAcademicData($application['address']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+            if (!empty($application['school_year'])) {
+                try {
+                    $application['school_year'] = decryptAcademicData($application['school_year']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
+                }
+            }
+        } catch (Exception $e) {
+            // If decryption fails completely, use as-is (backwards compatibility)
+            error_log("Warning: Could not decrypt application data in application_progress: " . $e->getMessage());
+        }
         
         // Set status class for styling
         switch ($status) {
@@ -147,10 +190,10 @@ $applicationData = [
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
     'user' => [
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? '',
-        'control_number' => $user['control_number'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email'],
+        'control_number' => $user['control_number']
     ]
 ];
 

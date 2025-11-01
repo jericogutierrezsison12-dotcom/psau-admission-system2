@@ -35,26 +35,20 @@ $device_id = get_device_identifier();
 cleanup_expired_blocks();
 
 // Initial check if device is blocked - only check if blocked, don't track attempt
-try {
-    $stmt = $conn->prepare("SELECT * FROM admin_login_attempts 
-                           WHERE device_id = ? 
-                           AND is_blocked = 1 
-                           AND block_expires > ?");
-    $stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
+$stmt = $conn->prepare("SELECT * FROM admin_login_attempts 
+                       WHERE device_id = ? 
+                       AND is_blocked = 1 
+                       AND block_expires > ?");
+$stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
 
-    if ($stmt->rowCount() > 0) {
-        $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
-        $time_left = strtotime($block_data['block_expires']) - time();
-        $block_info = [
-            'blocked' => true, 
-            'expires' => $block_data['block_expires'],
-            'minutes_left' => ceil($time_left / 60)
-        ];
-    }
-} catch (PDOException $e) {
-    // Table or column may not exist yet; skip device block check gracefully
-    error_log('Admin device block check skipped: ' . $e->getMessage());
-    $block_info = null;
+if ($stmt->rowCount() > 0) {
+    $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $time_left = strtotime($block_data['block_expires']) - time();
+    $block_info = [
+        'blocked' => true, 
+        'expires' => $block_data['block_expires'],
+        'minutes_left' => ceil($time_left / 60)
+    ];
 }
 
 // Process login form submission
@@ -85,17 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log('Password validation failed: empty');
         }
         
-        // Verify the reCAPTCHA token only if secret is configured
-        $recaptcha_secret = getenv('RECAPTCHA_SECRET') ?: ($_ENV['RECAPTCHA_SECRET'] ?? '');
-        if (!empty($recaptcha_secret)) {
-            if (!empty($recaptcha_token)) {
-                error_log('Verifying reCAPTCHA token...');
-                if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
-                    $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
-                    error_log('reCAPTCHA verification failed');
-                } else {
-                    error_log('reCAPTCHA verification successful');
-                }
+        // Verify the reCAPTCHA token
+        if (!empty($recaptcha_token)) {
+            error_log('Verifying reCAPTCHA token...');
+            if (!verify_recaptcha($recaptcha_token, 'admin_login')) {
+                $errors['recaptcha'] = 'CAPTCHA verification failed. Please try again.';
+                error_log('reCAPTCHA verification failed');
+            } else {
+                error_log('reCAPTCHA verification successful');
+            }
+        } else {
+            // Check if we're on localhost
+            $is_localhost = (strpos($_SERVER['SERVER_NAME'], 'localhost') !== false || $_SERVER['SERVER_NAME'] === '127.0.0.1');
+            if ($is_localhost) {
+                error_log('Localhost detected, allowing login without reCAPTCHA token');
+                // On localhost, we can proceed without reCAPTCHA token
             } else {
                 $errors['recaptcha'] = 'CAPTCHA verification is required';
                 error_log('reCAPTCHA token required but not provided');

@@ -6,8 +6,8 @@
 
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
-require_once '../includes/encryption.php';
 require_once '../includes/session_checker.php';
+require_once '../includes/encryption.php';
 
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
@@ -18,19 +18,6 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get current user data (includes educational background from applications table)
 $user = get_current_user_data($conn);
-// Decrypt fields for display if present
-if ($user) {
-    try {
-        $user['first_name'] = dec_personal($user['first_name'] ?? '');
-        $user['last_name'] = dec_personal($user['last_name'] ?? '');
-        $user['gender'] = dec_personal($user['gender'] ?? '');
-        $user['birth_date'] = dec_personal($user['birth_date'] ?? '');
-        $user['mobile_number'] = dec_contact($user['mobile_number'] ?? '');
-        $user['email'] = dec_contact($user['email'] ?? '');
-    } catch (Exception $e) {
-        // If decryption fails, keep raw values
-    }
-}
 if (!$user) {
     header('Location: login.php');
     exit;
@@ -64,21 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_parts = [];
         $params = [];
         
-        // Add personal info fields
+        // Encrypt personal info fields before saving
         $sql_parts[] = "first_name = ?";
-        $params[] = enc_personal($first_name);
+        $params[] = encryptPersonalData($first_name);
         
         $sql_parts[] = "last_name = ?";
-        $params[] = enc_personal($last_name);
+        $params[] = encryptPersonalData($last_name);
         
         $sql_parts[] = "gender = ?";
-        $params[] = enc_personal($gender);
+        $params[] = encryptPersonalData($gender);
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = !empty($birth_date) ? enc_personal($birth_date) : null;
+        $params[] = !empty($birth_date) ? encryptPersonalData($birth_date) : null;
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = enc_contact($mobile_number);
+        $params[] = encryptContactData($mobile_number);
         
 
         // Check if password change was requested

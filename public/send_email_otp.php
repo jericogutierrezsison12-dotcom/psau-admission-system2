@@ -26,16 +26,10 @@ try {
 		throw new Exception('reCAPTCHA token is required');
 	}
 
-    // Ensure registration session email is set; initialize if missing
-    if (!isset($_SESSION['registration'])) {
-        $_SESSION['registration'] = [];
-    }
-    if (!isset($_SESSION['registration']['email'])) {
-        $_SESSION['registration']['email'] = $email;
-    } elseif (strcasecmp($_SESSION['registration']['email'], $email) !== 0) {
-        // If a different email comes through, reset the session email to match this request
-        $_SESSION['registration']['email'] = $email;
-    }
+	// Basic gating: ensure registration session matches email
+	if (!isset($_SESSION['registration']['email']) || strcasecmp($_SESSION['registration']['email'], $email) !== 0) {
+		throw new Exception('Registration session not found for this email');
+	}
 
 	// Check enhanced OTP rate limiting (5 OTPs per hour, reset every 3 hours)
 	$rate_limit = check_otp_rate_limit_enhanced($email, 'registration');
@@ -50,21 +44,14 @@ try {
 		'expires' => time() + (10 * 60),
 	];
 
-    // Store OTP request in database for rate limiting (best-effort)
-    try {
-        if ($conn) {
-            $stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
-            $stmt->execute([
-                $email,
-                'registration_' . $otp,
-                $_SERVER['REMOTE_ADDR'] ?? '',
-                $_SERVER['HTTP_USER_AGENT'] ?? ''
-            ]);
-        }
-    } catch (Throwable $logErr) {
-        error_log('otp_requests insert failed: ' . $logErr->getMessage());
-        // continue; do not block OTP sending on logging failure
-    }
+	// Store OTP request in database for rate limiting
+	$stmt = $conn->prepare("INSERT INTO otp_requests (email, purpose, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+	$stmt->execute([
+		$email,
+		'registration_' . $otp,
+		$_SERVER['REMOTE_ADDR'] ?? '',
+		$_SERVER['HTTP_USER_AGENT'] ?? ''
+	]);
 
 	// Build email content
 	require_once '../firebase/firebase_email.php';

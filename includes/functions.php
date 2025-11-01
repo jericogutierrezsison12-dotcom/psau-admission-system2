@@ -10,45 +10,6 @@ require_once 'session_checker.php';
 require_once 'api_calls.php';
 require_once 'generate_control_number.php';
 require_once 'encryption.php';
-/**
- * Decrypt a single user row's sensitive fields
- */
-function decrypt_user_row($row) {
-    if (!is_array($row)) return $row;
-    try {
-        if (array_key_exists('first_name', $row)) { $row['first_name'] = dec_personal($row['first_name'] ?? ''); }
-        if (array_key_exists('last_name', $row)) { $row['last_name'] = dec_personal($row['last_name'] ?? ''); }
-        if (array_key_exists('email', $row)) { $row['email'] = dec_contact($row['email'] ?? ''); }
-        if (array_key_exists('mobile_number', $row)) { $row['mobile_number'] = dec_contact($row['mobile_number'] ?? ''); }
-        if (array_key_exists('address', $row)) { $row['address'] = dec_personal($row['address'] ?? ''); }
-        if (array_key_exists('birth_date', $row)) { $row['birth_date'] = dec_personal($row['birth_date'] ?? ''); }
-        if (array_key_exists('gender', $row)) { $row['gender'] = dec_personal($row['gender'] ?? ''); }
-    } catch (Exception $e) {}
-    return $row;
-}
-
-/**
- * Decrypt an array of user rows
- */
-function decrypt_user_rows($rows) {
-    if (!is_array($rows)) return $rows;
-    $out = [];
-    foreach ($rows as $r) { $out[] = decrypt_user_row($r); }
-    return $out;
-}
-
-/**
- * Decrypt an application row's sensitive fields
- */
-function decrypt_application_row($row) {
-    if (!is_array($row)) return $row;
-    try {
-        if (array_key_exists('strand', $row)) { $row['strand'] = dec_academic($row['strand'] ?? ''); }
-        if (array_key_exists('gpa', $row)) { $row['gpa'] = dec_academic($row['gpa'] ?? ''); }
-        if (array_key_exists('address', $row)) { $row['address'] = dec_personal($row['address'] ?? ''); }
-    } catch (Exception $e) {}
-    return $row;
-}
 
 /**
  * Creates a remember me token for a user
@@ -431,16 +392,7 @@ function get_verified_applicants($conn) {
             ORDER BY a.verified_at ASC, a.created_at ASC
         ");
         $stmt->execute();
-        $rows = $stmt->fetchAll();
-        foreach ($rows as $row) {
-            try {
-                $row['first_name'] = dec_personal($row['first_name'] ?? '');
-                $row['last_name'] = dec_personal($row['last_name'] ?? '');
-                $row['email'] = dec_contact($row['email'] ?? '');
-                $row['mobile_number'] = dec_contact($row['mobile_number'] ?? '');
-            } catch (Exception $e) {}
-            $applicants[] = $row;
-        }
+        $applicants = $stmt->fetchAll();
     } catch (PDOException $e) {
         error_log("Error getting verified applicants: " . $e->getMessage());
     }
@@ -580,13 +532,7 @@ function get_user_fullname($conn, $user_id) {
         return 'N/A';
     }
     
-    try {
-        $first = dec_personal($user['first_name'] ?? '');
-        $last = dec_personal($user['last_name'] ?? '');
-        return trim($first . ' ' . $last);
-    } catch (Exception $e) {
-        return trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-    }
+    return trim($user['first_name'] . ' ' . $user['last_name']);
 }
 
 /**
@@ -641,4 +587,191 @@ function safe_redirect($location) {
     echo '<script>window.location.href=' . json_encode($location) . ';</script>';
     echo '<noscript><meta http-equiv="refresh" content="0;url=' . htmlspecialchars($location, ENT_QUOTES, 'UTF-8') . '"></noscript>';
     exit;
+}
+
+/**
+ * Check if email exists in encrypted users table
+ * @param PDO $conn Database connection
+ * @param string $email Email to check
+ * @return bool True if email exists, false otherwise
+ */
+function check_encrypted_email_exists($conn, $email) {
+    try {
+        // Get all users and decrypt emails to check
+        $stmt = $conn->prepare("SELECT email FROM users WHERE is_verified = 1");
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        
+        foreach ($users as $user) {
+            try {
+                $decrypted_email = decryptContactData($user['email']);
+                if ($decrypted_email === $email) {
+                    return true;
+                }
+            } catch (Exception $e) {
+                // If decryption fails, data might be unencrypted, compare directly
+                if ($user['email'] === $email) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } catch (Exception $e) {
+        error_log("Error checking encrypted email: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Check if mobile number exists in encrypted users table
+ * @param PDO $conn Database connection
+ * @param string $mobile_number Mobile number to check
+ * @return bool True if mobile number exists, false otherwise
+ */
+function check_encrypted_mobile_exists($conn, $mobile_number) {
+    try {
+        // Get all users and decrypt mobile numbers to check
+        $stmt = $conn->prepare("SELECT mobile_number FROM users WHERE is_verified = 1");
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        
+        foreach ($users as $user) {
+            try {
+                $decrypted_mobile = decryptContactData($user['mobile_number']);
+                if ($decrypted_mobile === $mobile_number) {
+                    return true;
+                }
+            } catch (Exception $e) {
+                // If decryption fails, data might be unencrypted, compare directly
+                if ($user['mobile_number'] === $mobile_number) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } catch (Exception $e) {
+        error_log("Error checking encrypted mobile: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Find user by email or mobile number (for login)
+ * Handles both encrypted and unencrypted data
+ * @param PDO $conn Database connection
+ * @param string $identifier Email or mobile number
+ * @return array|null User data or null if not found
+ */
+function find_user_by_encrypted_identifier($conn, $identifier) {
+    try {
+        // Get all verified users
+        $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        
+        foreach ($users as $user) {
+            try {
+                // Try to decrypt email and mobile
+                $decrypted_email = '';
+                $decrypted_mobile = '';
+                
+                if (!empty($user['email'])) {
+                    try {
+                        $decrypted_email = decryptContactData($user['email']);
+                    } catch (Exception $e) {
+                        // If decryption fails, assume unencrypted
+                        $decrypted_email = $user['email'];
+                    }
+                }
+                
+                if (!empty($user['mobile_number'])) {
+                    try {
+                        $decrypted_mobile = decryptContactData($user['mobile_number']);
+                    } catch (Exception $e) {
+                        // If decryption fails, assume unencrypted
+                        $decrypted_mobile = $user['mobile_number'];
+                    }
+                }
+                
+                // Check if identifier matches decrypted email or mobile
+                if ($decrypted_email === $identifier || $decrypted_mobile === $identifier) {
+                    // Decrypt all fields before returning
+                    $decrypted_user = [
+                        'id' => $user['id'],
+                        'control_number' => $user['control_number'],
+                        'email' => $decrypted_email,
+                        'mobile_number' => $decrypted_mobile,
+                        'password' => $user['password'],
+                        'is_verified' => $user['is_verified'],
+                        'is_blocked' => $user['is_blocked'] ?? 0,
+                        'block_reason' => $user['block_reason'] ?? null,
+                        'created_at' => $user['created_at']
+                    ];
+                    
+                    // Decrypt optional fields
+                    if (!empty($user['first_name'])) {
+                        try {
+                            $decrypted_user['first_name'] = decryptPersonalData($user['first_name']);
+                        } catch (Exception $e) {
+                            $decrypted_user['first_name'] = $user['first_name'];
+                        }
+                    } else {
+                        $decrypted_user['first_name'] = '';
+                    }
+                    
+                    if (!empty($user['last_name'])) {
+                        try {
+                            $decrypted_user['last_name'] = decryptPersonalData($user['last_name']);
+                        } catch (Exception $e) {
+                            $decrypted_user['last_name'] = $user['last_name'];
+                        }
+                    } else {
+                        $decrypted_user['last_name'] = '';
+                    }
+                    
+                    if (!empty($user['address'])) {
+                        try {
+                            $decrypted_user['address'] = decryptPersonalData($user['address']);
+                        } catch (Exception $e) {
+                            $decrypted_user['address'] = $user['address'];
+                        }
+                    } else {
+                        $decrypted_user['address'] = '';
+                    }
+                    
+                    if (!empty($user['gender'])) {
+                        try {
+                            $decrypted_user['gender'] = decryptPersonalData($user['gender']);
+                        } catch (Exception $e) {
+                            $decrypted_user['gender'] = $user['gender'];
+                        }
+                    } else {
+                        $decrypted_user['gender'] = '';
+                    }
+                    
+                    if (!empty($user['birth_date'])) {
+                        try {
+                            $decrypted_user['birth_date'] = decryptPersonalData($user['birth_date']);
+                        } catch (Exception $e) {
+                            $decrypted_user['birth_date'] = $user['birth_date'];
+                        }
+                    } else {
+                        $decrypted_user['birth_date'] = '';
+                    }
+                    
+                    return $decrypted_user;
+                }
+            } catch (Exception $e) {
+                // If decryption fails completely, data might be unencrypted, compare directly
+                if (($user['email'] === $identifier || $user['mobile_number'] === $identifier)) {
+                    // Return as-is (unencrypted data)
+                    return $user;
+                }
+            }
+        }
+        return null;
+    } catch (Exception $e) {
+        error_log("Error finding user by encrypted identifier: " . $e->getMessage());
+        return null;
+    }
 }

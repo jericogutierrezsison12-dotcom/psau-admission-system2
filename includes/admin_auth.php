@@ -4,8 +4,8 @@
  * Handles authentication and authorization for admin users
  */
 
-// Start session if not already started and headers not sent
-if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+// Start session if not already started
+if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
@@ -16,7 +16,7 @@ if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
  */
 function check_admin_login($redirect_url = 'login.php') {
     // Always start a session if not already started
-    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     
@@ -81,7 +81,7 @@ function admin_has_permission($permission) {
  * @param string $redirect_url
  */
 function require_admin_role(array $allowed_roles, $redirect_url = 'dashboard.php') {
-    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     $role = $_SESSION['admin_role'] ?? 'admin';

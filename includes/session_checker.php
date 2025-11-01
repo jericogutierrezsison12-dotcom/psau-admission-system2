@@ -5,9 +5,12 @@
  */
 
 // Start session if not already started
-if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Include encryption for decryption
+require_once __DIR__ . '/encryption.php';
 
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
@@ -52,7 +55,7 @@ function is_user_logged_in($redirect_url = '../public/login.php') {
  */
 function is_admin_logged_in($redirect_url = 'login.php') {
     // Always start a session if not already started
-    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     
@@ -70,7 +73,7 @@ function is_admin_logged_in($redirect_url = 'login.php') {
  */
 function redirect_if_logged_in($redirect_url, $type = 'user') {
     // Always start a session if not already started
-    if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     
@@ -104,6 +107,20 @@ function get_current_user_data($conn) {
             return null;
         }
         
+        // Decrypt sensitive user data
+        try {
+            $user['first_name'] = !empty($user['first_name']) ? decryptPersonalData($user['first_name']) : '';
+            $user['last_name'] = !empty($user['last_name']) ? decryptPersonalData($user['last_name']) : '';
+            $user['email'] = !empty($user['email']) ? decryptContactData($user['email']) : '';
+            $user['mobile_number'] = !empty($user['mobile_number']) ? decryptContactData($user['mobile_number']) : '';
+            $user['address'] = !empty($user['address']) ? decryptPersonalData($user['address']) : '';
+            $user['gender'] = !empty($user['gender']) ? decryptPersonalData($user['gender']) : '';
+            $user['birth_date'] = !empty($user['birth_date']) ? decryptPersonalData($user['birth_date']) : '';
+        } catch (Exception $e) {
+            // If decryption fails, data might be unencrypted, use as-is
+            error_log("Warning: Could not decrypt user data, using as-is: " . $e->getMessage());
+        }
+        
         // Fetch educational background from applications table
         $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
                                    FROM applications 
@@ -114,16 +131,32 @@ function get_current_user_data($conn) {
         $app_stmt->execute();
         $education = $app_stmt->fetch();
         
-        // Merge educational background data with user data
+        // Merge educational background data with user data (decrypt if needed)
         if ($education) {
-            $user['previous_school'] = $education['previous_school'];
-            $user['school_year'] = $education['school_year'];
-            $user['strand'] = $education['strand'];
-            $user['gpa'] = $education['gpa'];
-            $user['age'] = $education['age'];
-            // Use application address if user address is empty
-            if (empty($user['address']) && !empty($education['address'])) {
-                $user['address'] = $education['address'];
+            try {
+                $user['previous_school'] = !empty($education['previous_school']) ? decryptAcademicData($education['previous_school']) : '';
+                $user['school_year'] = !empty($education['school_year']) ? decryptAcademicData($education['school_year']) : '';
+                $user['strand'] = !empty($education['strand']) ? decryptAcademicData($education['strand']) : '';
+                $user['gpa'] = !empty($education['gpa']) ? decryptAcademicData($education['gpa']) : '';
+                $user['age'] = !empty($education['age']) ? decryptAcademicData($education['age']) : '';
+                // Use application address if user address is empty
+                if (empty($user['address']) && !empty($education['address'])) {
+                    try {
+                        $user['address'] = decryptAcademicData($education['address']);
+                    } catch (Exception $e) {
+                        $user['address'] = $education['address']; // Use as-is if decryption fails
+                    }
+                }
+            } catch (Exception $e) {
+                // If decryption fails, use as-is (backwards compatibility)
+                $user['previous_school'] = $education['previous_school'] ?? '';
+                $user['school_year'] = $education['school_year'] ?? '';
+                $user['strand'] = $education['strand'] ?? '';
+                $user['gpa'] = $education['gpa'] ?? '';
+                $user['age'] = $education['age'] ?? '';
+                if (empty($user['address']) && !empty($education['address'])) {
+                    $user['address'] = $education['address'];
+                }
             }
         }
         

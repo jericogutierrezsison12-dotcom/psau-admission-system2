@@ -88,41 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If no validation errors, attempt to login
         if (empty($errors)) {
-            // Verify reCAPTCHA token only if secret is configured
-            $recaptcha_secret = getenv('RECAPTCHA_SECRET') ?: ($_ENV['RECAPTCHA_SECRET'] ?? '');
+            // Verify reCAPTCHA token
             $recaptcha_token = $_POST['recaptcha_token'] ?? '';
-            if (!empty($recaptcha_secret)) {
-                if (!verify_recaptcha($recaptcha_token, 'login')) {
-                    $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
-                }
+            if (!verify_recaptcha($recaptcha_token, 'login')) {
+                $errors['recaptcha'] = 'reCAPTCHA verification failed. Please try again.';
             }
         }
         
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // Try fast encrypted equality (may not match due to randomized IVs)
-                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1");
-                $encId = enc_contact($login_identifier);
-                $stmt->execute([$encId, $encId]);
-                $user = $stmt->fetch();
-                // Fallback: scan verified users and compare decrypted email/mobile
-                if (!$user) {
-                    $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
-                    $stmt->execute();
-                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    $needle = strtolower(trim($login_identifier));
-                    foreach ($rows as $row) {
-                        $decEmail = '';
-                        $decMobile = '';
-                        try { $decEmail = dec_contact($row['email'] ?? ''); } catch (Exception $e) { $decEmail = ''; }
-                        try { $decMobile = dec_contact($row['mobile_number'] ?? ''); } catch (Exception $e) { $decMobile = ''; }
-                        if (strtolower(trim($decEmail)) === $needle || strtolower(trim($decMobile)) === $needle) {
-                            $user = $row;
-                            break;
-                        }
-                    }
-                }
+                // Find user by encrypted email or mobile number
+                $user = find_user_by_encrypted_identifier($conn, $login_identifier);
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
@@ -164,16 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         $block_info = $block_check;
                     } else {
-                        // Show remaining attempts (guard missing key on error paths)
-                        $attempts = (is_array($block_check) && isset($block_check['attempts'])) ? (int)$block_check['attempts'] : null;
-                        $remaining = (is_array($block_check) && array_key_exists('remaining', $block_check))
-                            ? (int)$block_check['remaining']
-                            : (isset($attempts) ? max(0, 5 - $attempts) : null);
-                        if ($remaining === null) {
-                            $errors['attempts'] = 'Failed login attempt.';
-                        } else {
-                            $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
-                        }
+                        // Show remaining attempts
+                        $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
                     }
                 }
             } catch (PDOException $e) {
