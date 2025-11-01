@@ -179,29 +179,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         error_log("Login attempt: Password verification FAILED for user ID: " . $user['id']);
                         error_log("Login attempt: Provided password length: " . strlen($password));
                         error_log("Login attempt: Stored password hash starts with: " . substr($user['password'] ?? 'N/A', 0, 10));
+                        
+                        // Only track login attempts if user exists (valid email/mobile)
+                        $block_check = track_login_attempt($device_id, false);
+                        if ($block_check['blocked']) {
+                            if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
+                                $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
+                            } else {
+                                $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
+                            }
+                            $block_info = $block_check;
+                        } else {
+                            // Show remaining attempts (check if 'remaining' key exists)
+                            $remaining = $block_check['remaining'] ?? 0;
+                            if ($remaining > 0) {
+                                $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
+                            } else {
+                                $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                            }
+                        }
                     } else {
                         error_log("Login attempt: No user found OR password verification failed");
-                    }
-                    
-                    $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
-                    
-                    // Record failed login attempt
-                    $block_check = track_login_attempt($device_id, false);
-                    if ($block_check['blocked']) {
-                        if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
-                            $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
-                        } else {
-                            $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
-                        }
-                        $block_info = $block_check;
-                    } else {
-                        // Show remaining attempts (check if 'remaining' key exists)
-                        $remaining = $block_check['remaining'] ?? 0;
-                        if ($remaining > 0) {
-                            $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
-                        } else {
-                            $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
-                        }
+                        // User doesn't exist - don't track login attempts to prevent enumeration
+                        $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
                     }
                 }
             } catch (PDOException $e) {

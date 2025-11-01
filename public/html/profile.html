@@ -54,10 +54,10 @@
                         </div>
                         
                         <div class="card-body">
-                            <h5 class="card-title fw-bold"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h5>
+                            <h5 class="card-title fw-bold"><?php echo htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')); ?></h5>
                             <p class="card-text text-muted mb-3">
                                 <span class="badge bg-light text-dark px-3 py-2 shadow-sm">
-                                    <i class="bi bi-key me-1"></i> <?php echo htmlspecialchars($user['control_number']); ?>
+                                    <i class="bi bi-key me-1"></i> <?php echo htmlspecialchars($user['control_number'] ?? ''); ?>
                                 </span>
                             </p>
                             <div class="d-grid">
@@ -74,10 +74,10 @@
                                 <i class="bi bi-info-circle me-2 text-primary"></i>Account Info
                             </h5>
                             <p class="mb-2">
-                                <i class="bi bi-envelope me-2"></i> <?php echo htmlspecialchars($user['email']); ?>
+                                <i class="bi bi-envelope me-2"></i> <?php echo htmlspecialchars($user['email'] ?? ''); ?>
                             </p>
                             <p class="mb-0">
-                                <i class="bi bi-calendar me-2"></i> Joined: <?php echo date('M d, Y', strtotime($user['created_at'])); ?>
+                                <i class="bi bi-calendar me-2"></i> Joined: <?php echo !empty($user['created_at']) ? date('M d, Y', strtotime($user['created_at'])) : 'N/A'; ?>
                             </p>
                         </div>
                     </div>

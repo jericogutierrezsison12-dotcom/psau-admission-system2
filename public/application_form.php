@@ -447,9 +447,9 @@ if ($existing_application) {
 // Pass user data and existing application data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'email' => $user['email']
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? ''
     ]) . ';
     const existingApplication = ' . json_encode($existing_application) . ';
     
