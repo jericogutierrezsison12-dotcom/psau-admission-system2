@@ -47,12 +47,7 @@ try {
     error_log("Connection failed: " . $e->getMessage());
     error_log("Connection details - Host: $host, Port: $port, Database: $dbname, Username: $username");
     
-    // If in development mode, you can display the error
-    if(defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        error_log("Connection failed: " . $e->getMessage());
-        error_log("Host: $host, Port: $port, Database: $dbname, Username: $username");
-    } else {
-        error_log("Database connection error. Please try again later.");
-    }
-    exit;
+    // Don't call exit() here - let pages handle null $conn gracefully
+    // This prevents redirect loops when connection fails
+    $conn = null;
 }

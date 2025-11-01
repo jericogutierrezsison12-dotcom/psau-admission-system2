@@ -1,6 +1,16 @@
 <?php
-session_start();
+// Guard session start
+if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
+
 require_once '../includes/db_connect.php';
+
+// If database connection fails, show error instead of redirecting
+if (!$conn) {
+    http_response_code(500);
+    die('Database connection failed. Please contact the administrator.');
+}
 
 try {
     // Fetch announcements

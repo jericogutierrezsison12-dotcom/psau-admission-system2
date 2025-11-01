@@ -4,8 +4,8 @@
  * Verifies if the user is logged in and redirects as needed
  */
 
-// Start session if not already started
-if (session_status() == PHP_SESSION_NONE) {
+// Start session if not already started (guard against headers sent)
+if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -14,27 +14,9 @@ require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/functions.php'; // For looks_encrypted function
 
 // Check remember me cookie if session not active
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    require_once 'db_connect.php';
-    require_once 'functions.php';
-    
-    $cookie_parts = explode(':', $_COOKIE['remember_me']);
-    
-    if (count($cookie_parts) === 2) {
-        $selector = $cookie_parts[0];
-        $token = $cookie_parts[1];
-        
-        $user_id = verify_remember_token($conn, $selector, $token);
-        
-        if ($user_id) {
-            // Valid remember me token, set session
-            $_SESSION['user_id'] = $user_id;
-        } else {
-            // Invalid remember me token, clear the cookie
-            clear_remember_cookie();
-        }
-    }
-}
+// Only check if we're in a request that might need authentication
+// Defer database connection to avoid issues on pages that don't need it
+// This check will be done in individual pages that need it, not here globally
 
 /**
  * Check if user is logged in
