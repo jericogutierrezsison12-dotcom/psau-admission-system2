@@ -13,8 +13,30 @@ require_once '../includes/functions.php'; // Added for remember me functions
 require_once '../includes/simple_email.php'; // Added for email fallback
 require_once '../includes/encryption.php';
 
-// Redirect if already logged in
-redirect_if_logged_in('dashboard.php');
+// Check database connection
+if (!$conn) {
+    http_response_code(500);
+    die('Database connection failed. Please try again later.');
+}
+
+// Redirect if already logged in (only if session is valid)
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    // Verify user still exists before redirecting
+    try {
+        $stmt = $conn->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$_SESSION['user_id']]);
+        if ($stmt->fetch()) {
+            header('Location: dashboard.php');
+            exit;
+        } else {
+            // User doesn't exist, clear session
+            $_SESSION = array();
+        }
+    } catch (Exception $e) {
+        error_log("Login redirect check error: " . $e->getMessage());
+        // Don't redirect if check fails
+    }
+}
 
 // Initialize variables
 $login_identifier = '';
@@ -33,37 +55,46 @@ $stmt = $conn->prepare("SELECT * FROM login_attempts
                        AND block_expires > ?");
 $stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
 
-if ($stmt->rowCount() > 0) {
-    $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
-    $time_left = strtotime($block_data['block_expires']) - time();
-    $block_info = [
-        'blocked' => true, 
-        'expires' => $block_data['block_expires'],
-        'minutes_left' => ceil($time_left / 60)
-    ];
+        if ($stmt->rowCount() > 0) {
+            $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $time_left = strtotime($block_data['block_expires']) - time();
+            $block_info = [
+                'blocked' => true, 
+                'expires' => $block_data['block_expires'],
+                'minutes_left' => ceil($time_left / 60)
+            ];
+        }
+    } catch (Exception $e) {
+        error_log("Login block check error: " . $e->getMessage());
+    }
 }
 
 // Check for remember me cookie
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    $cookie_parts = explode(':', $_COOKIE['remember_me']);
-    
-    if (count($cookie_parts) === 2) {
-        $selector = $cookie_parts[0];
-        $token = $cookie_parts[1];
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me']) && $conn) {
+    try {
+        $cookie_parts = explode(':', $_COOKIE['remember_me']);
         
-        $user_id = verify_remember_token($conn, $selector, $token);
-        
-        if ($user_id) {
-            // Valid remember me token, set session
-            $_SESSION['user_id'] = $user_id;
+        if (count($cookie_parts) === 2) {
+            $selector = $cookie_parts[0];
+            $token = $cookie_parts[1];
             
-            // Redirect to dashboard
-            header('Location: dashboard.php');
-            exit;
-        } else {
-            // Invalid remember me token, clear the cookie
-            clear_remember_cookie();
+            $user_id = verify_remember_token($conn, $selector, $token);
+            
+            if ($user_id) {
+                // Valid remember me token, set session
+                $_SESSION['user_id'] = $user_id;
+                
+                // Redirect to dashboard
+                header('Location: dashboard.php');
+                exit;
+            } else {
+                // Invalid remember me token, clear the cookie
+                clear_remember_cookie();
+            }
         }
+    } catch (Exception $e) {
+        error_log("Remember me check error: " . $e->getMessage());
+        clear_remember_cookie();
     }
 }
 

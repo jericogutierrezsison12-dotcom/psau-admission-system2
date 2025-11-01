@@ -1,15 +1,21 @@
 <?php
-// Guard session start
+// Guard session start - but don't require it for public index
 if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
-    session_start();
+    @session_start();
 }
 
 require_once '../includes/db_connect.php';
 
 // If database connection fails, show error instead of redirecting
 if (!$conn) {
+    // Show user-friendly error page
     http_response_code(500);
-    die('Database connection failed. Please contact the administrator.');
+    echo '<!DOCTYPE html><html><head><title>Database Connection Error</title></head><body>';
+    echo '<h1>Service Temporarily Unavailable</h1>';
+    echo '<p>The database connection is currently unavailable. Please try again later.</p>';
+    echo '<p><a href="index.php">Return to Home</a></p>';
+    echo '</body></html>';
+    exit;
 }
 
 try {

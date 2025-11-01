@@ -9,15 +9,40 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/encryption.php';
 
-// Check if user is logged in
-is_user_logged_in();
+// Check database connection first
+if (!$conn) {
+    http_response_code(500);
+    die('Database connection failed. Please try again later.');
+}
 
-// Get user details
-$user = get_current_user_data($conn);
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+// Get user details - handle decryption failures gracefully
+$user = null;
+try {
+    $user = get_current_user_data($conn);
+} catch (Exception $e) {
+    error_log("Error getting user data in dashboard: " . $e->getMessage());
+    // Try to get user without decryption if decryption fails
+    try {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    } catch (Exception $e2) {
+        error_log("Error getting user without decryption: " . $e2->getMessage());
+    }
+}
 
 // Ensure user is available, redirect if not
 if (!$user || !isset($user['id'])) {
-    header('Location: login.php');
+    // Clear invalid session and redirect
+    $_SESSION = array();
+    session_destroy();
+    header('Location: login.php?error=session_invalid');
     exit;
 }
 

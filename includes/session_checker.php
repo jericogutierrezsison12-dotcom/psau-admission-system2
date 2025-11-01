@@ -24,6 +24,11 @@ require_once __DIR__ . '/functions.php'; // For looks_encrypted function
  * @return bool True if logged in, redirects if not
  */
 function is_user_logged_in($redirect_url = '../public/login.php') {
+    // Guard against headers already sent
+    if (headers_sent()) {
+        return false;
+    }
+    
     if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
         header("Location: $redirect_url");
         exit;
