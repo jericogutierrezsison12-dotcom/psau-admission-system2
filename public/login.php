@@ -14,7 +14,8 @@ require_once '../includes/simple_email.php'; // Added for email fallback
 require_once '../includes/encryption.php';
 
 // Redirect if already logged in
-redirect_if_logged_in('dashboard.php');
+error_log('DEBUG: login.php - SESSION user_id: ' . ($_SESSION['user_id'] ?? 'none'));
+// redirect_if_logged_in('dashboard.php'); // TEMPORARILY DISABLED FOR DEBUGGING
 
 // Initialize variables
 $login_identifier = '';

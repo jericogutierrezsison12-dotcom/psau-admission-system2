@@ -22,7 +22,7 @@ if (!isset($_SESSION['user_id'])) {
 $user = get_current_user_data($conn);
 if (!$user) {
     // Debug: User data missing
-    error_log('User data missing in profile.php for user_id: ' . ($_SESSION['user_id'] ?? 'none'));
+    error_log('DEBUG: profile.php - SESSION user_id: ' . ($_SESSION['user_id'] ?? 'none'));
     header('Location: login.php');
     exit;
 }
