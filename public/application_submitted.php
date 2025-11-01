@@ -40,42 +40,54 @@ try {
     
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Decrypt application data if needed
+    // Decrypt application data if needed (only if looks encrypted)
     if ($application) {
         try {
+            require_once '../includes/functions.php'; // For looks_encrypted
+            
             if (!empty($application['previous_school'])) {
-                try {
-                    $application['previous_school'] = decryptAcademicData($application['previous_school']);
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['previous_school'])) {
+                    try {
+                        $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['strand'])) {
-                try {
-                    $application['strand'] = decryptAcademicData($application['strand']);
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['strand'])) {
+                    try {
+                        $application['strand'] = decryptAcademicData($application['strand']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['gpa'])) {
-                try {
-                    $application['gpa'] = decryptAcademicData($application['gpa']);
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['gpa'])) {
+                    try {
+                        $application['gpa'] = decryptAcademicData($application['gpa']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['address'])) {
-                try {
-                    $application['address'] = decryptAcademicData($application['address']);
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['address'])) {
+                    try {
+                        $application['address'] = decryptAcademicData($application['address']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
             if (!empty($application['school_year'])) {
-                try {
-                    $application['school_year'] = decryptAcademicData($application['school_year']);
-                } catch (Exception $e) {
-                    // Use as-is if decryption fails
+                if (looks_encrypted($application['school_year'])) {
+                    try {
+                        $application['school_year'] = decryptAcademicData($application['school_year']);
+                    } catch (Exception $e) {
+                        // Use as-is if decryption fails
+                    }
                 }
             }
         } catch (Exception $e) {
