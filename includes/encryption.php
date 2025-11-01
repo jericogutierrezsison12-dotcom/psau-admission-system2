@@ -23,6 +23,17 @@ class PSAUEncryption {
         }
         
         if (empty($key)) {
+            // Check for key.php file first (priority)
+            $keyPath = __DIR__ . '/key.php';
+            if (file_exists($keyPath)) {
+                include $keyPath;
+                if (isset($ENCRYPTION_KEY) && !empty($ENCRYPTION_KEY)) {
+                    $key = $ENCRYPTION_KEY;
+                }
+            }
+        }
+        
+        if (empty($key)) {
             // Check for secret_key.php file as fallback
             $secretPath = __DIR__ . '/secret_key.php';
             if (file_exists($secretPath)) {
