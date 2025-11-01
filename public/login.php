@@ -141,8 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         $block_info = $block_check;
                     } else {
-                        // Show remaining attempts
-                        $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
+                        // Show remaining attempts (check if 'remaining' key exists)
+                        $remaining = $block_check['remaining'] ?? 0;
+                        if ($remaining > 0) {
+                            $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
+                        } else {
+                            $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                        }
                     }
                 }
             } catch (PDOException $e) {
