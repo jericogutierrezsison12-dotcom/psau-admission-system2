@@ -55,39 +55,6 @@
                         </a>
                     </li>
                 <?php else: ?>
-                    <?php
-                    // Get user data if not already available
-                    if (!isset($user) || empty($user)) {
-                        // Try different path possibilities based on where template is included from
-                        $base_path = __DIR__;
-                        if (strpos($base_path, 'templates') !== false) {
-                            $base_path = dirname($base_path);
-                        }
-                        $includes_path = dirname($base_path) . DIRECTORY_SEPARATOR . 'includes';
-                        
-                        if (!isset($conn)) {
-                            require_once $includes_path . DIRECTORY_SEPARATOR . 'db_connect.php';
-                        }
-                        require_once $includes_path . DIRECTORY_SEPARATOR . 'session_checker.php';
-                        $user = get_current_user_data($conn);
-                    }
-                    ?>
-                    <!-- User Name Dropdown (if user data available) -->
-                    <?php if ($user && !empty($user['first_name'])): ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i>
-                            <?php echo htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')); ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="profile.php"><i class="bi bi-person me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="dashboard.php"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
-                        </ul>
-                    </li>
-                    <?php endif; ?>
-                    
                     <li class="nav-item">
                         <a class="nav-link" href="ai/chatbot.php">
                             <i class="bi bi-robot"></i> Chatbot
@@ -98,14 +65,12 @@
                             <i class="bi bi-stars"></i> Recommendation
                         </a>
                     </li>
-                    <!-- Fallback Logout if dropdown not shown -->
-                    <?php if (!$user || empty($user['first_name'])): ?>
+                    <!-- Navigation for logged-in users -->
                     <li class="nav-item">
                         <a class="nav-link" href="logout.php">
                             <i class="bi bi-box-arrow-right"></i> Logout
                         </a>
                     </li>
-                    <?php endif; ?>
                 <?php endif; ?>
             </ul>
         </div>

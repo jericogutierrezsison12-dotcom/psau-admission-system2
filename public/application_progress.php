@@ -14,12 +14,6 @@ is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
-if (!$user || !isset($user['id'])) {
-    // Debug: User data missing
-    error_log('User data missing in application_progress.php for user_id: ' . ($_SESSION['user_id'] ?? 'none'));
-    header('Location: login.php');
-    exit;
-}
 
 // Get application status
 $application = null;
@@ -27,7 +21,7 @@ $hasApplication = false;
 $status = 'Not Started';
 $statusClass = 'danger';
 
-if ($user && isset($user['id'])) {
+if ($user) {
     // Check if user has an application
     $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$user['id']]);
@@ -37,53 +31,41 @@ if ($user && isset($user['id'])) {
         $hasApplication = true;
         $status = $application['status'];
         
-        // Decrypt application data if needed (only if looks encrypted)
+        // Decrypt application data if needed
         try {
-            require_once '../includes/functions.php'; // For looks_encrypted
-            
             if (!empty($application['previous_school'])) {
-                if (looks_encrypted($application['previous_school'])) {
-                    try {
-                        $application['previous_school'] = decryptAcademicData($application['previous_school']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+                try {
+                    $application['previous_school'] = decryptAcademicData($application['previous_school']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails (backwards compatibility)
                 }
             }
             if (!empty($application['strand'])) {
-                if (looks_encrypted($application['strand'])) {
-                    try {
-                        $application['strand'] = decryptAcademicData($application['strand']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+                try {
+                    $application['strand'] = decryptAcademicData($application['strand']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
                 }
             }
             if (!empty($application['gpa'])) {
-                if (looks_encrypted($application['gpa'])) {
-                    try {
-                        $application['gpa'] = decryptAcademicData($application['gpa']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+                try {
+                    $application['gpa'] = decryptAcademicData($application['gpa']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
                 }
             }
             if (!empty($application['address'])) {
-                if (looks_encrypted($application['address'])) {
-                    try {
-                        $application['address'] = decryptAcademicData($application['address']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+                try {
+                    $application['address'] = decryptAcademicData($application['address']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
                 }
             }
             if (!empty($application['school_year'])) {
-                if (looks_encrypted($application['school_year'])) {
-                    try {
-                        $application['school_year'] = decryptAcademicData($application['school_year']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+                try {
+                    $application['school_year'] = decryptAcademicData($application['school_year']);
+                } catch (Exception $e) {
+                    // Use as-is if decryption fails
                 }
             }
         } catch (Exception $e) {
@@ -208,10 +190,10 @@ $applicationData = [
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
     'user' => [
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? '',
-        'control_number' => $user['control_number'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email'],
+        'control_number' => $user['control_number']
     ]
 ];
 

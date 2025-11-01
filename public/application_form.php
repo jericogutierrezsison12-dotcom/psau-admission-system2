@@ -73,7 +73,6 @@ $applicationStatus = '';
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
-$canSubmit = false; // Initialize to false
 if ($user) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);

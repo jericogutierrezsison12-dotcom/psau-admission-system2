@@ -12,8 +12,6 @@ require_once '../includes/encryption.php';
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
 if (!isset($_SESSION['user_id'])) {
-    // Debug: Session missing
-    error_log('Session user_id missing in profile.php');
     header('Location: login.php');
     exit;
 }
@@ -21,8 +19,6 @@ if (!isset($_SESSION['user_id'])) {
 // Get current user data (includes educational background from applications table)
 $user = get_current_user_data($conn);
 if (!$user) {
-    // Debug: User data missing
-    error_log('DEBUG: profile.php - SESSION user_id: ' . ($_SESSION['user_id'] ?? 'none'));
     header('Location: login.php');
     exit;
 }
@@ -158,4 +154,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Include the HTML template
 include 'html/profile.html';
-?>
+?> 

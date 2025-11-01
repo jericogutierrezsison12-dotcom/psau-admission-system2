@@ -15,37 +15,14 @@
             <div class="menu-items">
                 <?php if(isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])): ?>
                     <!-- User Profile Section (Only for logged in users) -->
-                    <?php
-                    // Get user data if not already available
-                    if (!isset($user) || empty($user)) {
-                        // Try different path possibilities based on where template is included from
-                        $base_path = __DIR__;
-                        if (strpos($base_path, 'templates') !== false) {
-                            $base_path = dirname($base_path);
-                        }
-                        $includes_path = dirname($base_path) . DIRECTORY_SEPARATOR . 'includes';
-                        
-                        if (!isset($conn)) {
-                            require_once $includes_path . DIRECTORY_SEPARATOR . 'db_connect.php';
-                        }
-                        require_once $includes_path . DIRECTORY_SEPARATOR . 'session_checker.php';
-                        $user = get_current_user_data($conn);
-                    }
-                    ?>
-                    <?php if ($user): ?>
                     <div class="user-profile-section">
                         <div class="user-info">
-                            <p class="control-number"><?php echo htmlspecialchars($user['control_number'] ?? ''); ?></p>
-                            <p class="user-name"><?php echo htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')); ?></p>
-                            <p class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></p>
-                        </div>
-                        <div class="user-profile-link">
-                            <a href="profile.php" class="btn btn-sm btn-outline-light">
-                                <i class="bi bi-person-circle"></i> View Profile
-                            </a>
+                            <p class="control-number"><?php echo isset($_SESSION['control_number']) ? 
+                                htmlspecialchars($_SESSION['control_number']) : ''; ?></p>
+                            <p class="user-email"><?php echo isset($_SESSION['email']) ? 
+                                htmlspecialchars($_SESSION['email']) : ''; ?></p>
                         </div>
                     </div>
-                    <?php endif; ?>
 
                     <!-- Navigation for logged-in users (ordered to match screenshot) -->
                     <li><a href="index.php"><i class="bi bi-house-door"></i> Home</a></li>
