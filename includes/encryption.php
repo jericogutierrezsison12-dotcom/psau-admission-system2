@@ -15,73 +15,44 @@ class PSAUEncryption {
         if (self::$initialized) {
             return;
         }
-        
-        // Get encryption key from environment (check both getenv and $_ENV)
-        $key = getenv('ENCRYPTION_KEY');
-        if (empty($key) && isset($_ENV['ENCRYPTION_KEY'])) {
-            $key = $_ENV['ENCRYPTION_KEY'];
+
+        // Strictly load encryption key from includes/key.php
+        $keyPath = __DIR__ . '/key.php';
+        if (!file_exists($keyPath)) {
+            throw new Exception('Encryption key file not found. Please create includes/key.php');
         }
-        
-        if (empty($key)) {
-            // Check for key.php file first (priority)
-            $keyPath = __DIR__ . '/key.php';
-            if (file_exists($keyPath)) {
-                include $keyPath;
-                if (isset($ENCRYPTION_KEY) && !empty($ENCRYPTION_KEY)) {
-                    $key = $ENCRYPTION_KEY;
-                }
-            }
+
+        // key.php must define $ENCRYPTION_KEY
+        require $keyPath;
+        if (!isset($ENCRYPTION_KEY) || empty($ENCRYPTION_KEY)) {
+            throw new Exception('ENCRYPTION_KEY is not defined or is empty in includes/key.php');
         }
-        
-        if (empty($key)) {
-            // Check for secret_key.php file as fallback
-            $secretPath = __DIR__ . '/secret_key.php';
-            if (file_exists($secretPath)) {
-                include $secretPath;
-                if (isset($ENCRYPTION_KEY) && !empty($ENCRYPTION_KEY)) {
-                    $key = $ENCRYPTION_KEY;
-                } elseif (isset($ENCRYPTION_KEY_B64) && !empty($ENCRYPTION_KEY_B64)) {
-                    $key = $ENCRYPTION_KEY_B64;
-                }
-            }
-        }
-        
-        if (empty($key)) {
-            // If no key found, set a warning but don't throw immediately
-            // We'll check again during encrypt operations
-            error_log("WARNING: ENCRYPTION_KEY environment variable is not set!");
-            error_log("Please set ENCRYPTION_KEY in your environment variables.");
-            // Don't throw here - allow decryption to handle plaintext gracefully
-            self::$encryption_key = null;
-            self::$initialized = true;
-            return;
-        } else {
-            // Key is base64 encoded, decode it
-            $decoded_key = base64_decode($key, true);
-            if ($decoded_key === false || strlen($decoded_key) !== 32) {
-                // Try using the key directly if base64 decode fails
-                if (strlen($key) === 32) {
-                    $decoded_key = $key;
-                } else {
-                    error_log("CRITICAL ERROR: ENCRYPTION_KEY is not valid base64 or not 32 bytes!");
-                    error_log("Key length: " . strlen($key));
-                    throw new Exception("Invalid ENCRYPTION_KEY format. Must be a base64-encoded 32-byte key.");
-                }
-            }
+
+        $key = $ENCRYPTION_KEY;
+
+        // Allow base64-encoded key or raw 32-byte key
+        $decoded_key = base64_decode($key, true);
+        if ($decoded_key !== false && strlen($decoded_key) === 32) {
             $key = $decoded_key;
+        } elseif (strlen($key) === 32) {
+            // Use raw 32-byte key as-is
+        } else {
+            error_log('CRITICAL ERROR: ENCRYPTION_KEY is not valid base64 or not 32 bytes!');
+            error_log('Key length: ' . strlen($key));
+            throw new Exception('Invalid ENCRYPTION_KEY format. Must be a base64-encoded 32-byte key or raw 32-byte string.');
         }
-        
+
         if (strlen($key) !== 32) {
-            error_log("CRITICAL ERROR: Encryption key length is " . strlen($key) . " bytes, expected 32 bytes!");
-            throw new Exception("Invalid encryption key length. Must be 32 bytes.");
+            error_log('CRITICAL ERROR: Encryption key length is ' . strlen($key) . ' bytes, expected 32 bytes!');
+            throw new Exception('Invalid encryption key length. Must be 32 bytes.');
         }
-        
+
         self::$encryption_key = $key;
         self::$initialized = true;
-        
+
         // Log key status (first 4 chars only for security)
         $key_preview = base64_encode(substr($key, 0, 4));
-        error_log("Encryption initialized successfully. Key preview: " . $key_preview . "... (Key loaded from " . (getenv('ENCRYPTION_KEY') ? 'getenv' : '$_ENV') . ")");
+        error_log('Encryption initialized successfully. Key preview: ' . $key_preview . '... (Key loaded from includes/key.php)');
     }
     
     /**
@@ -106,7 +77,7 @@ class PSAUEncryption {
         
         // Check if key is available for encryption
         if (self::$encryption_key === null) {
-            throw new Exception("ENCRYPTION_KEY environment variable is required for encryption. Please configure it in your environment variables.");
+            throw new Exception('Encryption key is not available. Please check includes/key.php.');
         }
         
         // Generate random IV (12 bytes for GCM)
@@ -161,7 +132,7 @@ class PSAUEncryption {
         
         // If no encryption key available, can't decrypt - return as-is
         if (self::$encryption_key === null) {
-            error_log("WARNING: Cannot decrypt data - ENCRYPTION_KEY not set. Returning as-is.");
+            error_log('WARNING: Cannot decrypt data - Encryption key not set. Returning as-is.');
             return $encrypted_data;
         }
         
@@ -273,7 +244,8 @@ class PSAUEncryption {
      * @return string Hashed data
      */
     public static function hashForSearch($data) {
-        return hash('sha256', $data . getenv('ENCRYPTION_KEY'));
+        self::initialize();
+        return hash('sha256', $data . (self::$encryption_key ?? ''));
     }
     
     /**
@@ -312,7 +284,7 @@ class PSAUEncryption {
             'initialized' => self::$initialized,
             'key_length' => self::$encryption_key ? strlen(self::$encryption_key) : 0,
             'algorithm' => 'AES-256-GCM',
-            'key_source' => getenv('ENCRYPTION_KEY') ? 'environment' : 'generated'
+            'key_source' => 'includes/key.php'
         ];
     }
 }

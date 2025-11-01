@@ -119,4 +119,4 @@ echo '<script>
     };
     console.log("PHP Debug - Application data:", applicationData);
 </script>';
-?> 
+?>

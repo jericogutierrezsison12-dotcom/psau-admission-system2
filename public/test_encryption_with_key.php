@@ -8,9 +8,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Set a temporary test key for testing
-$test_key = base64_encode(random_bytes(32));
-putenv("ENCRYPTION_KEY=$test_key");
-$_ENV['ENCRYPTION_KEY'] = $test_key;
+// $test_key = base64_encode(random_bytes(32));
+// putenv("ENCRYPTION_KEY=$test_key");
+// $_ENV['ENCRYPTION_KEY'] = $test_key;
 
 require_once __DIR__ . '/../includes/db_connect.php';
 require_once __DIR__ . '/../includes/encryption.php';

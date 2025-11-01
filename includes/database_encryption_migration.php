@@ -13,10 +13,10 @@ class DatabaseEncryptionMigration {
     
     public function __construct($connection) {
         $this->conn = $connection;
-        $this->encryption_key = getenv('ENCRYPTION_KEY');
-        
-        if (empty($this->encryption_key)) {
-            throw new Exception("ENCRYPTION_KEY environment variable is required");
+        // PSAUEncryption loads key from includes/key.php
+        $status = PSAUEncryption::getStatus();
+        if ($status['key_length'] !== 32) {
+            throw new Exception("Encryption key is missing or invalid in includes/key.php");
         }
     }
     

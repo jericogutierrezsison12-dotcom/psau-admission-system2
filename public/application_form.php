@@ -474,4 +474,4 @@ echo '<script>
             }
         });
     }
-</script>'; 
+</script>';

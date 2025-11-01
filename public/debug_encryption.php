@@ -42,29 +42,20 @@ $is_admin = true; // Change this to check actual admin status
         <p><strong>WARNING:</strong> Remove this file after debugging!</p>
 
         <?php
-        // Test 1: Check if ENCRYPTION_KEY is set
+        // Test 1: Check for includes/key.php
         echo '<div class="section">';
-        echo '<h2>1. Environment Key Check</h2>';
-        
-        $env_key = getenv('ENCRYPTION_KEY');
-        $superglobal_key = isset($_ENV['ENCRYPTION_KEY']) ? $_ENV['ENCRYPTION_KEY'] : null;
-        
-        if ($env_key) {
-            echo '<div class="test-result success">✓ ENCRYPTION_KEY found via getenv()</div>';
-            echo '<pre>Key preview: ' . substr($env_key, 0, 10) . '... (length: ' . strlen($env_key) . ')</pre>';
+        echo '<h2>1. Key File Check</h2>';
+        $keyPath = __DIR__ . '/../includes/key.php';
+        if (file_exists($keyPath)) {
+            echo '<div class="test-result success">✓ Encryption key file found at <strong>includes/key.php</strong>.</div>';
+            require $keyPath;
+            if (isset($ENCRYPTION_KEY) && !empty($ENCRYPTION_KEY)) {
+                echo '<div class="test-result success">✓ <strong>$ENCRYPTION_KEY</strong> is defined and not empty.</div>';
+            } else {
+                echo '<div class="test-result error">✗ <strong>$ENCRYPTION_KEY</strong> is not defined or is empty in <strong>includes/key.php</strong>.</div>';
+            }
         } else {
-            echo '<div class="test-result error">✗ ENCRYPTION_KEY NOT found via getenv()</div>';
-        }
-        
-        if ($superglobal_key) {
-            echo '<div class="test-result success">✓ ENCRYPTION_KEY found in $_ENV</div>';
-            echo '<pre>Key preview: ' . substr($superglobal_key, 0, 10) . '... (length: ' . strlen($superglobal_key) . ')</pre>';
-        } else {
-            echo '<div class="test-result warning">⚠ ENCRYPTION_KEY NOT found in $_ENV</div>';
-        }
-        
-        if (!$env_key && !$superglobal_key) {
-            echo '<div class="test-result error"><strong>CRITICAL:</strong> ENCRYPTION_KEY is not set! This is why decryption fails.</div>';
+            echo '<div class="test-result error"><strong>CRITICAL:</strong> Encryption key file not found at <strong>includes/key.php</strong>!</div>';
         }
         echo '</div>';
 
@@ -223,11 +214,10 @@ $is_admin = true; // Change this to check actual admin status
         <div class="section warning">
             <h2>⚠ Important Notes</h2>
             <ul>
-                <li>If ENCRYPTION_KEY is not set, decryption will always fail</li>
-                <li>If you see "Generated new encryption key" in logs, that's the problem - a new key was generated</li>
-                <li>You MUST use the SAME key that was used during registration</li>
-                <li>Check Render dashboard → Your Service → Environment → ENCRYPTION_KEY</li>
-                <li>If you lost the key, you'll need to reset all encrypted data</li>
+                <li>The encryption key is now loaded exclusively from <strong>includes/key.php</strong>.</li>
+                <li>Ensure this file exists and the <strong>$ENCRYPTION_KEY</strong> variable is correctly defined.</li>
+                <li>If decryption fails, it is likely due to an incorrect or missing key in that file.</li>
+                <li>Never commit <strong>includes/key.php</strong> to version control if it contains a production key.</li>
             </ul>
         </div>
     </div>

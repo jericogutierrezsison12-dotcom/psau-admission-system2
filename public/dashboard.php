@@ -62,58 +62,16 @@ if ($user && isset($user['id'])) {
         $hasApplication = true;
         $status = $application['status'];
         
-        // Decrypt application data if needed (only if looks encrypted)
+        // Normalize application fields using safeDecryptField
         try {
-            require_once '../includes/functions.php'; // For looks_encrypted
-            
-            if (!empty($application['previous_school'])) {
-                if (looks_encrypted($application['previous_school'])) {
-                    try {
-                        $application['previous_school'] = decryptAcademicData($application['previous_school']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
-                }
-            }
-            if (!empty($application['strand'])) {
-                if (looks_encrypted($application['strand'])) {
-                    try {
-                        $application['strand'] = decryptAcademicData($application['strand']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
-                }
-            }
-            if (!empty($application['gpa'])) {
-                if (looks_encrypted($application['gpa'])) {
-                    try {
-                        $application['gpa'] = decryptAcademicData($application['gpa']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
-                }
-            }
-            if (!empty($application['address'])) {
-                if (looks_encrypted($application['address'])) {
-                    try {
-                        $application['address'] = decryptAcademicData($application['address']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
-                }
-            }
-            if (!empty($application['school_year'])) {
-                if (looks_encrypted($application['school_year'])) {
-                    try {
-                        $application['school_year'] = decryptAcademicData($application['school_year']);
-                    } catch (Exception $e) {
-                        // Use as-is if decryption fails
-                    }
+            require_once '../includes/functions.php';
+            foreach (['previous_school','strand','gpa','address','school_year'] as $field) {
+                if (isset($application[$field]) && $application[$field] !== null) {
+                    $application[$field] = safeDecryptField($application[$field], 'applications', $field);
                 }
             }
         } catch (Exception $e) {
-            // If decryption fails completely, use as-is (backwards compatibility)
-            error_log("Warning: Could not decrypt application data in dashboard: " . $e->getMessage());
+            error_log("Warning: Could not normalize application data in dashboard: " . $e->getMessage());
         }
         
         // Set status class for styling
@@ -221,4 +179,4 @@ if ($hasApplication) {
 }
 
 // Include the HTML template
-include_once 'html/dashboard.html'; 
+include_once 'html/dashboard.html';

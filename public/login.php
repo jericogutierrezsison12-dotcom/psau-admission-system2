@@ -141,37 +141,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $user = find_user_by_encrypted_identifier($conn, $login_identifier);
                 } else {
                     error_log("Login: User found via direct query - ID: " . $user['id']);
-                    // Check if functions.php is loaded (contains looks_encrypted function)
-                    if (function_exists('looks_encrypted')) {
-                        // Try to decrypt the data if it looks encrypted
-                        if (!empty($user['email']) && looks_encrypted($user['email'])) {
-                            try {
-                                $user['email'] = decryptContactData($user['email']);
-                                error_log("Login: Decrypted email successfully");
-                            } catch (Exception $e) {
-                                error_log("Login: Could not decrypt email: " . $e->getMessage());
-                            }
-                        }
-                        if (!empty($user['mobile_number']) && looks_encrypted($user['mobile_number'])) {
-                            try {
-                                $user['mobile_number'] = decryptContactData($user['mobile_number']);
-                                error_log("Login: Decrypted mobile successfully");
-                            } catch (Exception $e) {
-                                error_log("Login: Could not decrypt mobile: " . $e->getMessage());
-                            }
-                        }
-                    } else {
-                        error_log("Login: looks_encrypted function not available, skipping decryption check");
+                    // Normalize possibly encrypted fields using safeDecryptField
+                    try {
+                        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
+                        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
+                    } catch (Exception $e) {
+                        error_log("Login: safeDecryptField error: " . $e->getMessage());
                     }
                 }
                 
                 // Debug logging
                 if (!$user) {
                     error_log("Login attempt: User not found for identifier: " . substr($login_identifier, 0, 5) . "...");
-                    // Check if encryption key might be the issue
-                    if (empty(getenv('ENCRYPTION_KEY')) && empty($_ENV['ENCRYPTION_KEY'])) {
-                        error_log("CRITICAL: ENCRYPTION_KEY is not set! This will cause decryption to fail.");
-                    }
+                    $encStatus = PSAUEncryption::getStatus();
+                    error_log("Encryption status: initialized=" . ($encStatus['initialized'] ? 'yes' : 'no') . ", key_length=" . $encStatus['key_length']);
                 } else {
                     error_log("Login attempt: User found - ID: " . $user['id'] . ", Email: " . substr($user['email'] ?? 'N/A', 0, 5) . "...");
                     error_log("Login attempt: Password verification - User has password hash: " . (!empty($user['password']) ? 'Yes' : 'No'));

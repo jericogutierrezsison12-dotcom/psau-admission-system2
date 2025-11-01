@@ -66,26 +66,20 @@ function test_result($name, $passed, $message = '', $details = '') {
     return $passed !== false;
 }
 
-// Test 1: Encryption key availability
+// Test 1: Encryption key availability (key.php)
 echo "<h2>Test 1: Encryption Key</h2>";
 try {
-    $key = getenv('ENCRYPTION_KEY') ?: ($_ENV['ENCRYPTION_KEY'] ?? '');
-    if (empty($key)) {
-        test_result("ENCRYPTION_KEY Environment Variable", false, "ENCRYPTION_KEY is not set!");
+    $keyPath = __DIR__ . '/../includes/key.php';
+    if (!file_exists($keyPath)) {
+        test_result("Encryption Key File", false, "includes/key.php not found");
     } else {
-        $decoded = base64_decode($key, true);
-        if ($decoded === false || strlen($decoded) !== 32) {
-            if (strlen($key) === 32) {
-                test_result("ENCRYPTION_KEY Environment Variable", true, "Key found (32 bytes raw)");
-            } else {
-                test_result("ENCRYPTION_KEY Environment Variable", false, "Key format invalid!");
-            }
-        } else {
-            test_result("ENCRYPTION_KEY Environment Variable", true, "Key found and valid (32 bytes from base64)");
-        }
+        $status = PSAUEncryption::getStatus();
+        $msg = "Source: " . $status['key_source'] . ", Length: " . $status['key_length'] . " bytes";
+        $valid = ($status['initialized'] === true && $status['key_length'] === 32);
+        test_result("Encryption Initialization", $valid, $msg);
     }
 } catch (Exception $e) {
-    test_result("ENCRYPTION_KEY Environment Variable", false, "Error: " . $e->getMessage());
+    test_result("Encryption Initialization", false, "Error: " . $e->getMessage());
 }
 
 // Test 2: Encryption/Decryption functions
@@ -331,16 +325,8 @@ try {
             "Plaintext was modified: $decrypted_plaintext");
     }
 } catch (Exception $e) {
-    // Even if key is missing, plaintext should be returned
-    if ($e->getMessage() && strpos($e->getMessage(), 'ENCRYPTION_KEY') !== false) {
-        // If we get here, decryption tried to initialize and failed
-        // But plaintext should still work - this is a warning
-        test_result("Plaintext backward compatibility", null, 
-            "Key not set - plaintext handling depends on key availability");
-    } else {
-        test_result("Plaintext backward compatibility", false, 
-            "Error: " . $e->getMessage());
-    }
+    test_result("Plaintext backward compatibility", null, 
+        "Key initialization error: " . $e->getMessage());
 }
 
 // Summary

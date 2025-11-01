@@ -61,11 +61,14 @@ foreach ($admin_files as $file) {
 }
 
 // Test 4: Encryption key handling
-$has_key = !empty(getenv('ENCRYPTION_KEY')) || !empty($_ENV['ENCRYPTION_KEY']);
-if (!$has_key) {
-    $warnings[] = 'ENCRYPTION_KEY not set (expected in production)';
+$keyPath = __DIR__ . '/../includes/key.php';
+$keyStatus = PSAUEncryption::getStatus();
+if (!file_exists($keyPath)) {
+    $warnings[] = 'includes/key.php not found';
+} elseif ($keyStatus['key_length'] !== 32) {
+    $warnings[] = 'Encryption key in key.php is not valid (must be 32 bytes)';
 } else {
-    $passed[] = 'ENCRYPTION_KEY is set';
+    $passed[] = 'Encryption key is present and valid';
 }
 
 // Output
