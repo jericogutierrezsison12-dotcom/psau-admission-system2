@@ -101,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Find user by encrypted email or mobile number
                 $user = find_user_by_encrypted_identifier($conn, $login_identifier);
                 
+                // Debug logging (remove in production)
+                if (!$user) {
+                    error_log("Login attempt: User not found for identifier: " . substr($login_identifier, 0, 5) . "...");
+                } else {
+                    error_log("Login attempt: User found - ID: " . $user['id'] . ", Email: " . substr($user['email'] ?? 'N/A', 0, 5) . "...");
+                }
+                
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
                     $errors['blocked'] = $reason;

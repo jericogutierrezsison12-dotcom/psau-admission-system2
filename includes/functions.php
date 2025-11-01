@@ -664,37 +664,69 @@ function check_encrypted_mobile_exists($conn, $mobile_number) {
  */
 function find_user_by_encrypted_identifier($conn, $identifier) {
     try {
+        // Trim identifier for comparison
+        $identifier = trim($identifier);
+        
         // Get all verified users
         $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
         $stmt->execute();
         $users = $stmt->fetchAll();
+        
+        error_log("Searching for user with identifier: " . substr($identifier, 0, 5) . "... (Total users: " . count($users) . ")");
         
         foreach ($users as $user) {
             try {
                 // Try to decrypt email and mobile
                 $decrypted_email = '';
                 $decrypted_mobile = '';
+                $email_decrypt_error = null;
+                $mobile_decrypt_error = null;
                 
                 if (!empty($user['email'])) {
                     try {
                         $decrypted_email = decryptContactData($user['email']);
+                        $decrypted_email = trim($decrypted_email);
                     } catch (Exception $e) {
-                        // If decryption fails, assume unencrypted
-                        $decrypted_email = $user['email'];
+                        // If decryption fails, check if ENCRYPTION_KEY is set
+                        $encryption_key = getenv('ENCRYPTION_KEY');
+                        if (empty($encryption_key)) {
+                            error_log("WARNING: ENCRYPTION_KEY not set! Cannot decrypt data for user ID " . $user['id']);
+                            // Assume unencrypted data and compare directly
+                            $decrypted_email = trim($user['email']);
+                        } else {
+                            // Key exists but decryption failed - data might be corrupted or wrong key
+                            error_log("Email decryption failed for user ID " . $user['id'] . ": " . $e->getMessage());
+                            error_log("Encrypted email length: " . strlen($user['email']));
+                            // Try as unencrypted as fallback
+                            $decrypted_email = trim($user['email']);
+                        }
                     }
                 }
                 
                 if (!empty($user['mobile_number'])) {
                     try {
                         $decrypted_mobile = decryptContactData($user['mobile_number']);
+                        $decrypted_mobile = trim($decrypted_mobile);
                     } catch (Exception $e) {
-                        // If decryption fails, assume unencrypted
-                        $decrypted_mobile = $user['mobile_number'];
+                        // If decryption fails, check if ENCRYPTION_KEY is set
+                        $encryption_key = getenv('ENCRYPTION_KEY');
+                        if (empty($encryption_key)) {
+                            error_log("WARNING: ENCRYPTION_KEY not set! Cannot decrypt mobile for user ID " . $user['id']);
+                            // Assume unencrypted data and compare directly
+                            $decrypted_mobile = trim($user['mobile_number']);
+                        } else {
+                            // Key exists but decryption failed
+                            error_log("Mobile decryption failed for user ID " . $user['id'] . ": " . $e->getMessage());
+                            error_log("Encrypted mobile length: " . strlen($user['mobile_number']));
+                            // Try as unencrypted as fallback
+                            $decrypted_mobile = trim($user['mobile_number']);
+                        }
                     }
                 }
                 
-                // Check if identifier matches decrypted email or mobile
-                if ($decrypted_email === $identifier || $decrypted_mobile === $identifier) {
+                // Check if identifier matches decrypted email or mobile (case-insensitive)
+                if (strcasecmp($decrypted_email, $identifier) === 0 || strcasecmp($decrypted_mobile, $identifier) === 0) {
+                    error_log("User match found! User ID: " . $user['id'] . ", Email: " . substr($decrypted_email, 0, 5) . "...");
                     // Decrypt all fields before returning
                     $decrypted_user = [
                         'id' => $user['id'],
@@ -763,15 +795,21 @@ function find_user_by_encrypted_identifier($conn, $identifier) {
                 }
             } catch (Exception $e) {
                 // If decryption fails completely, data might be unencrypted, compare directly
-                if (($user['email'] === $identifier || $user['mobile_number'] === $identifier)) {
+                error_log("Complete decryption failure for user ID " . ($user['id'] ?? 'unknown') . ": " . $e->getMessage());
+                $user_email = trim($user['email'] ?? '');
+                $user_mobile = trim($user['mobile_number'] ?? '');
+                if (strcasecmp($user_email, $identifier) === 0 || strcasecmp($user_mobile, $identifier) === 0) {
                     // Return as-is (unencrypted data)
+                    error_log("Found user with unencrypted data match");
                     return $user;
                 }
             }
         }
+        error_log("No user found matching identifier: " . substr($identifier, 0, 5) . "...");
         return null;
     } catch (Exception $e) {
         error_log("Error finding user by encrypted identifier: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return null;
     }
 }
