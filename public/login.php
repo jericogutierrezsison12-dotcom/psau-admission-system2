@@ -101,17 +101,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Find user by encrypted email or mobile number
                 $user = find_user_by_encrypted_identifier($conn, $login_identifier);
                 
-                // Debug logging (remove in production)
+                // Debug logging
                 if (!$user) {
                     error_log("Login attempt: User not found for identifier: " . substr($login_identifier, 0, 5) . "...");
                 } else {
                     error_log("Login attempt: User found - ID: " . $user['id'] . ", Email: " . substr($user['email'] ?? 'N/A', 0, 5) . "...");
+                    error_log("Login attempt: Password verification - User has password hash: " . (!empty($user['password']) ? 'Yes' : 'No'));
                 }
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
                     $errors['blocked'] = $reason;
                 } elseif ($user && password_verify($password, $user['password'])) {
+                    error_log("Login attempt: Password verified successfully for user ID: " . $user['id']);
                     // Login successful, set session
                     $_SESSION['user_id'] = $user['id'];
                     
@@ -136,6 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 } else {
                     // Invalid credentials
+                    if ($user) {
+                        error_log("Login attempt: Password verification FAILED for user ID: " . $user['id']);
+                        error_log("Login attempt: Provided password length: " . strlen($password));
+                        error_log("Login attempt: Stored password hash starts with: " . substr($user['password'] ?? 'N/A', 0, 10));
+                    } else {
+                        error_log("Login attempt: No user found OR password verification failed");
+                    }
+                    
                     $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
                     
                     // Record failed login attempt
