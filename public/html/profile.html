@@ -93,11 +93,11 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label for="first_name" class="form-label">First Name <span class="required-field">*</span></label>
-                                        <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" required>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="last_name" class="form-label">Last Name <span class="required-field">*</span></label>
-                                        <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" required>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>" required>
                                     </div>
                                 </div>
                                 
@@ -105,10 +105,10 @@
                                     <div class="col-md-6">
                                         <label for="gender" class="form-label">Gender</label>
                                         <select class="form-select" id="gender" name="gender">
-                                            <option value="" <?php echo empty($user['gender']) ? 'selected' : ''; ?>>-- Select Gender --</option>
-                                            <option value="Male" <?php echo $user['gender'] === 'Male' ? 'selected' : ''; ?>>Male</option>
-                                            <option value="Female" <?php echo $user['gender'] === 'Female' ? 'selected' : ''; ?>>Female</option>
-                                            <option value="Other" <?php echo $user['gender'] === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                            <option value="" <?php echo empty($user['gender'] ?? '') ? 'selected' : ''; ?>>-- Select Gender --</option>
+                                            <option value="Male" <?php echo ($user['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                            <option value="Female" <?php echo ($user['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                            <option value="Other" <?php echo ($user['gender'] ?? '') === 'Other' ? 'selected' : ''; ?>>Other</option>
                                         </select>
                                     </div>
                                     <div class="col-md-6">
@@ -134,18 +134,18 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label for="email" class="form-label">Email Address</label>
-                                        <input type="email" class="form-control non-editable" id="email" value="<?php echo htmlspecialchars($user['email']); ?>" readonly>
+                                        <input type="email" class="form-control non-editable" id="email" value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" readonly>
                                     </div>
                                 </div>
                                 
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label for="control_number" class="form-label">Control Number</label>
-                                        <input type="text" class="form-control non-editable" id="control_number" value="<?php echo htmlspecialchars($user['control_number']); ?>" readonly>
+                                        <input type="text" class="form-control non-editable" id="control_number" value="<?php echo htmlspecialchars($user['control_number'] ?? ''); ?>" readonly>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="registration_date" class="form-label">Registration Date</label>
-                                        <input type="text" class="form-control non-editable" id="registration_date" value="<?php echo date('F j, Y', strtotime($user['created_at'])); ?>" readonly>
+                                        <input type="text" class="form-control non-editable" id="registration_date" value="<?php echo !empty($user['created_at']) ? date('F j, Y', strtotime($user['created_at'])) : 'N/A'; ?>" readonly>
                                     </div>
                                 </div>
                             </div>
