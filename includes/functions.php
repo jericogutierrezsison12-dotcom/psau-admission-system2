@@ -656,6 +656,20 @@ function check_encrypted_mobile_exists($conn, $mobile_number) {
 }
 
 /**
+ * Check if a string looks like encrypted data (base64 encoded, long enough)
+ * @param string $data Data to check
+ * @return bool True if data looks encrypted
+ */
+function looks_encrypted($data) {
+    if (empty($data)) {
+        return false;
+    }
+    // Encrypted data is base64, typically longer than 60 characters
+    // and contains base64 characters only
+    return strlen($data) > 60 && preg_match('/^[A-Za-z0-9+\/=]+$/', $data);
+}
+
+/**
  * Find user by email or mobile number (for login)
  * Handles both encrypted and unencrypted data
  * @param PDO $conn Database connection
@@ -676,57 +690,90 @@ function find_user_by_encrypted_identifier($conn, $identifier) {
         
         foreach ($users as $user) {
             try {
-                // Try to decrypt email and mobile
-                $decrypted_email = '';
-                $decrypted_mobile = '';
-                $email_decrypt_error = null;
-                $mobile_decrypt_error = null;
+                $email_matches = false;
+                $mobile_matches = false;
                 
+                // Check email
                 if (!empty($user['email'])) {
-                    try {
-                        $decrypted_email = decryptContactData($user['email']);
-                        $decrypted_email = trim($decrypted_email);
-                    } catch (Exception $e) {
-                        // If decryption fails, check if ENCRYPTION_KEY is set
-                        $encryption_key = getenv('ENCRYPTION_KEY');
-                        if (empty($encryption_key)) {
-                            error_log("WARNING: ENCRYPTION_KEY not set! Cannot decrypt data for user ID " . $user['id']);
-                            // Assume unencrypted data and compare directly
-                            $decrypted_email = trim($user['email']);
-                        } else {
-                            // Key exists but decryption failed - data might be corrupted or wrong key
+                    $stored_email = trim($user['email']);
+                    
+                    // If it looks encrypted, try to decrypt
+                    if (looks_encrypted($stored_email)) {
+                        try {
+                            $decrypted_email = decryptContactData($stored_email);
+                            $decrypted_email = trim($decrypted_email);
+                            $email_matches = (strcasecmp($decrypted_email, $identifier) === 0);
+                            if ($email_matches) {
+                                error_log("Email match via decryption for user ID " . $user['id']);
+                            }
+                        } catch (Exception $e) {
+                            // Decryption failed - data might be corrupted or key mismatch
                             error_log("Email decryption failed for user ID " . $user['id'] . ": " . $e->getMessage());
-                            error_log("Encrypted email length: " . strlen($user['email']));
-                            // Try as unencrypted as fallback
+                            // Still try plain text comparison as fallback
+                            $email_matches = (strcasecmp($stored_email, $identifier) === 0);
+                        }
+                    } else {
+                        // Doesn't look encrypted, compare directly
+                        $email_matches = (strcasecmp($stored_email, $identifier) === 0);
+                    }
+                }
+                
+                // Check mobile number
+                if (!empty($user['mobile_number'])) {
+                    $stored_mobile = trim($user['mobile_number']);
+                    
+                    // If it looks encrypted, try to decrypt
+                    if (looks_encrypted($stored_mobile)) {
+                        try {
+                            $decrypted_mobile = decryptContactData($stored_mobile);
+                            $decrypted_mobile = trim($decrypted_mobile);
+                            $mobile_matches = (strcasecmp($decrypted_mobile, $identifier) === 0);
+                            if ($mobile_matches) {
+                                error_log("Mobile match via decryption for user ID " . $user['id']);
+                            }
+                        } catch (Exception $e) {
+                            // Decryption failed
+                            error_log("Mobile decryption failed for user ID " . $user['id'] . ": " . $e->getMessage());
+                            // Still try plain text comparison as fallback
+                            $mobile_matches = (strcasecmp($stored_mobile, $identifier) === 0);
+                        }
+                    } else {
+                        // Doesn't look encrypted, compare directly
+                        $mobile_matches = (strcasecmp($stored_mobile, $identifier) === 0);
+                    }
+                }
+                
+                // If either email or mobile matches, return the user
+                if ($email_matches || $mobile_matches) {
+                    error_log("User match found! User ID: " . $user['id']);
+                    
+                    // Get decrypted values for return
+                    $decrypted_email = '';
+                    $decrypted_mobile = '';
+                    
+                    if (!empty($user['email'])) {
+                        if (looks_encrypted($user['email'])) {
+                            try {
+                                $decrypted_email = trim(decryptContactData($user['email']));
+                            } catch (Exception $e) {
+                                $decrypted_email = trim($user['email']); // Use as-is if decryption fails
+                            }
+                        } else {
                             $decrypted_email = trim($user['email']);
                         }
                     }
-                }
-                
-                if (!empty($user['mobile_number'])) {
-                    try {
-                        $decrypted_mobile = decryptContactData($user['mobile_number']);
-                        $decrypted_mobile = trim($decrypted_mobile);
-                    } catch (Exception $e) {
-                        // If decryption fails, check if ENCRYPTION_KEY is set
-                        $encryption_key = getenv('ENCRYPTION_KEY');
-                        if (empty($encryption_key)) {
-                            error_log("WARNING: ENCRYPTION_KEY not set! Cannot decrypt mobile for user ID " . $user['id']);
-                            // Assume unencrypted data and compare directly
-                            $decrypted_mobile = trim($user['mobile_number']);
+                    
+                    if (!empty($user['mobile_number'])) {
+                        if (looks_encrypted($user['mobile_number'])) {
+                            try {
+                                $decrypted_mobile = trim(decryptContactData($user['mobile_number']));
+                            } catch (Exception $e) {
+                                $decrypted_mobile = trim($user['mobile_number']); // Use as-is if decryption fails
+                            }
                         } else {
-                            // Key exists but decryption failed
-                            error_log("Mobile decryption failed for user ID " . $user['id'] . ": " . $e->getMessage());
-                            error_log("Encrypted mobile length: " . strlen($user['mobile_number']));
-                            // Try as unencrypted as fallback
                             $decrypted_mobile = trim($user['mobile_number']);
                         }
                     }
-                }
-                
-                // Check if identifier matches decrypted email or mobile (case-insensitive)
-                if (strcasecmp($decrypted_email, $identifier) === 0 || strcasecmp($decrypted_mobile, $identifier) === 0) {
-                    error_log("User match found! User ID: " . $user['id'] . ", Email: " . substr($decrypted_email, 0, 5) . "...");
                     // Decrypt all fields before returning
                     $decrypted_user = [
                         'id' => $user['id'],
@@ -740,52 +787,72 @@ function find_user_by_encrypted_identifier($conn, $identifier) {
                         'created_at' => $user['created_at']
                     ];
                     
-                    // Decrypt optional fields
+                    // Decrypt optional fields (only if they look encrypted)
                     if (!empty($user['first_name'])) {
-                        try {
-                            $decrypted_user['first_name'] = decryptPersonalData($user['first_name']);
-                        } catch (Exception $e) {
-                            $decrypted_user['first_name'] = $user['first_name'];
+                        if (looks_encrypted($user['first_name'])) {
+                            try {
+                                $decrypted_user['first_name'] = trim(decryptPersonalData($user['first_name']));
+                            } catch (Exception $e) {
+                                $decrypted_user['first_name'] = $user['first_name'];
+                            }
+                        } else {
+                            $decrypted_user['first_name'] = trim($user['first_name']);
                         }
                     } else {
                         $decrypted_user['first_name'] = '';
                     }
                     
                     if (!empty($user['last_name'])) {
-                        try {
-                            $decrypted_user['last_name'] = decryptPersonalData($user['last_name']);
-                        } catch (Exception $e) {
-                            $decrypted_user['last_name'] = $user['last_name'];
+                        if (looks_encrypted($user['last_name'])) {
+                            try {
+                                $decrypted_user['last_name'] = trim(decryptPersonalData($user['last_name']));
+                            } catch (Exception $e) {
+                                $decrypted_user['last_name'] = $user['last_name'];
+                            }
+                        } else {
+                            $decrypted_user['last_name'] = trim($user['last_name']);
                         }
                     } else {
                         $decrypted_user['last_name'] = '';
                     }
                     
                     if (!empty($user['address'])) {
-                        try {
-                            $decrypted_user['address'] = decryptPersonalData($user['address']);
-                        } catch (Exception $e) {
-                            $decrypted_user['address'] = $user['address'];
+                        if (looks_encrypted($user['address'])) {
+                            try {
+                                $decrypted_user['address'] = trim(decryptPersonalData($user['address']));
+                            } catch (Exception $e) {
+                                $decrypted_user['address'] = $user['address'];
+                            }
+                        } else {
+                            $decrypted_user['address'] = trim($user['address']);
                         }
                     } else {
                         $decrypted_user['address'] = '';
                     }
                     
                     if (!empty($user['gender'])) {
-                        try {
-                            $decrypted_user['gender'] = decryptPersonalData($user['gender']);
-                        } catch (Exception $e) {
-                            $decrypted_user['gender'] = $user['gender'];
+                        if (looks_encrypted($user['gender'])) {
+                            try {
+                                $decrypted_user['gender'] = trim(decryptPersonalData($user['gender']));
+                            } catch (Exception $e) {
+                                $decrypted_user['gender'] = $user['gender'];
+                            }
+                        } else {
+                            $decrypted_user['gender'] = trim($user['gender']);
                         }
                     } else {
                         $decrypted_user['gender'] = '';
                     }
                     
                     if (!empty($user['birth_date'])) {
-                        try {
-                            $decrypted_user['birth_date'] = decryptPersonalData($user['birth_date']);
-                        } catch (Exception $e) {
-                            $decrypted_user['birth_date'] = $user['birth_date'];
+                        if (looks_encrypted($user['birth_date'])) {
+                            try {
+                                $decrypted_user['birth_date'] = trim(decryptPersonalData($user['birth_date']));
+                            } catch (Exception $e) {
+                                $decrypted_user['birth_date'] = $user['birth_date'];
+                            }
+                        } else {
+                            $decrypted_user['birth_date'] = trim($user['birth_date']);
                         }
                     } else {
                         $decrypted_user['birth_date'] = '';
