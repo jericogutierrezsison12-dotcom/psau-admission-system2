@@ -9,7 +9,6 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/api_calls.php';
 require_once '../includes/validation_functions.php';
-require_once '../includes/encryption.php';
 
 // Function to verify document path was saved correctly
 function verify_document_path($conn, $application_id) {
@@ -64,27 +63,16 @@ is_user_logged_in();
 // Get user details
 $user = get_current_user_data($conn);
 
-// If user data cannot be retrieved, clear session and redirect
-// This prevents redirect loops when database connection fails
-if (!$user || !isset($user['id'])) {
-    // Clear session to prevent redirect loops
-    session_destroy();
-    header('Location: login.php');
-    exit;
-}
-
 // Initialize variables
 $message = '';
 $messageType = '';
 $maxAttempts = 5;
 $disableUpload = false;
 $applicationStatus = '';
-$canSubmit = true; // Default to true, will be set based on user check
-$submissionAttempts = 0;
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
-if ($user && isset($user['id'])) {
+if ($user) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
     $canSubmit = $attemptCheck['can_submit'];
@@ -226,15 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                         $message .= ' Remaining attempts: ' . ($maxAttempts - $submissionAttempts - 1);
                         $messageType = 'danger';
                     } else {
-                        // Encrypt application data before saving
-                        $encrypted_app_data = encrypt_application_data([
-                            'previous_school' => $previous_school,
-                            'school_year' => $school_year,
-                            'strand' => $strand,
-                            'gpa' => $gpa,
-                            'address' => $address
-                        ]);
-                        
                         // Check if this is a resubmission of a rejected application
                         $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND status = 'Rejected' ORDER BY created_at DESC LIMIT 1");
                         $stmt->execute([$user['id']]);
@@ -278,11 +257,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $encrypted_app_data['previous_school'],
-                                $encrypted_app_data['school_year'],
-                                $encrypted_app_data['strand'],
-                                $encrypted_app_data['gpa'],
-                                $encrypted_app_data['address'],
+                                $previous_school,
+                                $school_year,
+                                $strand,
+                                $gpa,
+                                $address,
                                 $existing_rejected['id']
                             ]);
                             
@@ -334,11 +313,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                                 $new_imagename,
                                 $image_size,
                                 $image_ext,
-                                $encrypted_app_data['previous_school'],
-                                $encrypted_app_data['school_year'],
-                                $encrypted_app_data['strand'],
-                                $encrypted_app_data['gpa'],
-                                $encrypted_app_data['address']
+                                $previous_school,
+                                $school_year,
+                                $strand,
+                                $gpa,
+                                $address
                             ]);
                             
                             $application_id = $conn->lastInsertId();
@@ -409,9 +388,9 @@ include_once 'html/application_form.html';
 // Pass user data and existing application data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email']
     ]) . ';
     const existingApplication = ' . json_encode($existing_application) . ';
     

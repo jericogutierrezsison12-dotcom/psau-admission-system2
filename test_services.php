@@ -59,7 +59,7 @@ try {
 
 // Test 5: Required Database Tables
 echo "<h2>5. Database Tables Test</h2>";
-$required_tables = ['users', 'login_attempts', 'applications', 'courses', 'enrollment_schedules'];
+$required_tables = ['users', 'login_attempts', 'applications', 'courses', 'enrollments'];
 $missing_tables = [];
 
 foreach ($required_tables as $table) {

@@ -24,7 +24,6 @@ echo "</div>";
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 // Email System - IMPORTANT: The system now uses Firebase for sending emails
 // Firebase email functions - this is the primary email system
@@ -76,10 +75,6 @@ try {
         // Format file sizes to human-readable format
         $application['document_file_size_formatted'] = $application['document_file_size'] ? number_format($application['document_file_size'] / 1024, 2) . ' KB' : 'N/A';
         $application['image_2x2_size_formatted'] = $application['image_2x2_size'] ? number_format($application['image_2x2_size'] / 1024, 2) . ' KB' : 'N/A';
-        
-        // Decrypt user and application data for display
-        $user = decrypt_user_data($user);
-        $application = decrypt_application_data($application);
         
         // Calculate age from birth_date
         if (!empty($user['birth_date'])) {
@@ -213,10 +208,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Get rejection reason
                 $rejection_reason = $_POST['rejection_reason'] ?? 'Missing or incomplete requirements';
                 
-                // Update application status
-                $stmt = $conn->prepare("UPDATE applications SET status = 'Rejected', rejection_reason = :reason WHERE id = :app_id");
-                $stmt->bindParam(':reason', $rejection_reason);
+                // Update application status (removed rejection_reason column - storing reason in status_history instead)
+                $stmt = $conn->prepare("UPDATE applications SET status = 'Rejected' WHERE id = :app_id");
                 $stmt->bindParam(':app_id', $application_id);
+                $stmt->execute();
+                
+                // Record status change with rejection reason in status_history
+                $stmt = $conn->prepare("
+                    INSERT INTO status_history 
+                    (application_id, status, description, performed_by) 
+                    VALUES (:app_id, 'Rejected', :reason, :admin_id)
+                ");
+                $stmt->bindParam(':app_id', $application_id);
+                $stmt->bindParam(':reason', $rejection_reason);
+                $stmt->bindParam(':admin_id', $admin['id']);
                 $stmt->execute();
                 
                 // Log the activity

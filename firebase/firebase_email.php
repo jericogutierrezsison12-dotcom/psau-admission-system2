@@ -450,9 +450,10 @@ function send_enrollment_schedule_email($user, $schedule) {
     $to = $user['email'];
     $subject = "PSAU Admission System: Enrollment Schedule";
     
-    // Format date and time
+    // Format date and time (use start_time from database, fallback to enrollment_time for backwards compatibility)
     $enrollment_date = date('l, F j, Y', strtotime($schedule['enrollment_date']));
-    $enrollment_time_start = date('h:i A', strtotime($schedule['enrollment_time']));
+    $time_value = isset($schedule['start_time']) ? $schedule['start_time'] : (isset($schedule['enrollment_time']) ? $schedule['enrollment_time'] : '');
+    $enrollment_time_start = $time_value ? date('h:i A', strtotime($time_value)) : '';
     $enrollment_time_end = isset($schedule['end_time']) ? date('h:i A', strtotime($schedule['end_time'])) : '';
     
     // Create HTML message

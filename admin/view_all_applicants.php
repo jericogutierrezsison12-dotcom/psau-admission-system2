@@ -2,7 +2,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in as admin
 is_admin_logged_in();
@@ -45,12 +44,6 @@ try {
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data for display
-    foreach ($applicants as &$applicant) {
-        $applicant = decrypt_user_data($applicant);
-    }
-    unset($applicant);
 } catch (PDOException $e) {
     error_log("Error fetching applicants: " . $e->getMessage());
     $error_message = "Error fetching applicants. Please try again later.";

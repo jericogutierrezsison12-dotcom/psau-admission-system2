@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
-require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 session_start();
@@ -43,12 +42,6 @@ try {
     ");
     $stmt->execute([$schedule_id]);
     $applicants = $stmt->fetchAll();
-    
-    // Decrypt user data for display
-    foreach ($applicants as &$applicant) {
-        $applicant = decrypt_user_data($applicant);
-    }
-    unset($applicant);
     
     // Display header info
     echo '<div class="mb-3">';

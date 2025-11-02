@@ -9,41 +9,26 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Include encryption functions
-require_once __DIR__ . '/encryption.php';
-
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    try {
-        require_once 'db_connect.php';
-        require_once 'functions.php';
+    require_once 'db_connect.php';
+    require_once 'functions.php';
+    
+    $cookie_parts = explode(':', $_COOKIE['remember_me']);
+    
+    if (count($cookie_parts) === 2) {
+        $selector = $cookie_parts[0];
+        $token = $cookie_parts[1];
         
-        // Check if database connection is available
-        if (!isset($conn) || !$conn) {
-            // Database connection failed, clear cookie to prevent loops
-            clear_remember_cookie();
+        $user_id = verify_remember_token($conn, $selector, $token);
+        
+        if ($user_id) {
+            // Valid remember me token, set session
+            $_SESSION['user_id'] = $user_id;
         } else {
-            $cookie_parts = explode(':', $_COOKIE['remember_me']);
-            
-            if (count($cookie_parts) === 2) {
-                $selector = $cookie_parts[0];
-                $token = $cookie_parts[1];
-                
-                $user_id = verify_remember_token($conn, $selector, $token);
-                
-                if ($user_id) {
-                    // Valid remember me token, set session
-                    $_SESSION['user_id'] = $user_id;
-                } else {
-                    // Invalid remember me token, clear the cookie
-                    clear_remember_cookie();
-                }
-            }
+            // Invalid remember me token, clear the cookie
+            clear_remember_cookie();
         }
-    } catch (Exception $e) {
-        // Database error, clear cookie to prevent loops
-        error_log("Remember me check error: " . $e->getMessage());
-        clear_remember_cookie();
     }
 }
 
@@ -119,8 +104,8 @@ function get_current_user_data($conn) {
             return null;
         }
         
-        // Fetch educational background from applications table
-        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
+        // Fetch educational background from applications table (removed age column - not in schema)
+        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, address 
                                    FROM applications 
                                    WHERE user_id = :user_id 
                                    ORDER BY created_at DESC 
@@ -129,17 +114,12 @@ function get_current_user_data($conn) {
         $app_stmt->execute();
         $education = $app_stmt->fetch();
         
-        // Decrypt user data
-        $user = decrypt_user_data($user);
-        
-        // Merge educational background data with user data and decrypt
+        // Merge educational background data with user data
         if ($education) {
-            $education = decrypt_application_data($education);
             $user['previous_school'] = $education['previous_school'];
             $user['school_year'] = $education['school_year'];
             $user['strand'] = $education['strand'];
             $user['gpa'] = $education['gpa'];
-            $user['age'] = $education['age'];
             // Use application address if user address is empty
             if (empty($user['address']) && !empty($education['address'])) {
                 $user['address'] = $education['address'];

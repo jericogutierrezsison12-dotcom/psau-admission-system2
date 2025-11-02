@@ -15,23 +15,36 @@ if (file_exists(__DIR__ . '/../.env')) {
     }
 }
 
-// Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'trolley.proxy.rlwy.net';
-$dbname = $_ENV['DB_NAME'] ?? 'railway';
+// Database credentials - use environment variables if available, otherwise Google Cloud SQL defaults
+$host = $_ENV['DB_HOST'] ?? '34.170.34.174';
+$dbname = $_ENV['DB_NAME'] ?? 'psau_admission';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'maFGvjqYlZuUdOmjvzArclEoYpUejThA';
-$port = $_ENV['DB_PORT'] ?? 48642;
+$password = $_ENV['DB_PASS'] ?? 'Psau_2025';
+$port = $_ENV['DB_PORT'] ?? 3306;
 
 // Create connection
 $conn = null;
 try {
-    $conn = new PDO("mysql:host=$host;port=$port;dbname=$dbname", $username, $password);
-    // Set the PDO error mode to exception
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // Set default fetch mode to associative array
-    $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    // Set charset to utf8
-    $conn->exec("SET NAMES utf8");
+    // Build DSN with SSL options for Google Cloud SQL (optional but recommended)
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+    ];
+    
+    // Add SSL options if running on Render (production)
+    $is_render = !empty($_ENV['RENDER']) || !empty($_SERVER['RENDER']);
+    if ($is_render) {
+        // Google Cloud SQL connection without SSL certificate verification for Render
+        // Note: Make sure Render's IP ranges are authorized in Google Cloud SQL Console
+        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
+    
+    $conn = new PDO($dsn, $username, $password, $options);
+    
 } catch(PDOException $e) {
     // Log error instead of displaying it directly
     error_log("Connection failed: " . $e->getMessage());
@@ -44,45 +57,5 @@ try {
     } else {
         error_log("Database connection error. Please try again later.");
     }
-    
-    // Set connection to null instead of exiting to allow graceful error handling
-    $conn = null;
-    
-    // Only exit on pages that absolutely require database (like dashboard, but not public index)
-    // For public index page, we'll allow it to continue without database
-    $script_path = $_SERVER['SCRIPT_NAME'] ?? '';
-    $requires_db = (
-        strpos($script_path, 'dashboard.php') !== false ||
-        strpos($script_path, 'application_form.php') !== false ||
-        strpos($script_path, 'profile.php') !== false ||
-        strpos($script_path, '/admin/') !== false
-    );
-    
-    if ($requires_db && !strpos($script_path, 'login.php')) {
-        // For pages that require DB (but not login page), destroy session and redirect to login
-        // Login page should handle DB errors gracefully without redirecting
-        // Start session if not already started before destroying
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        // Clear all session data to prevent loops
-        $_SESSION = [];
-        if (isset($_COOKIE[session_name()])) {
-            setcookie(session_name(), '', time() - 3600, '/');
-        }
-        session_destroy();
-        
-        // Use absolute path from document root to prevent redirect loops
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        
-        if (strpos($script_path, '/admin') !== false) {
-            $redirect_url = $protocol . $host . '/public/login.php';
-        } else {
-            $redirect_url = $protocol . $host . '/public/login.php';
-        }
-        
-        header('Location: ' . $redirect_url);
-        exit;
-    }
+    exit;
 }

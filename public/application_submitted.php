@@ -6,7 +6,6 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
@@ -35,11 +34,6 @@ try {
     }
     
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // Decrypt application data
-    if ($application) {
-        $application = decrypt_application_data($application);
-    }
 } catch (PDOException $e) {
     // Handle database error
     error_log('Error retrieving application: ' . $e->getMessage());

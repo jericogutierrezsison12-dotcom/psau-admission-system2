@@ -8,7 +8,6 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 require_once '../firebase/firebase_email.php';
 
 // Start session if not started
@@ -38,12 +37,6 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
     $pending_applications = $stmt->fetchAll();
-    
-    // Decrypt user data for display
-    foreach ($pending_applications as &$app) {
-        $app = decrypt_user_data($app);
-    }
-    unset($app);
 } catch (PDOException $e) {
     error_log("Pending Applications Error: " . $e->getMessage());
 }
@@ -90,9 +83,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $application_id = $_POST['application_id'];
         $verification_notes = $_POST['verification_notes'] ?? '';
         
-        // Update application status
-        $stmt = $conn->prepare("UPDATE applications SET status = 'Verified', verification_notes = ?, verified_at = NOW() WHERE id = ?");
-        $stmt->execute([$verification_notes, $application_id]);
+        // Update application status (removed verification_notes column - storing notes in status_history instead)
+        $stmt = $conn->prepare("UPDATE applications SET status = 'Verified', verified_at = NOW() WHERE id = ?");
+        $stmt->execute([$application_id]);
         
         // Record status change
         $stmt = $conn->prepare("
@@ -116,8 +109,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $user = $stmt->fetch();
         
         if ($user) {
-            // Decrypt user data for email
-            $user = decrypt_user_data($user);
             // Send verification email
             $verification_email = [
                 'first_name' => $user['first_name'],

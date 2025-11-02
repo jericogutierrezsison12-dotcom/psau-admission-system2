@@ -129,9 +129,6 @@ try {
         exit();
     }
 
-    // Decrypt user data
-    $user = decrypt_user_data($user);
-
     error_log("Retrieved user details for user_id: $user_id, email: {$user['email']}");
 
     // Get reminder count for this user and type
@@ -246,7 +243,7 @@ try {
 
                 // Log activity
                 $reminder_text = $reminder_count > 1 ? "Follow-up reminder" : "First reminder";
-                logActivity('reminder_sent', $admin_id, "{$reminder_text} sent to {$user['first_name']} {$user['last_name']} for {$reminder_type}", $_SERVER['REMOTE_ADDR']);
+                log_admin_activity($conn, $admin_id, 'reminder_sent', "{$reminder_text} sent to {$user['first_name']} {$user['last_name']} for {$reminder_type}");
                 
                 echo json_encode([
                     'success' => true, 

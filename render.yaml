@@ -7,21 +7,15 @@ services:
     startCommand: vendor/bin/heroku-php-apache2 public/
     envVars:
       - key: DB_HOST
-        fromDatabase:
-          name: psau-db
-          property: host
+        value: 34.170.34.174
       - key: DB_NAME
-        fromDatabase:
-          name: psau-db
-          property: database
+        value: psau_admission
       - key: DB_USER
-        fromDatabase:
-          name: psau-db
-          property: user
+        value: root
       - key: DB_PASS
-        fromDatabase:
-          name: psau-db
-          property: password
+        value: Psau_2025
+      - key: DB_PORT
+        value: 3306
       - key: FIREBASE_API_KEY
         value: AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8
       - key: FIREBASE_AUTH_DOMAIN
@@ -38,8 +32,5 @@ services:
         value: https://sendemail-alsstt22ha-uc.a.run.app
       - key: ENVIRONMENT
         value: production
-
-databases:
-  - name: psau-db
-    plan: free
-    databaseName: psau_admission
+      - key: RENDER
+        value: "true"

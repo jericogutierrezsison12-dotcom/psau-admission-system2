@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/admin_auth.php';
-require_once '../includes/encryption.php';
 
 // Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
@@ -115,12 +114,6 @@ try {
     
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data for display
-    foreach ($students as &$student) {
-        $student = decrypt_user_data($student);
-    }
-    unset($student);
     
     // Get status counts
     $count_query = "

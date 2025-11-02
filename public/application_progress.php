@@ -7,22 +7,12 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
-
-// If user data cannot be retrieved, clear session and redirect
-// This prevents redirect loops when database connection fails
-if (!$user || !isset($user['id'])) {
-    // Clear session to prevent redirect loops
-    session_destroy();
-    header('Location: login.php');
-    exit;
-}
 
 // Get application status
 $application = null;
@@ -37,8 +27,6 @@ if ($user) {
     $application = $stmt->fetch();
     
     if ($application) {
-        // Decrypt application data
-        $application = decrypt_application_data($application);
         $hasApplication = true;
         $status = $application['status'];
         
@@ -137,6 +125,7 @@ if ($hasApplication && in_array($status, ['Enrollment Scheduled', 'Enrolled'])) 
 
 // Get status history
 $statusHistory = [];
+$rejection_reason = null; // Get rejection reason from status_history if status is Rejected
 if ($hasApplication) {
     $stmt = $conn->prepare("
         SELECT * FROM status_history 
@@ -145,12 +134,22 @@ if ($hasApplication) {
     ");
     $stmt->execute([$application['id']]);
     $statusHistory = $stmt->fetchAll();
+    
+    // If status is Rejected, get the rejection reason from status_history
+    if ($status === 'Rejected' && !empty($statusHistory)) {
+        foreach ($statusHistory as $history) {
+            if ($history['status'] === 'Rejected' && !empty($history['description'])) {
+                $rejection_reason = $history['description'];
+                break;
+            }
+        }
+    }
 }
 
 // Pass data to JavaScript
 $applicationData = [
     'hasApplication' => $hasApplication,
-    'application' => $application,
+    'application' => $application ? array_merge($application, ['rejection_reason' => $rejection_reason]) : null,
     'status' => $status,
     'statusClass' => $statusClass,
     'examSchedule' => $examSchedule,
@@ -159,10 +158,10 @@ $applicationData = [
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
     'user' => [
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? '',
-        'control_number' => $user['control_number'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email'],
+        'control_number' => $user['control_number']
     ]
 ];
 

@@ -179,9 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Get registration data from session
                 $registration = $_SESSION['registration'];
                 
-                // Include control number generator and encryption
+                // Include control number generator
                 require_once '../includes/generate_control_number.php';
-                require_once '../includes/encryption.php';
                 
                 // Generate control number
                 $control_number = generate_control_number($conn);
@@ -189,28 +188,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password
                 $hashed_password = password_hash($registration['password'], PASSWORD_DEFAULT);
                 
-                // Encrypt sensitive user data
-                $encrypted_data = encrypt_user_data([
-                    'first_name' => $registration['first_name'],
-                    'last_name' => $registration['last_name'],
-                    'email' => $registration['email'],
-                    'mobile_number' => $registration['mobile_number'],
-                    'gender' => $registration['gender'],
-                    'birth_date' => $registration['birth_date']
-                ]);
-                
-                // Insert user into database with encrypted data
+                // Insert user into database
                 $stmt = $conn->prepare("INSERT INTO users (control_number, first_name, last_name, email, mobile_number, password, is_verified, gender, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $control_number,
-                    $encrypted_data['first_name'],
-                    $encrypted_data['last_name'],
-                    $encrypted_data['email'],
-                    $encrypted_data['mobile_number'],
+                    $registration['first_name'],
+                    $registration['last_name'],
+                    $registration['email'],
+                    $registration['mobile_number'],
                     $hashed_password,
                     1, // Verified through OTP
-                    $encrypted_data['gender'],
-                    $encrypted_data['birth_date']
+                    $registration['gender'],
+                    $registration['birth_date']
                 ]);
                 
                 $user_id = $conn->lastInsertId();

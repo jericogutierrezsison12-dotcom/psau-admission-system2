@@ -7,22 +7,12 @@
 // Include required files
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in
 is_user_logged_in();
 
 // Get user details
 $user = get_current_user_data($conn);
-
-// If user data cannot be retrieved, clear session and redirect
-// This prevents redirect loops when database connection fails
-if (!$user || !isset($user['id'])) {
-    // Clear session to prevent redirect loops
-    session_destroy();
-    header('Location: login.php');
-    exit;
-}
 
 // Get application status
 $application = null;
@@ -37,8 +27,6 @@ if ($user) {
     $application = $stmt->fetch();
     
     if ($application) {
-        // Decrypt application data
-        $application = decrypt_application_data($application);
         $hasApplication = true;
         $status = $application['status'];
         

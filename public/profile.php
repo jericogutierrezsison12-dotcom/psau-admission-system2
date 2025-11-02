@@ -7,7 +7,6 @@
 // Include the database connection and session checker
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
-require_once '../includes/encryption.php';
 
 // Check if user is logged in
 // No need to call session_start() as it's already called in session_checker.php
@@ -22,9 +21,6 @@ if (!$user) {
     header('Location: login.php');
     exit;
 }
-
-// Decrypt user data for display
-$user = decrypt_user_data($user);
 
 // Initialize variables
 $message = '';
@@ -50,34 +46,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('First name and last name are required.');
         }
 
-        // Encrypt sensitive user data before saving
-        $encrypted_data = encrypt_user_data([
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'gender' => $gender,
-            'birth_date' => !empty($birth_date) ? $birth_date : null,
-            'mobile_number' => $mobile_number
-        ]);
-
         // Initialize SQL parts
         $sql_parts = [];
         $params = [];
         
-        // Add personal info fields (encrypted)
+        // Add personal info fields
         $sql_parts[] = "first_name = ?";
-        $params[] = $encrypted_data['first_name'];
+        $params[] = $first_name;
         
         $sql_parts[] = "last_name = ?";
-        $params[] = $encrypted_data['last_name'];
+        $params[] = $last_name;
         
         $sql_parts[] = "gender = ?";
-        $params[] = $encrypted_data['gender'];
+        $params[] = $gender;
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = $encrypted_data['birth_date'];
+        $params[] = !empty($birth_date) ? $birth_date : null;
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = $encrypted_data['mobile_number'];
+        $params[] = $mobile_number;
         
 
         // Check if password change was requested
