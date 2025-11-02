@@ -72,17 +72,59 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start countdown if blocked
     startCountdown();
     
-    // Add form validation
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            // Check if reCAPTCHA token exists
-            const recaptchaToken = document.getElementById('recaptchaToken').value;
-            if (!recaptchaToken) {
-                e.preventDefault();
-                alert('Please complete the reCAPTCHA verification.');
-                return false;
+    // Initialize reCAPTCHA v3
+    const loginButton = document.getElementById('loginButton');
+    const recaptchaSiteKey = loginButton?.getAttribute('data-sitekey');
+    if (recaptchaSiteKey && typeof grecaptcha !== 'undefined') {
+        grecaptcha.ready(function() {
+            // Execute reCAPTCHA v3 on form submission
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault(); // Prevent default submission
+                    
+                    // Execute reCAPTCHA v3
+                    grecaptcha.execute(recaptchaSiteKey, {action: 'login'})
+                        .then(function(token) {
+                            // Set the token
+                            document.getElementById('recaptchaToken').value = token;
+                            
+                            // Submit the form
+                            loginForm.submit();
+                        })
+                        .catch(function(error) {
+                            console.error('reCAPTCHA error:', error);
+                            // On error, try to submit anyway (for localhost/development)
+                            const isLocalhost = window.location.hostname === 'localhost' || 
+                                              window.location.hostname === '127.0.0.1';
+                            if (isLocalhost) {
+                                // Allow submission on localhost even without token
+                                loginForm.submit();
+                            } else {
+                                alert('reCAPTCHA verification failed. Please refresh the page and try again.');
+                            }
+                        });
+                });
             }
         });
+    } else {
+        // Fallback if reCAPTCHA is not loaded - allow submission for localhost
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            const isLocalhost = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1';
+            if (isLocalhost) {
+                console.log('reCAPTCHA not loaded, allowing form submission on localhost');
+                // Don't block form submission on localhost
+            } else {
+                loginForm.addEventListener('submit', function(e) {
+                    const recaptchaToken = document.getElementById('recaptchaToken').value;
+                    if (!recaptchaToken) {
+                        console.warn('reCAPTCHA token missing');
+                        // Still allow submission but warn
+                    }
+                });
+            }
+        }
     }
 }); 
