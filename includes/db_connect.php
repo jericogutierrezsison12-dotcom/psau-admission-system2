@@ -16,11 +16,11 @@ if (file_exists(__DIR__ . '/../.env')) {
 }
 
 // Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
+$host = $_ENV['DB_HOST'] ?? 'trolley.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
-$port = $_ENV['DB_PORT'] ?? 40148;
+$password = $_ENV['DB_PASS'] ?? 'maFGvjqYlZuUdOmjvzArclEoYpUejThA';
+$port = $_ENV['DB_PORT'] ?? 48642;
 
 // Create connection
 $conn = null;
