@@ -21,49 +21,70 @@ $login_identifier = '';
 $errors = [];
 $block_info = null;
 
-// Check if device is blocked
+// Check if device is blocked (only if database connection is available)
 $device_id = get_device_identifier();
-// Run cleanup to remove expired blocks
-cleanup_expired_blocks();
+$block_info = null;
 
-// Initial check if device is blocked - only check if blocked, don't track attempt
-$stmt = $conn->prepare("SELECT * FROM login_attempts 
-                       WHERE device_id = ? 
-                       AND is_blocked = 1 
-                       AND block_expires > ?");
-$stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
+if (isset($conn) && $conn !== null) {
+    try {
+        // Run cleanup to remove expired blocks
+        cleanup_expired_blocks();
+        
+        // Initial check if device is blocked - only check if blocked, don't track attempt
+        $stmt = $conn->prepare("SELECT * FROM login_attempts 
+                               WHERE device_id = ? 
+                               AND is_blocked = 1 
+                               AND block_expires > ?");
+        $stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
 
-if ($stmt->rowCount() > 0) {
-    $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
-    $time_left = strtotime($block_data['block_expires']) - time();
-    $block_info = [
-        'blocked' => true, 
-        'expires' => $block_data['block_expires'],
-        'minutes_left' => ceil($time_left / 60)
-    ];
+        if ($stmt->rowCount() > 0) {
+            $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $time_left = strtotime($block_data['block_expires']) - time();
+            $block_info = [
+                'blocked' => true, 
+                'expires' => $block_data['block_expires'],
+                'minutes_left' => ceil($time_left / 60)
+            ];
+        }
+    } catch (Exception $e) {
+        // Database error, continue without blocking check
+        error_log("Error checking device block status: " . $e->getMessage());
+    }
 }
 
 // Check for remember me cookie
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    $cookie_parts = explode(':', $_COOKIE['remember_me']);
-    
-    if (count($cookie_parts) === 2) {
-        $selector = $cookie_parts[0];
-        $token = $cookie_parts[1];
+    // Check if database connection is available before using it
+    if (isset($conn) && $conn !== null) {
+        $cookie_parts = explode(':', $_COOKIE['remember_me']);
         
-        $user_id = verify_remember_token($conn, $selector, $token);
-        
-        if ($user_id) {
-            // Valid remember me token, set session
-            $_SESSION['user_id'] = $user_id;
+        if (count($cookie_parts) === 2) {
+            $selector = $cookie_parts[0];
+            $token = $cookie_parts[1];
             
-            // Redirect to dashboard
-            header('Location: dashboard.php');
-            exit;
-        } else {
-            // Invalid remember me token, clear the cookie
-            clear_remember_cookie();
+            try {
+                $user_id = verify_remember_token($conn, $selector, $token);
+                
+                if ($user_id) {
+                    // Valid remember me token, set session
+                    $_SESSION['user_id'] = $user_id;
+                    
+                    // Redirect to dashboard
+                    header('Location: dashboard.php');
+                    exit;
+                } else {
+                    // Invalid remember me token, clear the cookie
+                    clear_remember_cookie();
+                }
+            } catch (Exception $e) {
+                // Database error, clear cookie to prevent loops
+                error_log("Remember me check error in login: " . $e->getMessage());
+                clear_remember_cookie();
+            }
         }
+    } else {
+        // Database connection not available, clear cookie
+        clear_remember_cookie();
     }
 }
 
@@ -97,73 +118,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
-            try {
-                // Fetch all verified users to check encrypted email/mobile
-                $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
-                $stmt->execute();
-                $users = $stmt->fetchAll();
-                
-                $user = null;
-                // Decrypt and compare email/mobile_number with login_identifier
-                foreach ($users as $u) {
-                    $decrypted_email = decrypt_data($u['email']);
-                    $decrypted_mobile = decrypt_data($u['mobile_number']);
+            // Check if database connection is available
+            if (!isset($conn) || $conn === null) {
+                $errors['login'] = 'Database connection unavailable. Please try again later.';
+            } else {
+                try {
+                    // Fetch all verified users to check encrypted email/mobile
+                    $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
+                    $stmt->execute();
+                    $users = $stmt->fetchAll();
                     
-                    if (($decrypted_email === $login_identifier || $decrypted_mobile === $login_identifier)) {
-                        $user = $u;
-                        break;
-                    }
-                }
-                
-                if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
-                    $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
-                    $errors['blocked'] = $reason;
-                } elseif ($user && password_verify($password, $user['password'])) {
-                    // Decrypt user data after successful login
-                    $user = decrypt_user_data($user);
-                    // Login successful, set session
-                    $_SESSION['user_id'] = $user['id'];
-                    
-                    // Record successful login and reset failed attempts
-                    track_login_attempt($device_id, true);
-                    
-                    // Handle remember me
-                    if ($remember_me) {
-                        // Create a new remember token
-                        $token_data = create_remember_token($conn, $user['id']);
-                        // Set the cookie
-                        set_remember_cookie($token_data);
-                    } else {
-                        // Clear any existing remember me cookie
-                        clear_remember_cookie();
-                        // Clear any existing remember tokens for this user
-                        clear_remember_token($conn, $user['id']);
-                    }
-                    
-                    // Redirect to dashboard
-                    header('Location: dashboard.php');
-                    exit;
-                } else {
-                    // Invalid credentials
-                    $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
-                    
-                    // Record failed login attempt
-                    $block_check = track_login_attempt($device_id, false);
-                    if ($block_check['blocked']) {
-                        if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
-                            $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
-                        } else {
-                            $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
+                    $user = null;
+                    // Decrypt and compare email/mobile_number with login_identifier
+                    foreach ($users as $u) {
+                        $decrypted_email = decrypt_data($u['email']);
+                        $decrypted_mobile = decrypt_data($u['mobile_number']);
+                        
+                        if (($decrypted_email === $login_identifier || $decrypted_mobile === $login_identifier)) {
+                            $user = $u;
+                            break;
                         }
-                        $block_info = $block_check;
-                    } else {
-                        // Show remaining attempts
-                        $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
                     }
+                    
+                    if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
+                        $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
+                        $errors['blocked'] = $reason;
+                    } elseif ($user && password_verify($password, $user['password'])) {
+                        // Decrypt user data after successful login
+                        $user = decrypt_user_data($user);
+                        // Login successful, set session
+                        $_SESSION['user_id'] = $user['id'];
+                        
+                        // Record successful login and reset failed attempts
+                        track_login_attempt($device_id, true);
+                        
+                        // Handle remember me
+                        if ($remember_me) {
+                            // Create a new remember token
+                            $token_data = create_remember_token($conn, $user['id']);
+                            // Set the cookie
+                            set_remember_cookie($token_data);
+                        } else {
+                            // Clear any existing remember me cookie
+                            clear_remember_cookie();
+                            // Clear any existing remember tokens for this user
+                            clear_remember_token($conn, $user['id']);
+                        }
+                        
+                        // Redirect to dashboard
+                        header('Location: dashboard.php');
+                        exit;
+                    } else {
+                        // Invalid credentials
+                        $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                        
+                        // Record failed login attempt
+                        $block_check = track_login_attempt($device_id, false);
+                        if ($block_check['blocked']) {
+                            if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
+                                $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
+                            } else {
+                                $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
+                            }
+                            $block_info = $block_check;
+                        } else {
+                            // Show remaining attempts
+                            $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
+                        }
+                    }
+                } catch (PDOException $e) {
+                    error_log("Login Error: " . $e->getMessage());
+                    $errors['login'] = 'An error occurred during login. Please try again.';
                 }
-            } catch (PDOException $e) {
-                error_log("Login Error: " . $e->getMessage());
-                $errors['login'] = 'An error occurred during login. Please try again.';
             }
         }
     }

@@ -14,24 +14,36 @@ require_once __DIR__ . '/encryption.php';
 
 // Check remember me cookie if session not active
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    require_once 'db_connect.php';
-    require_once 'functions.php';
-    
-    $cookie_parts = explode(':', $_COOKIE['remember_me']);
-    
-    if (count($cookie_parts) === 2) {
-        $selector = $cookie_parts[0];
-        $token = $cookie_parts[1];
+    try {
+        require_once 'db_connect.php';
+        require_once 'functions.php';
         
-        $user_id = verify_remember_token($conn, $selector, $token);
-        
-        if ($user_id) {
-            // Valid remember me token, set session
-            $_SESSION['user_id'] = $user_id;
-        } else {
-            // Invalid remember me token, clear the cookie
+        // Check if database connection is available
+        if (!isset($conn) || !$conn) {
+            // Database connection failed, clear cookie to prevent loops
             clear_remember_cookie();
+        } else {
+            $cookie_parts = explode(':', $_COOKIE['remember_me']);
+            
+            if (count($cookie_parts) === 2) {
+                $selector = $cookie_parts[0];
+                $token = $cookie_parts[1];
+                
+                $user_id = verify_remember_token($conn, $selector, $token);
+                
+                if ($user_id) {
+                    // Valid remember me token, set session
+                    $_SESSION['user_id'] = $user_id;
+                } else {
+                    // Invalid remember me token, clear the cookie
+                    clear_remember_cookie();
+                }
+            }
         }
+    } catch (Exception $e) {
+        // Database error, clear cookie to prevent loops
+        error_log("Remember me check error: " . $e->getMessage());
+        clear_remember_cookie();
     }
 }
 

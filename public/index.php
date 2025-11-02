@@ -2,7 +2,20 @@
 session_start();
 require_once '../includes/db_connect.php';
 
+// Initialize empty arrays in case database connection fails
+$announcements = [];
+$courses = [];
+$exam_instructions = null;
+$enrollment_instructions = null;
+$exam_required_documents = [];
+$enrollment_required_documents = [];
+
 try {
+    // Check if database connection is available
+    if (!isset($conn) || $conn === null) {
+        throw new PDOException("Database connection not available");
+    }
+    
     // Fetch announcements
     $stmt = $conn->prepare("SELECT * FROM announcements ORDER BY created_at DESC LIMIT 4");
     $stmt->execute();

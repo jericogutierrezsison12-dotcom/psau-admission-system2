@@ -41,7 +41,12 @@ function encrypt_data($data) {
  * @return string Decrypted data
  */
 function decrypt_data($encrypted_data) {
-    if (empty($encrypted_data)) {
+    if (empty($encrypted_data) || $encrypted_data === null) {
+        return $encrypted_data;
+    }
+    
+    // If not a string, return as is
+    if (!is_string($encrypted_data)) {
         return $encrypted_data;
     }
     
@@ -49,13 +54,18 @@ function decrypt_data($encrypted_data) {
         // Decode from base64
         $data = base64_decode($encrypted_data, true);
         
-        if ($data === false) {
+        if ($data === false || strlen($data) === 0) {
             // If decoding fails, might be plain text (for backward compatibility)
             return $encrypted_data;
         }
         
         // Extract IV (first bytes)
         $iv_length = openssl_cipher_iv_length(ENCRYPTION_METHOD);
+        if ($iv_length === false || strlen($data) < $iv_length) {
+            // Not encrypted or invalid format, return as is
+            return $encrypted_data;
+        }
+        
         $iv = substr($data, 0, $iv_length);
         $encrypted = substr($data, $iv_length);
         
@@ -66,6 +76,9 @@ function decrypt_data($encrypted_data) {
         return $decrypted !== false ? $decrypted : $encrypted_data;
     } catch (Exception $e) {
         error_log("Decryption error: " . $e->getMessage());
+        return $encrypted_data; // Return original if decryption fails
+    } catch (Error $e) {
+        error_log("Decryption fatal error: " . $e->getMessage());
         return $encrypted_data; // Return original if decryption fails
     }
 }

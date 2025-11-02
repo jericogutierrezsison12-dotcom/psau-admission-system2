@@ -44,5 +44,45 @@ try {
     } else {
         error_log("Database connection error. Please try again later.");
     }
-    exit;
+    
+    // Set connection to null instead of exiting to allow graceful error handling
+    $conn = null;
+    
+    // Only exit on pages that absolutely require database (like dashboard, but not public index)
+    // For public index page, we'll allow it to continue without database
+    $script_path = $_SERVER['SCRIPT_NAME'] ?? '';
+    $requires_db = (
+        strpos($script_path, 'dashboard.php') !== false ||
+        strpos($script_path, 'application_form.php') !== false ||
+        strpos($script_path, 'profile.php') !== false ||
+        strpos($script_path, '/admin/') !== false
+    );
+    
+    if ($requires_db && !strpos($script_path, 'login.php')) {
+        // For pages that require DB (but not login page), destroy session and redirect to login
+        // Login page should handle DB errors gracefully without redirecting
+        // Start session if not already started before destroying
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        // Clear all session data to prevent loops
+        $_SESSION = [];
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
+        }
+        session_destroy();
+        
+        // Use absolute path from document root to prevent redirect loops
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        
+        if (strpos($script_path, '/admin') !== false) {
+            $redirect_url = $protocol . $host . '/public/login.php';
+        } else {
+            $redirect_url = $protocol . $host . '/public/login.php';
+        }
+        
+        header('Location: ' . $redirect_url);
+        exit;
+    }
 }
