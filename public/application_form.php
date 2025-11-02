@@ -64,16 +64,24 @@ is_user_logged_in();
 // Get user details
 $user = get_current_user_data($conn);
 
+// Ensure user exists and has required fields
+if (!$user || !isset($user['id'])) {
+    header('Location: login.php');
+    exit;
+}
+
 // Initialize variables
 $message = '';
 $messageType = '';
 $maxAttempts = 5;
 $disableUpload = false;
 $applicationStatus = '';
+$canSubmit = true; // Default to true, will be set based on user check
+$submissionAttempts = 0;
 
 // Fetch existing application data to pre-fill form
 $existing_application = null;
-if ($user) {
+if ($user && isset($user['id'])) {
     // Check submission attempts and eligibility
     $attemptCheck = check_submission_attempts($conn, $user['id'], $maxAttempts);
     $canSubmit = $attemptCheck['can_submit'];
@@ -398,9 +406,9 @@ include_once 'html/application_form.html';
 // Pass user data and existing application data to JavaScript
 echo '<script>
     const userData = ' . json_encode([
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'email' => $user['email']
+        'first_name' => $user['first_name'] ?? '',
+        'last_name' => $user['last_name'] ?? '',
+        'email' => $user['email'] ?? ''
     ]) . ';
     const existingApplication = ' . json_encode($existing_application) . ';
     

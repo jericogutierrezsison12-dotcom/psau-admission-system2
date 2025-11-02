@@ -15,6 +15,12 @@ is_user_logged_in();
 // Get user details
 $user = get_current_user_data($conn);
 
+// Ensure user exists and has required fields
+if (!$user || !isset($user['id'])) {
+    header('Location: login.php');
+    exit;
+}
+
 // Get application status
 $application = null;
 $hasApplication = false;

@@ -119,11 +119,17 @@ function encrypt_user_data($user_data) {
  * @return array Decrypted user data
  */
 function decrypt_user_data($user_data) {
+    if (!$user_data || !is_array($user_data)) {
+        return $user_data ?: [];
+    }
+    
     $fields_to_decrypt = ['first_name', 'last_name', 'email', 'mobile_number', 'address', 'gender', 'birth_date'];
     
     foreach ($fields_to_decrypt as $field) {
         if (isset($user_data[$field]) && !empty($user_data[$field])) {
             $user_data[$field] = decrypt_data($user_data[$field]);
+        } elseif (!isset($user_data[$field])) {
+            $user_data[$field] = ''; // Set empty string if field doesn't exist
         }
     }
     
@@ -153,11 +159,17 @@ function encrypt_application_data($application_data) {
  * @return array Decrypted application data
  */
 function decrypt_application_data($application_data) {
+    if (!$application_data || !is_array($application_data)) {
+        return $application_data ?: [];
+    }
+    
     $fields_to_decrypt = ['previous_school', 'school_year', 'strand', 'gpa', 'address'];
     
     foreach ($fields_to_decrypt as $field) {
         if (isset($application_data[$field]) && !empty($application_data[$field])) {
             $application_data[$field] = decrypt_data($application_data[$field]);
+        } elseif (!isset($application_data[$field])) {
+            $application_data[$field] = ''; // Set empty string if field doesn't exist
         }
     }
     
