@@ -46,16 +46,35 @@ try {
     $conn = new PDO($dsn, $username, $password, $options);
     
 } catch(PDOException $e) {
-    // Log error instead of displaying it directly
-    error_log("Connection failed: " . $e->getMessage());
+    // Log error
+    $error_msg = "Database Connection Error: " . $e->getMessage();
+    error_log($error_msg);
     error_log("Connection details - Host: $host, Port: $port, Database: $dbname, Username: $username");
     
-    // If in development mode, you can display the error
+    // On Render, show a user-friendly error page instead of white screen
+    if (!empty($_ENV['RENDER']) || !empty($_SERVER['RENDER'])) {
+        // Render environment - show error page
+        http_response_code(500);
+        echo "<!DOCTYPE html><html><head><title>Database Connection Error</title>";
+        echo "<style>body{font-family:Arial;padding:40px;background:#f5f5f5;}";
+        echo ".error-box{background:white;padding:30px;border-radius:8px;max-width:600px;margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);}";
+        echo "h1{color:#d32f2f;margin-top:0;}code{background:#f5f5f5;padding:2px 6px;border-radius:3px;}</style></head><body>";
+        echo "<div class='error-box'><h1>⚠️ Database Connection Error</h1>";
+        echo "<p>The application cannot connect to the database. Please check:</p><ul>";
+        echo "<li>Google Cloud SQL instance is running</li>";
+        echo "<li>Render IP addresses are authorized in Google Cloud SQL Console</li>";
+        echo "<li>Database credentials are correct</li>";
+        echo "</ul><p><strong>Error:</strong> <code>" . htmlspecialchars($e->getMessage()) . "</code></p>";
+        echo "<p><small>Check Render logs for more details.</small></p></div></body></html>";
+        exit;
+    }
+    
+    // Development mode
     if(defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        error_log("Connection failed: " . $e->getMessage());
-        error_log("Host: $host, Port: $port, Database: $dbname, Username: $username");
+        die("Database Connection Failed: " . htmlspecialchars($e->getMessage()) . 
+            "<br>Host: $host, Port: $port, Database: $dbname");
     } else {
         error_log("Database connection error. Please try again later.");
+        die("Database connection error. Please contact administrator.");
     }
-    exit;
 }

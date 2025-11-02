@@ -115,7 +115,21 @@ try {
     echo $template;
 
 } catch (PDOException $e) {
-    // Log the error and display a user-friendly message
-    error_log("Database Error: " . $e->getMessage());
-    include 'html/error.html'; // You should create this file with a user-friendly error message
+    // Log the error
+    error_log("Database Error in index.php: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
+    // Show user-friendly error page
+    if (file_exists('html/error.html')) {
+        include 'html/error.html';
+    } else {
+        // Fallback error page
+        http_response_code(500);
+        echo "<!DOCTYPE html><html><head><title>Error</title>";
+        echo "<style>body{font-family:Arial;padding:40px;background:#f5f5f5;text-align:center;}";
+        echo ".error-box{background:white;padding:30px;border-radius:8px;max-width:600px;margin:0 auto;}</style></head><body>";
+        echo "<div class='error-box'><h1>⚠️ Error</h1>";
+        echo "<p>An error occurred while loading the page. Please try again later.</p>";
+        echo "<p><a href='index.php'>Reload Page</a></p></div></body></html>";
+    }
 }
