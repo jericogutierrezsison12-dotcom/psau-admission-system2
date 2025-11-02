@@ -59,7 +59,7 @@ try {
     $stats['pending_verifications'] = $stmt->fetchColumn();
 
     // Scheduled exams
-    $stmt = $conn->query("SELECT COUNT(*) FROM exam_schedules");
+    $stmt = $conn->query("SELECT COUNT(*) FROM exam_schedule");
     $stats['scheduled_exams'] = $stmt->fetchColumn();
 
     // Assigned courses

@@ -243,7 +243,7 @@ try {
 
                 // Log activity
                 $reminder_text = $reminder_count > 1 ? "Follow-up reminder" : "First reminder";
-                log_admin_activity($conn, $admin_id, 'reminder_sent', "{$reminder_text} sent to {$user['first_name']} {$user['last_name']} for {$reminder_type}");
+                logActivity('reminder_sent', $admin_id, "{$reminder_text} sent to {$user['first_name']} {$user['last_name']} for {$reminder_type}", $_SERVER['REMOTE_ADDR']);
                 
                 echo json_encode([
                     'success' => true, 

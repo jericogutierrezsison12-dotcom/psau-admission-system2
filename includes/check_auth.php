@@ -22,9 +22,9 @@ $response = [
 if (isset($_SESSION['user_id'])) {
     $response['loggedIn'] = true;
     
-    // Get user data if needed (removed user_type column - not in schema)
+    // Get user data if needed
     try {
-        $stmt = $conn->prepare("SELECT id, email, first_name, last_name FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT id, email, first_name, last_name, user_type FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         

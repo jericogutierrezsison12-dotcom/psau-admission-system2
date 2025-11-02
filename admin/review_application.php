@@ -208,20 +208,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Get rejection reason
                 $rejection_reason = $_POST['rejection_reason'] ?? 'Missing or incomplete requirements';
                 
-                // Update application status (removed rejection_reason column - storing reason in status_history instead)
-                $stmt = $conn->prepare("UPDATE applications SET status = 'Rejected' WHERE id = :app_id");
-                $stmt->bindParam(':app_id', $application_id);
-                $stmt->execute();
-                
-                // Record status change with rejection reason in status_history
-                $stmt = $conn->prepare("
-                    INSERT INTO status_history 
-                    (application_id, status, description, performed_by) 
-                    VALUES (:app_id, 'Rejected', :reason, :admin_id)
-                ");
-                $stmt->bindParam(':app_id', $application_id);
+                // Update application status
+                $stmt = $conn->prepare("UPDATE applications SET status = 'Rejected', rejection_reason = :reason WHERE id = :app_id");
                 $stmt->bindParam(':reason', $rejection_reason);
-                $stmt->bindParam(':admin_id', $admin['id']);
+                $stmt->bindParam(':app_id', $application_id);
                 $stmt->execute();
                 
                 // Log the activity

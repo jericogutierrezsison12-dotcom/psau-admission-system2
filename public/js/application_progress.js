@@ -211,7 +211,7 @@ function renderCurrentStageDetails(container) {
         template = document.querySelector('#enrollment-scheduled-stage-template');
         html = template.innerHTML
             .replace('${enrollmentDate}', formatDate(enrollmentSchedule.enrollment_date, false))
-            .replace('${enrollmentTime}', formatTime(enrollmentSchedule.start_time))
+            .replace('${enrollmentTime}', formatTime(enrollmentSchedule.enrollment_time))
             .replace('${venueName}', enrollmentSchedule.venue_name);
         
         // Add instructions if available

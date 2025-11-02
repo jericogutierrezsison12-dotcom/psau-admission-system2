@@ -104,8 +104,8 @@ function get_current_user_data($conn) {
             return null;
         }
         
-        // Fetch educational background from applications table (removed age column - not in schema)
-        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, address 
+        // Fetch educational background from applications table
+        $app_stmt = $conn->prepare("SELECT previous_school, school_year, strand, gpa, age, address 
                                    FROM applications 
                                    WHERE user_id = :user_id 
                                    ORDER BY created_at DESC 
@@ -120,6 +120,7 @@ function get_current_user_data($conn) {
             $user['school_year'] = $education['school_year'];
             $user['strand'] = $education['strand'];
             $user['gpa'] = $education['gpa'];
+            $user['age'] = $education['age'];
             // Use application address if user address is empty
             if (empty($user['address']) && !empty($education['address'])) {
                 $user['address'] = $education['address'];

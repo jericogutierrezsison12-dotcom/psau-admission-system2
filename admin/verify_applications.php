@@ -83,9 +83,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         $application_id = $_POST['application_id'];
         $verification_notes = $_POST['verification_notes'] ?? '';
         
-        // Update application status (removed verification_notes column - storing notes in status_history instead)
-        $stmt = $conn->prepare("UPDATE applications SET status = 'Verified', verified_at = NOW() WHERE id = ?");
-        $stmt->execute([$application_id]);
+        // Update application status
+        $stmt = $conn->prepare("UPDATE applications SET status = 'Verified', verification_notes = ?, verified_at = NOW() WHERE id = ?");
+        $stmt->execute([$verification_notes, $application_id]);
         
         // Record status change
         $stmt = $conn->prepare("

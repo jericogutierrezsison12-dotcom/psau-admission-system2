@@ -125,7 +125,6 @@ if ($hasApplication && in_array($status, ['Enrollment Scheduled', 'Enrolled'])) 
 
 // Get status history
 $statusHistory = [];
-$rejection_reason = null; // Get rejection reason from status_history if status is Rejected
 if ($hasApplication) {
     $stmt = $conn->prepare("
         SELECT * FROM status_history 
@@ -134,22 +133,12 @@ if ($hasApplication) {
     ");
     $stmt->execute([$application['id']]);
     $statusHistory = $stmt->fetchAll();
-    
-    // If status is Rejected, get the rejection reason from status_history
-    if ($status === 'Rejected' && !empty($statusHistory)) {
-        foreach ($statusHistory as $history) {
-            if ($history['status'] === 'Rejected' && !empty($history['description'])) {
-                $rejection_reason = $history['description'];
-                break;
-            }
-        }
-    }
 }
 
 // Pass data to JavaScript
 $applicationData = [
     'hasApplication' => $hasApplication,
-    'application' => $application ? array_merge($application, ['rejection_reason' => $rejection_reason]) : null,
+    'application' => $application,
     'status' => $status,
     'statusClass' => $statusClass,
     'examSchedule' => $examSchedule,

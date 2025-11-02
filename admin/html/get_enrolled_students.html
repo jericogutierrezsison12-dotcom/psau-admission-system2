@@ -3,7 +3,7 @@
     <h5><?php echo htmlspecialchars($schedule['course_code'] . ' - ' . $schedule['course_name']); ?></h5>
     <div class="info-grid">
         <p><strong><i class="bi bi-calendar3"></i> Date:</strong> <?php echo date('F j, Y', strtotime($schedule['enrollment_date'])); ?></p>
-        <p><strong><i class="bi bi-clock"></i> Time:</strong> <?php echo isset($schedule['start_time']) ? date('h:i A', strtotime($schedule['start_time'])) : (isset($schedule['enrollment_time']) ? date('h:i A', strtotime($schedule['enrollment_time'])) : 'N/A'); ?></p>
+        <p><strong><i class="bi bi-clock"></i> Time:</strong> <?php echo date('h:i A', strtotime($schedule['enrollment_time'])); ?></p>
         <p><strong><i class="bi bi-geo-alt"></i> Venue:</strong> <?php echo htmlspecialchars($schedule['venue_name']); ?></p>
         <p><strong><i class="bi bi-person"></i> Slots:</strong> <?php echo ($schedule['max_slots'] - $schedule['remaining_slots']); ?> / <?php echo $schedule['max_slots']; ?></p>
     </div>
