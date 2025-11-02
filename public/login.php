@@ -13,30 +13,8 @@ require_once '../includes/functions.php'; // Added for remember me functions
 require_once '../includes/simple_email.php'; // Added for email fallback
 require_once '../includes/encryption.php';
 
-// Check database connection
-if (!$conn) {
-    http_response_code(500);
-    die('Database connection failed. Please try again later.');
-}
-
-// Redirect if already logged in (only if session is valid)
-if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
-    // Verify user still exists before redirecting
-    try {
-        $stmt = $conn->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
-        $stmt->execute([$_SESSION['user_id']]);
-        if ($stmt->fetch()) {
-            header('Location: dashboard.php');
-            exit;
-        } else {
-            // User doesn't exist, clear session
-            $_SESSION = array();
-        }
-    } catch (Exception $e) {
-        error_log("Login redirect check error: " . $e->getMessage());
-        // Don't redirect if check fails
-    }
-}
+// Redirect if already logged in
+redirect_if_logged_in('dashboard.php');
 
 // Initialize variables
 $login_identifier = '';
@@ -55,46 +33,37 @@ $stmt = $conn->prepare("SELECT * FROM login_attempts
                        AND block_expires > ?");
 $stmt->execute([$device_id, date('Y-m-d H:i:s', time())]);
 
-        if ($stmt->rowCount() > 0) {
-            $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
-            $time_left = strtotime($block_data['block_expires']) - time();
-            $block_info = [
-                'blocked' => true, 
-                'expires' => $block_data['block_expires'],
-                'minutes_left' => ceil($time_left / 60)
-            ];
-        }
-    } catch (Exception $e) {
-        error_log("Login block check error: " . $e->getMessage());
-    }
+if ($stmt->rowCount() > 0) {
+    $block_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $time_left = strtotime($block_data['block_expires']) - time();
+    $block_info = [
+        'blocked' => true, 
+        'expires' => $block_data['block_expires'],
+        'minutes_left' => ceil($time_left / 60)
+    ];
 }
 
 // Check for remember me cookie
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me']) && $conn) {
-    try {
-        $cookie_parts = explode(':', $_COOKIE['remember_me']);
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
+    $cookie_parts = explode(':', $_COOKIE['remember_me']);
+    
+    if (count($cookie_parts) === 2) {
+        $selector = $cookie_parts[0];
+        $token = $cookie_parts[1];
         
-        if (count($cookie_parts) === 2) {
-            $selector = $cookie_parts[0];
-            $token = $cookie_parts[1];
+        $user_id = verify_remember_token($conn, $selector, $token);
+        
+        if ($user_id) {
+            // Valid remember me token, set session
+            $_SESSION['user_id'] = $user_id;
             
-            $user_id = verify_remember_token($conn, $selector, $token);
-            
-            if ($user_id) {
-                // Valid remember me token, set session
-                $_SESSION['user_id'] = $user_id;
-                
-                // Redirect to dashboard
-                header('Location: dashboard.php');
-                exit;
-            } else {
-                // Invalid remember me token, clear the cookie
-                clear_remember_cookie();
-            }
+            // Redirect to dashboard
+            header('Location: dashboard.php');
+            exit;
+        } else {
+            // Invalid remember me token, clear the cookie
+            clear_remember_cookie();
         }
-    } catch (Exception $e) {
-        error_log("Remember me check error: " . $e->getMessage());
-        clear_remember_cookie();
     }
 }
 
@@ -129,42 +98,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If no validation errors after reCAPTCHA check, attempt to login
         if (empty($errors)) {
             try {
-                // First, try direct database query (for backwards compatibility with unencrypted data)
-                // This will work if data is not encrypted
-                $stmt = $conn->prepare("SELECT * FROM users WHERE (email = ? OR mobile_number = ?) AND is_verified = 1 LIMIT 1");
-                $stmt->execute([$login_identifier, $login_identifier]);
-                $user = $stmt->fetch();
+                // Fetch all verified users to check encrypted email/mobile
+                $stmt = $conn->prepare("SELECT * FROM users WHERE is_verified = 1");
+                $stmt->execute();
+                $users = $stmt->fetchAll();
                 
-                // If not found with direct query, try encrypted lookup
-                if (!$user) {
-                    error_log("Login: Direct query found no user, trying encrypted lookup...");
-                    $user = find_user_by_encrypted_identifier($conn, $login_identifier);
-                } else {
-                    error_log("Login: User found via direct query - ID: " . $user['id']);
-                    // Normalize possibly encrypted fields using safeDecryptField
-                    try {
-                        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
-                        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
-                    } catch (Exception $e) {
-                        error_log("Login: safeDecryptField error: " . $e->getMessage());
+                $user = null;
+                // Decrypt and compare email/mobile_number with login_identifier
+                foreach ($users as $u) {
+                    $decrypted_email = decrypt_data($u['email']);
+                    $decrypted_mobile = decrypt_data($u['mobile_number']);
+                    
+                    if (($decrypted_email === $login_identifier || $decrypted_mobile === $login_identifier)) {
+                        $user = $u;
+                        break;
                     }
-                }
-                
-                // Debug logging
-                if (!$user) {
-                    error_log("Login attempt: User not found for identifier: " . substr($login_identifier, 0, 5) . "...");
-                    $encStatus = PSAUEncryption::getStatus();
-                    error_log("Encryption status: initialized=" . ($encStatus['initialized'] ? 'yes' : 'no') . ", key_length=" . $encStatus['key_length']);
-                } else {
-                    error_log("Login attempt: User found - ID: " . $user['id'] . ", Email: " . substr($user['email'] ?? 'N/A', 0, 5) . "...");
-                    error_log("Login attempt: Password verification - User has password hash: " . (!empty($user['password']) ? 'Yes' : 'No'));
                 }
                 
                 if ($user && !empty($user['is_blocked']) && (int)$user['is_blocked'] === 1) {
                     $reason = $user['block_reason'] ?? 'Your account has been blocked by the administrator.';
                     $errors['blocked'] = $reason;
                 } elseif ($user && password_verify($password, $user['password'])) {
-                    error_log("Login attempt: Password verified successfully for user ID: " . $user['id']);
+                    // Decrypt user data after successful login
+                    $user = decrypt_user_data($user);
                     // Login successful, set session
                     $_SESSION['user_id'] = $user['id'];
                     
@@ -189,33 +145,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 } else {
                     // Invalid credentials
-                    if ($user) {
-                        error_log("Login attempt: Password verification FAILED for user ID: " . $user['id']);
-                        error_log("Login attempt: Provided password length: " . strlen($password));
-                        error_log("Login attempt: Stored password hash starts with: " . substr($user['password'] ?? 'N/A', 0, 10));
-                        
-                        // Only track login attempts if user exists (valid email/mobile)
-                        $block_check = track_login_attempt($device_id, false);
-                        if ($block_check['blocked']) {
-                            if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
-                                $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
-                            } else {
-                                $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
-                            }
-                            $block_info = $block_check;
+                    $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                    
+                    // Record failed login attempt
+                    $block_check = track_login_attempt($device_id, false);
+                    if ($block_check['blocked']) {
+                        if (isset($block_check['just_blocked']) && $block_check['just_blocked']) {
+                            $errors['blocked'] = 'Your device has been blocked for 3 hours due to too many failed login attempts.';
                         } else {
-                            // Show remaining attempts (check if 'remaining' key exists)
-                            $remaining = $block_check['remaining'] ?? 0;
-                            if ($remaining > 0) {
-                                $errors['attempts'] = "Failed login attempt. You have {$remaining} attempts remaining before your device is blocked.";
-                            } else {
-                                $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
-                            }
+                            $errors['blocked'] = 'Your device is currently blocked. Please try again later.';
                         }
+                        $block_info = $block_check;
                     } else {
-                        error_log("Login attempt: No user found OR password verification failed");
-                        // User doesn't exist - don't track login attempts to prevent enumeration
-                        $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                        // Show remaining attempts
+                        $errors['attempts'] = "Failed login attempt. You have {$block_check['remaining']} attempts remaining before your device is blocked.";
                     }
                 }
             } catch (PDOException $e) {

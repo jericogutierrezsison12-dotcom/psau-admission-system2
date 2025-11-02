@@ -46,12 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
             throw new Exception("Invalid control number. No applicant found with this control number.");
         }
         
-        // Decrypt user data
-        require_once '../includes/encryption.php';
-        $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
-        $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
-        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
-        
         // Check if score already exists
         $stmt = $conn->prepare("SELECT id FROM entrance_exam_scores WHERE control_number = ?");
         $stmt->execute([$control_number]);
@@ -178,14 +172,6 @@ try {
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $recent_uploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data
-    require_once '../includes/encryption.php';
-    foreach ($recent_uploads as &$upload) {
-        $upload['first_name'] = safeDecryptField($upload['first_name'] ?? '', 'users', 'first_name');
-        $upload['last_name'] = safeDecryptField($upload['last_name'] ?? '', 'users', 'last_name');
-    }
-    unset($upload);
 } catch (PDOException $e) {
     error_log("Error fetching recent uploads: " . $e->getMessage());
     $recent_uploads = [];

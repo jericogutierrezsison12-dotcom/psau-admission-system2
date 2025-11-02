@@ -23,6 +23,9 @@ if (!$user) {
     exit;
 }
 
+// Decrypt user data for display
+$user = decrypt_user_data($user);
+
 // Initialize variables
 $message = '';
 $messageType = 'success';
@@ -47,25 +50,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('First name and last name are required.');
         }
 
+        // Encrypt sensitive user data before saving
+        $encrypted_data = encrypt_user_data([
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'gender' => $gender,
+            'birth_date' => !empty($birth_date) ? $birth_date : null,
+            'mobile_number' => $mobile_number
+        ]);
+
         // Initialize SQL parts
         $sql_parts = [];
         $params = [];
         
-        // Encrypt personal info fields before saving
+        // Add personal info fields (encrypted)
         $sql_parts[] = "first_name = ?";
-        $params[] = encryptPersonalData($first_name);
+        $params[] = $encrypted_data['first_name'];
         
         $sql_parts[] = "last_name = ?";
-        $params[] = encryptPersonalData($last_name);
+        $params[] = $encrypted_data['last_name'];
         
         $sql_parts[] = "gender = ?";
-        $params[] = encryptPersonalData($gender);
+        $params[] = $encrypted_data['gender'];
         
         $sql_parts[] = "birth_date = ?";
-        $params[] = !empty($birth_date) ? encryptPersonalData($birth_date) : null;
+        $params[] = $encrypted_data['birth_date'];
         
         $sql_parts[] = "mobile_number = ?";
-        $params[] = encryptContactData($mobile_number);
+        $params[] = $encrypted_data['mobile_number'];
         
 
         // Check if password change was requested

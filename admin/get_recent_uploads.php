@@ -13,30 +13,19 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 try {
-    // Simple query to get recent uploads with user names
+    // Simple query to get recent uploads
     $query = "SELECT 
-        ees.control_number,
-        ees.stanine_score,
-        ees.upload_date,
-        ees.upload_method,
-        u.first_name,
-        u.last_name
-    FROM entrance_exam_scores ees
-    JOIN users u ON ees.control_number = u.control_number
-    ORDER BY ees.upload_date DESC 
+        control_number,
+        stanine_score,
+        upload_date,
+        upload_method
+    FROM entrance_exam_scores 
+    ORDER BY upload_date DESC 
     LIMIT 10";
     
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Decrypt user data
-    require_once '../includes/encryption.php';
-    foreach ($results as &$result) {
-        $result['first_name'] = safeDecryptField($result['first_name'] ?? '', 'users', 'first_name');
-        $result['last_name'] = safeDecryptField($result['last_name'] ?? '', 'users', 'last_name');
-    }
-    unset($result);
     
     // Send JSON response
     header('Content-Type: application/json');

@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
+require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 session_start();
@@ -44,12 +45,8 @@ try {
     $applicants = $stmt->fetchAll();
     
     // Decrypt user data for display
-    require_once '../includes/encryption.php';
     foreach ($applicants as &$applicant) {
-        $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
-        $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
-        $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
-        $applicant['mobile_number'] = safeDecryptField($applicant['mobile_number'] ?? '', 'users', 'mobile_number');
+        $applicant = decrypt_user_data($applicant);
     }
     unset($applicant);
     

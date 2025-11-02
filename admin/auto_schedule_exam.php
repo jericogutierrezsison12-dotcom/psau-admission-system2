@@ -37,16 +37,6 @@ function auto_schedule_verified_applicants($specific_application_id = null) {
         $stmt->execute($params);
         $verified_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Decrypt user data
-        require_once __DIR__ . '/../includes/encryption.php';
-        foreach ($verified_applicants as &$applicant) {
-            $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
-            $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
-            $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
-            $applicant['mobile_number'] = safeDecryptField($applicant['mobile_number'] ?? '', 'users', 'mobile_number');
-        }
-        unset($applicant);
-        
         if (empty($verified_applicants)) {
             return ['success' => true, 'message' => 'No new verified applicants to schedule.'];
         }

@@ -4,33 +4,23 @@
  * Establishes connection to MySQL database for PSAU Admission System
  */
 
-// Load environment variables from .env file
+// Load environment variables
 if (file_exists(__DIR__ . '/../.env')) {
     $lines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
             list($key, $value) = explode('=', $line, 2);
-            $key = trim($key);
-            $value = trim($value);
-            $_ENV[$key] = $value;
-            // Also set in environment for getenv() to work
-            putenv("$key=$value");
+            $_ENV[trim($key)] = trim($value);
         }
     }
 }
 
-// On Render, environment variables are set by the platform
-// Make sure they're also in $_ENV if they exist in getenv()
-if (empty($_ENV['ENCRYPTION_KEY']) && getenv('ENCRYPTION_KEY')) {
-    $_ENV['ENCRYPTION_KEY'] = getenv('ENCRYPTION_KEY');
-}
-
 // Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'trolley.proxy.rlwy.net';
+$host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'maFGvjqYlZuUdOmjvzArclEoYpUejThA';
-$port = $_ENV['DB_PORT'] ?? 48642;
+$password = $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
+$port = $_ENV['DB_PORT'] ?? 40148;
 
 // Create connection
 $conn = null;
@@ -47,7 +37,12 @@ try {
     error_log("Connection failed: " . $e->getMessage());
     error_log("Connection details - Host: $host, Port: $port, Database: $dbname, Username: $username");
     
-    // Don't call exit() here - let pages handle null $conn gracefully
-    // This prevents redirect loops when connection fails
-    $conn = null;
+    // If in development mode, you can display the error
+    if(defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        error_log("Connection failed: " . $e->getMessage());
+        error_log("Host: $host, Port: $port, Database: $dbname, Username: $username");
+    } else {
+        error_log("Database connection error. Please try again later.");
+    }
+    exit;
 }

@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 require_once '../firebase/firebase_email.php';
 
 // Start session if not started
@@ -37,11 +38,10 @@ try {
                          WHERE a.status = 'Submitted' 
                          ORDER BY a.created_at DESC");
     $pending_applications = $stmt->fetchAll();
-    // Decrypt user fields for display consistency
+    
+    // Decrypt user data for display
     foreach ($pending_applications as &$app) {
-        $app['first_name'] = safeDecryptField($app['first_name'] ?? '', 'users', 'first_name');
-        $app['last_name'] = safeDecryptField($app['last_name'] ?? '', 'users', 'last_name');
-        $app['email'] = safeDecryptField($app['email'] ?? '', 'users', 'email');
+        $app = decrypt_user_data($app);
     }
     unset($app);
 } catch (PDOException $e) {
@@ -114,13 +114,15 @@ if (isset($_POST['action']) && $_POST['action'] === 'verify') {
         ");
         $stmt->execute([$application_id]);
         $user = $stmt->fetch();
-
+        
         if ($user) {
+            // Decrypt user data for email
+            $user = decrypt_user_data($user);
             // Send verification email
             $verification_email = [
-                'first_name' => safeDecryptField($user['first_name'] ?? '', 'users', 'first_name'),
-                'last_name' => safeDecryptField($user['last_name'] ?? '', 'users', 'last_name'),
-                'email' => safeDecryptField($user['email'] ?? '', 'users', 'email')
+                'first_name' => $user['first_name'],
+                'last_name' => $user['last_name'],
+                'email' => $user['email']
             ];
             send_verification_email($verification_email);
         }

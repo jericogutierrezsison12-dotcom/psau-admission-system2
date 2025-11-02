@@ -3,6 +3,7 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
 require_once '../includes/functions.php';
+require_once '../includes/encryption.php';
 
 is_admin_logged_in('login.php');
 require_page_access('view_all_users');
@@ -79,12 +80,8 @@ try {
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Decrypt user data for display
-    require_once '../includes/encryption.php';
     foreach ($users as &$user) {
-        $user['first_name'] = safeDecryptField($user['first_name'] ?? '', 'users', 'first_name');
-        $user['last_name'] = safeDecryptField($user['last_name'] ?? '', 'users', 'last_name');
-        $user['email'] = safeDecryptField($user['email'] ?? '', 'users', 'email');
-        $user['mobile_number'] = safeDecryptField($user['mobile_number'] ?? '', 'users', 'mobile_number');
+        $user = decrypt_user_data($user);
     }
     unset($user);
 } catch (PDOException $e) {}

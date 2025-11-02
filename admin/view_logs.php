@@ -104,8 +104,7 @@ try {
             SELECT 
                 al.*, 
                 COALESCE(a.username, u.control_number, 'Unknown') AS username,
-                u.first_name,
-                u.last_name,
+                TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,''))) AS display_name,
                 COALESCE(a.role, 'user') AS role,
                 CASE WHEN a.id IS NOT NULL THEN a.role ELSE 'user' END AS user_type
             FROM activity_logs al
@@ -121,19 +120,6 @@ try {
         $data_stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $data_stmt->execute();
         $logs = $data_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Decrypt user names for display
-        require_once '../includes/encryption.php';
-        foreach ($logs as &$log) {
-            if (!empty($log['first_name']) || !empty($log['last_name'])) {
-                $first_name = safeDecryptField($log['first_name'] ?? '', 'users', 'first_name');
-                $last_name = safeDecryptField($log['last_name'] ?? '', 'users', 'last_name');
-                $log['display_name'] = trim($first_name . ' ' . $last_name);
-            } else {
-                $log['display_name'] = 'Unknown';
-            }
-        }
-        unset($log);
 
         // Populate distinct actions for filter dropdown (from all logs)
         $actions_stmt = $conn->query("SELECT DISTINCT action FROM activity_logs ORDER BY action ASC");

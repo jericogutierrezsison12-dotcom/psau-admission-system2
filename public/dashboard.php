@@ -9,42 +9,11 @@ require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/encryption.php';
 
-// Check database connection first
-if (!$conn) {
-    http_response_code(500);
-    die('Database connection failed. Please try again later.');
-}
-
 // Check if user is logged in
-if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
+is_user_logged_in();
 
-// Get user details - handle decryption failures gracefully
-$user = null;
-try {
-    $user = get_current_user_data($conn);
-} catch (Exception $e) {
-    error_log("Error getting user data in dashboard: " . $e->getMessage());
-    // Try to get user without decryption if decryption fails
-    try {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch();
-    } catch (Exception $e2) {
-        error_log("Error getting user without decryption: " . $e2->getMessage());
-    }
-}
-
-// Ensure user is available, redirect if not
-if (!$user || !isset($user['id'])) {
-    // Clear invalid session and redirect
-    $_SESSION = array();
-    session_destroy();
-    header('Location: login.php?error=session_invalid');
-    exit;
-}
+// Get user details
+$user = get_current_user_data($conn);
 
 // Get application status
 $application = null;
@@ -52,27 +21,17 @@ $hasApplication = false;
 $status = 'Not Started';
 $statusClass = 'danger';
 
-if ($user && isset($user['id'])) {
+if ($user) {
     // Check if user has an application
     $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$user['id']]);
     $application = $stmt->fetch();
     
     if ($application) {
+        // Decrypt application data
+        $application = decrypt_application_data($application);
         $hasApplication = true;
         $status = $application['status'];
-        
-        // Normalize application fields using safeDecryptField
-        try {
-            require_once '../includes/functions.php';
-            foreach (['previous_school','strand','gpa','address','school_year'] as $field) {
-                if (isset($application[$field]) && $application[$field] !== null) {
-                    $application[$field] = safeDecryptField($application[$field], 'applications', $field);
-                }
-            }
-        } catch (Exception $e) {
-            error_log("Warning: Could not normalize application data in dashboard: " . $e->getMessage());
-        }
         
         // Set status class for styling
         switch ($status) {
@@ -179,4 +138,4 @@ if ($hasApplication) {
 }
 
 // Include the HTML template
-include_once 'html/dashboard.html';
+include_once 'html/dashboard.html'; 

@@ -31,9 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Please enter a valid email address';
         } else {
-            // Check if user exists with this email (works with encrypted data)
-            require_once '../includes/encryption.php';
-            $user = find_user_by_encrypted_identifier($conn, $email);
+            // Check if user exists with this email
+            $stmt = $conn->prepare("SELECT id, first_name, last_name, email, mobile_number FROM users WHERE email = ? AND is_verified = 1");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
             
             if (!$user) {
                 $errors['email'] = 'No verified account found with this email address';
@@ -41,10 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Store user data in session for later use
                 $_SESSION['password_reset'] = [
                     'user_id' => $user['id'],
-                    'email' => $user['email'] ?? '',
-                    'first_name' => $user['first_name'] ?? '',
-                    'last_name' => $user['last_name'] ?? '',
-                    'mobile_number' => $user['mobile_number'] ?? '',
+                    'email' => $user['email'],
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
+                    'mobile_number' => $user['mobile_number'],
                     'timestamp' => time()
                 ];
                 

@@ -216,15 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$schedule_id]);
             $assigned_applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Decrypt user data
-            require_once '../includes/encryption.php';
-            foreach ($assigned_applicants as &$applicant) {
-                $applicant['first_name'] = safeDecryptField($applicant['first_name'] ?? '', 'users', 'first_name');
-                $applicant['last_name'] = safeDecryptField($applicant['last_name'] ?? '', 'users', 'last_name');
-                $applicant['email'] = safeDecryptField($applicant['email'] ?? '', 'users', 'email');
-            }
-            unset($applicant);
 
             // Send email notifications to all assigned applicants
             foreach ($assigned_applicants as $applicant) {

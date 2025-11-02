@@ -4,8 +4,8 @@
  * Handles authentication and authorization for admin users
  */
 
-// Start session if not already started (guard against headers sent)
-if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+// Start session if not already started
+if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 

@@ -8,6 +8,7 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_checker.php';
 require_once '../includes/admin_auth.php';
+require_once '../includes/encryption.php';
 
 // Check if admin is logged in
 is_admin_logged_in('login.php');
@@ -59,7 +60,7 @@ try {
     $stats['pending_verifications'] = $stmt->fetchColumn();
 
     // Scheduled exams
-    $stmt = $conn->query("SELECT COUNT(*) FROM exam_schedule");
+    $stmt = $conn->query("SELECT COUNT(*) FROM exam_schedules");
     $stats['scheduled_exams'] = $stmt->fetchColumn();
 
     // Assigned courses
@@ -94,11 +95,9 @@ try {
                          LIMIT 5");
     $pending_applications = $stmt->fetchAll();
     
-    // Decrypt user data
-    require_once __DIR__ . '/../includes/encryption.php';
+    // Decrypt user data for display
     foreach ($pending_applications as &$app) {
-        $app['first_name'] = safeDecryptField($app['first_name'] ?? '', 'users', 'first_name');
-        $app['last_name'] = safeDecryptField($app['last_name'] ?? '', 'users', 'last_name');
+        $app = decrypt_user_data($app);
     }
     unset($app);
 } catch (PDOException $e) {
@@ -118,7 +117,7 @@ try {
     $stmt->execute();
     $score_stats['today_scores'] = $stmt->fetch(PDO::FETCH_ASSOC)['today'];
 
-    // Get recent score uploads
+    // Get recent score uploads (need to decrypt user data after fetching)
     $stmt = $conn->prepare("
         SELECT ees.*, a.control_number, u.first_name, u.last_name, adm.username as admin_name
         FROM entrance_exam_scores ees
@@ -131,11 +130,10 @@ try {
     $stmt->execute();
     $recent_scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Decrypt user data
-    require_once __DIR__ . '/../includes/encryption.php';
+    // Decrypt user data in recent scores
     foreach ($recent_scores as &$score) {
-        $score['first_name'] = safeDecryptField($score['first_name'] ?? '', 'users', 'first_name');
-        $score['last_name'] = safeDecryptField($score['last_name'] ?? '', 'users', 'last_name');
+        if (isset($score['first_name'])) $score['first_name'] = decrypt_data($score['first_name']);
+        if (isset($score['last_name'])) $score['last_name'] = decrypt_data($score['last_name']);
     }
     unset($score);
 } catch (PDOException $e) {
@@ -189,14 +187,6 @@ try {
                                         LIMIT 5
                                     ");
                                     $recent_course_assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                                    
-                                    // Decrypt user data
-                                    require_once __DIR__ . '/../includes/encryption.php';
-                                    foreach ($recent_course_assignments as &$assignment) {
-                                        $assignment['first_name'] = safeDecryptField($assignment['first_name'] ?? '', 'users', 'first_name');
-                                        $assignment['last_name'] = safeDecryptField($assignment['last_name'] ?? '', 'users', 'last_name');
-                                    }
-                                    unset($assignment);
                                 } catch (PDOException $e) {
                                     $recent_course_assignments = [];
                                 }

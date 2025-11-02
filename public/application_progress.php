@@ -15,39 +15,23 @@ is_user_logged_in();
 // Get user details
 $user = get_current_user_data($conn);
 
-// Ensure user is available, redirect if not
-if (!$user || !isset($user['id'])) {
-    header('Location: login.php');
-    exit;
-}
-
 // Get application status
 $application = null;
 $hasApplication = false;
 $status = 'Not Started';
 $statusClass = 'danger';
 
-if ($user && isset($user['id'])) {
+if ($user) {
     // Check if user has an application
     $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$user['id']]);
     $application = $stmt->fetch();
     
     if ($application) {
+        // Decrypt application data
+        $application = decrypt_application_data($application);
         $hasApplication = true;
         $status = $application['status'];
-        
-        // Normalize application fields using safeDecryptField
-        try {
-            require_once '../includes/functions.php';
-            foreach (['previous_school','strand','gpa','address','school_year'] as $field) {
-                if (isset($application[$field]) && $application[$field] !== null) {
-                    $application[$field] = safeDecryptField($application[$field], 'applications', $field);
-                }
-            }
-        } catch (Exception $e) {
-            error_log("Warning: Could not normalize application data in application_progress: " . $e->getMessage());
-        }
         
         // Set status class for styling
         switch ($status) {
@@ -166,10 +150,10 @@ $applicationData = [
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
     'user' => [
-        'first_name' => $user['first_name'] ?? '',
-        'last_name' => $user['last_name'] ?? '',
-        'email' => $user['email'] ?? '',
-        'control_number' => $user['control_number'] ?? ''
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email'],
+        'control_number' => $user['control_number']
     ]
 ];
 
