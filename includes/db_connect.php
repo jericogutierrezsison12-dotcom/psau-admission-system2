@@ -36,11 +36,14 @@ try {
     ];
     
     // Add SSL options if running on Render (production)
+    // Google Cloud SQL requires SSL when "Allow only SSL connections" is enabled
     $is_render = !empty($_ENV['RENDER']) || !empty($_SERVER['RENDER']);
     if ($is_render) {
-        // Google Cloud SQL connection without SSL certificate verification for Render
-        // Note: Make sure Render's IP ranges are authorized in Google Cloud SQL Console
-        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        // Enable SSL connection for Google Cloud SQL (required when "Allow only SSL connections" is enabled)
+        // Google Cloud SQL uses server certificates that are auto-managed
+        $options[PDO::MYSQL_ATTR_SSL_CA] = null; // Use system CA bundle or null for Google managed
+        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false; // Disable strict verification for Render compatibility
+        // Note: Setting SSL_CA (even to null) enables SSL connection in MySQL PDO
     }
     
     $conn = new PDO($dsn, $username, $password, $options);
