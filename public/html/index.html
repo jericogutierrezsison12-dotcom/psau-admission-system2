@@ -154,5 +154,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="js/index.js"></script>
+    <script>
+    // Fallback live search in case external JS fails to load
+    (function(){
+        function normalize(t){ return (t||'').toString().toLowerCase().trim(); }
+        function filter(){
+            var q = normalize(document.getElementById('course-search') ? document.getElementById('course-search').value : '');
+            var grid = document.querySelector('.course-grid');
+            if(!grid) return;
+            var cards = grid.querySelectorAll('.course-card');
+            cards.forEach(function(card){
+                var text = normalize(card.textContent);
+                card.style.display = (q === '' || text.indexOf(q) !== -1) ? '' : 'none';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function(){
+            var input = document.getElementById('course-search');
+            if(!input) return;
+            filter();
+            input.addEventListener('input', filter);
+            input.addEventListener('keyup', filter);
+        });
+    })();
+    </script>
 </body>
 </html> 
