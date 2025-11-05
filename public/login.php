@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 } else {
                     // Invalid credentials
-                    $errors['login'] = 'Invalid credentials. Please check your email/mobile and password.';
+                    $errors['login'] = 'Invalid credentials. Please check your email and password.';
                     
                     // Record failed login attempt
                     $block_check = track_login_attempt($device_id, false);
