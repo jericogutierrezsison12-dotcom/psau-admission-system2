@@ -208,5 +208,3 @@ Developed for **Pampanga State Agricultural University (PSAU)**.
 Unauthorized use, reproduction, or distribution is prohibited.
 
 ---
-
-Would you like me to also include a **Firebase Email Integration Section** (like your old README had) but updated to use **email-only OTP verification (no SMS)** and with safe blank credentials (for deployment reference)?
