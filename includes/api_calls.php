@@ -767,7 +767,7 @@ function extract_document_information_from_text($text_content) {
  */
 function sendEmailViaFirebase($email_data) {
     // Firebase Cloud Function URL for sending emails
-    $function_url = "https://us-central1-psau-admission-system.cloudfunctions.net/sendEmail";
+    $function_url = "https://us-central1-psau-admission-system-f55f8.cloudfunctions.net/sendEmail";
     
     // Validate required fields
     if (empty($email_data['to']) || empty($email_data['subject']) || empty($email_data['message'])) {

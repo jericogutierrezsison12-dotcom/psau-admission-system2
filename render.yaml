@@ -17,19 +17,19 @@ services:
       - key: DB_PORT
         value: 3306
       - key: FIREBASE_API_KEY
-        value: AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8
+        value: AIzaSyBQ5jLQX2JggHQU0ikymEEjywxEos5Lr3c
       - key: FIREBASE_AUTH_DOMAIN
-        value: psau-admission-system.firebaseapp.com
+        value: psau-admission-system-f55f8.firebaseapp.com
       - key: FIREBASE_PROJECT_ID
-        value: psau-admission-system
+        value: psau-admission-system-f55f8
       - key: FIREBASE_STORAGE_BUCKET
-        value: psau-admission-system.appspot.com
+        value: psau-admission-system-f55f8.firebasestorage.app
       - key: FIREBASE_MESSAGING_SENDER_ID
-        value: "522448258958"
+        value: "615441800587"
       - key: FIREBASE_APP_ID
-        value: 1:522448258958:web:994b133a4f7b7f4c1b06df
+        value: 1:615441800587:web:8b0df9b012e24c147da38e
       - key: FIREBASE_EMAIL_FUNCTION_URL
-        value: https://sendemail-alsstt22ha-uc.a.run.app
+        value: https://us-central1-psau-admission-system-f55f8.cloudfunctions.net/sendEmail
       - key: ENVIRONMENT
         value: production
       - key: RENDER
