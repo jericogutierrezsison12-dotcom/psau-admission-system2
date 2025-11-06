@@ -18,16 +18,27 @@ exports.sendEmail = onRequest({ region: 'us-central1', secrets: ['SMTP_USER', 'S
       return res.status(500).json({ success: false, error: 'Missing SMTP credentials' });
     }
 
+    // Trim whitespace and verify credentials
+    const smtpUser = process.env.SMTP_USER.trim();
+    const smtpPass = process.env.SMTP_PASS.trim();
+    
+    // Log for debugging (first 4 chars only for security)
+    console.log('SMTP_USER:', smtpUser.substring(0, 4) + '...');
+    console.log('SMTP_PASS length:', smtpPass.length);
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      auth: { 
+        user: smtpUser, 
+        pass: smtpPass 
+      },
     });
 
     await transporter.sendMail({
       to,
       subject,
       html,
-      from: from || process.env.SMTP_USER,
+      from: from || `PSAU Admissions <${smtpUser}>`,
     });
 
     return res.status(200).json({ success: true });
