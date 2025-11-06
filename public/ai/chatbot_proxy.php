@@ -29,7 +29,7 @@ if (trim($message) === '') {
 }
 
 // Prefer /chat based on upstream HTML; fallback to /chatbot
-$base = 'https://flashbot-1.onrender.com';
+$base = 'https://flaskbot-1.onrender.com';
 $endpoints = [$base . '/chat', $base . '/chatbot'];
 
 function forward_json($url, $message){
