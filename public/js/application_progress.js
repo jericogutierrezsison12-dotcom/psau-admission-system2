@@ -95,13 +95,15 @@ function renderProgressTracker(container) {
     
     // Define all possible application statuses in order
     const applicationStages = [
+        'Pending',
         'Submitted',
         'Verified',
         'Exam Scheduled',
         'Score Posted',
         'Course Assigned',
         'Enrollment Scheduled',
-        'Enrolled'
+        'Enrolled',
+        'Complete'
     ];
     
     // Calculate progress percentage
@@ -109,8 +111,10 @@ function renderProgressTracker(container) {
     const currentStageIndex = applicationStages.indexOf(status);
     let progressPercent = currentStageIndex !== -1 ? ((currentStageIndex + 1) / totalStages) * 100 : 0;
     
-    if (status === 'Rejected') {
+    if (status === 'Rejected' || status === 'Cancelled') {
         progressPercent = 0;
+    } else if (status === 'Complete') {
+        progressPercent = 100;
     }
     
     let stepsHtml = '';
@@ -120,8 +124,11 @@ function renderProgressTracker(container) {
     applicationStages.forEach(stageName => {
         let stageClass = '';
         
-        if (status === 'Rejected' && stageName === 'Submitted') {
+        if ((status === 'Rejected' || status === 'Cancelled') && (stageName === 'Submitted' || stageName === 'Pending')) {
             stageClass = 'step-rejected';
+        } else if (status === 'Complete' && stageName === 'Complete') {
+            stageClass = 'step-completed';
+            passedCurrentStage = true;
         } else if (status === stageName) {
             stageClass = 'step-active';
             passedCurrentStage = true;
@@ -143,7 +150,11 @@ function renderProgressTracker(container) {
         .replace('${progressPercent}', progressPercent)
         .replace('${statusClass}', statusClass)
         .replace('${status === \'Rejected\' ? \'Application Rejected\' : \'Current Stage: \' + status}', 
-                 status === 'Rejected' ? 'Application Rejected' : 'Current Stage: ' + status);
+                 status === 'Rejected' ? 'Application Rejected' : 
+                 status === 'Cancelled' ? 'Application Cancelled' : 
+                 status === 'Complete' ? 'Application Complete' : 
+                 status === 'Pending' ? 'Application Pending' : 
+                 'Current Stage: ' + status);
     
     container.append(html);
 }
@@ -166,7 +177,42 @@ function renderCurrentStageDetails(container) {
         template = document.querySelector('#rejected-stage-template');
         html = template.innerHTML
             .replace('${formatDate}', formatDate(app.updated_at, false))
-            .replace('${rejectionReason}', app.rejection_reason);
+            .replace('${rejectionReason}', app.rejection_reason || 'No reason provided');
+    } else if (status === 'Cancelled') {
+        html = `
+            <div class="stage-details cancelled-details">
+                <h5><i class="bi bi-x-circle me-2"></i> Application Cancelled</h5>
+                <p>Your application was cancelled on ${formatDate(app.updated_at, false)}.</p>
+                <p class="text-muted">If you believe this is an error, please contact the admissions office for assistance.</p>
+                <div class="mt-3">
+                    <a href="application_form.php" class="btn btn-primary">Submit New Application</a>
+                </div>
+            </div>
+        `;
+    } else if (status === 'Complete') {
+        html = `
+            <div class="stage-details complete-details">
+                <h5><i class="bi bi-check-circle me-2"></i> Application Complete</h5>
+                <p>Congratulations! Your application process has been completed successfully.</p>
+                <div class="alert alert-success mt-3">
+                    <i class="bi bi-check-circle me-2"></i> 
+                    You are now eligible for enrollment at PSAU. Welcome to PSAU!
+                </div>
+                <p><strong>Completed on:</strong> ${formatDate(app.updated_at, false)}</p>
+            </div>
+        `;
+    } else if (status === 'Pending') {
+        html = `
+            <div class="stage-details pending-details">
+                <h5><i class="bi bi-hourglass-split me-2"></i> Application Pending</h5>
+                <p>Your application is currently pending review by the admissions office.</p>
+                <p><strong>Submitted on:</strong> ${formatDate(app.created_at, false)}</p>
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i> 
+                    Please wait for the admissions office to process your application. You will receive an email notification once your application status is updated.
+                </div>
+            </div>
+        `;
     } else if (status === 'Submitted') {
         template = document.querySelector('#submitted-stage-template');
         html = template.innerHTML

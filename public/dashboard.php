@@ -32,6 +32,7 @@ if ($user) {
         
         // Set status class for styling
         switch ($status) {
+            case 'Pending':
             case 'Submitted':
                 $statusClass = 'info';
                 break;
@@ -39,6 +40,7 @@ if ($user) {
                 $statusClass = 'success';
                 break;
             case 'Rejected':
+            case 'Cancelled':
                 $statusClass = 'danger';
                 break;
             case 'Exam Scheduled':
@@ -54,6 +56,7 @@ if ($user) {
                 $statusClass = 'dark';
                 break;
             case 'Enrolled':
+            case 'Complete':
                 $statusClass = 'success';
                 break;
             default:
@@ -64,7 +67,7 @@ if ($user) {
 
 // Get exam schedule if available
 $examSchedule = null;
-if ($hasApplication && in_array($status, ['Exam Scheduled', 'Score Posted', 'Course Assigned', 'Enrollment Scheduled', 'Enrolled'])) {
+if ($hasApplication && in_array($status, ['Exam Scheduled', 'Score Posted', 'Course Assigned', 'Enrollment Scheduled', 'Enrolled', 'Complete'])) {
     // Get exam information from the exams table, which is linked to exam_schedules
     $stmt = $conn->prepare("
         SELECT e.*, es.instructions, es.requirements, v.name as venue_name 
@@ -79,7 +82,7 @@ if ($hasApplication && in_array($status, ['Exam Scheduled', 'Score Posted', 'Cou
 
 // Get scores if available
 $examScore = null;
-if ($hasApplication && in_array($status, ['Score Posted', 'Course Assigned', 'Enrollment Scheduled', 'Enrolled'])) {
+if ($hasApplication && in_array($status, ['Score Posted', 'Course Assigned', 'Enrollment Scheduled', 'Enrolled', 'Complete'])) {
     $stmt = $conn->prepare("SELECT * FROM entrance_exam_scores WHERE control_number = ?");
     $stmt->execute([$user['control_number']]);
     $examScore = $stmt->fetch();
@@ -87,7 +90,7 @@ if ($hasApplication && in_array($status, ['Score Posted', 'Course Assigned', 'En
 
 // Get course assignment if available
 $courseAssignment = null;
-if ($hasApplication && in_array($status, ['Course Assigned', 'Enrollment Scheduled', 'Enrolled'])) {
+if ($hasApplication && in_array($status, ['Course Assigned', 'Enrollment Scheduled', 'Enrolled', 'Complete'])) {
     $stmt = $conn->prepare("
         SELECT ca.*, c.course_code, c.course_name 
         FROM course_assignments ca
@@ -100,7 +103,7 @@ if ($hasApplication && in_array($status, ['Course Assigned', 'Enrollment Schedul
 
 // Get enrollment schedule if available
 $enrollmentSchedule = null;
-if ($hasApplication && in_array($status, ['Enrollment Scheduled', 'Enrolled'])) {
+if ($hasApplication && in_array($status, ['Enrollment Scheduled', 'Enrolled', 'Complete'])) {
     // Get the enrollment schedule
     $stmt = $conn->prepare("
         SELECT es.*, v.name as venue_name,

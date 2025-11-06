@@ -20,8 +20,8 @@
                     <li><a href="#courses"><i class="bi bi-book"></i> Programs</a></li>
                     <li><a href="#exam-info"><i class="bi bi-pencil-square"></i> Exam Info</a></li>
                     <li><a href="#enrollment"><i class="bi bi-calendar-check"></i> Enrollment</a></li>
-                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
-                    <li><a href="ai/recommendation.php"><i class="bi bi-stars"></i> Recommendation</a></li>
+                    <li><a href="ai/chatbot.php" class="nav-ai-link" data-path="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li><a href="ai/recommendation.php" class="nav-ai-link" data-path="ai/recommendation.php"><i class="bi bi-stars"></i> Recommendation</a></li>
                     <li class="menu-divider"></li>
                     <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
                     <li><a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
@@ -32,7 +32,7 @@
                     <li><a href="#courses"><i class="bi bi-book"></i> Programs</a></li>
                     <li><a href="#exam-info"><i class="bi bi-pencil-square"></i> Exam Info</a></li>
                     <li><a href="#enrollment"><i class="bi bi-calendar-check"></i> Enrollment</a></li>
-                    <li><a href="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
+                    <li><a href="ai/chatbot.php" class="nav-ai-link" data-path="ai/chatbot.php"><i class="bi bi-robot"></i> Chatbot</a></li>
                     <li class="menu-divider"></li>
                     <li><a href="register.php"><i class="bi bi-person-plus"></i> Apply Now</a></li>
                     <li><a href="login.php"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
@@ -43,4 +43,26 @@
 </nav>
 
 <!-- Include mobile navigation JavaScript -->
-<script src="js/mobile-nav.js"></script> 
+<script src="js/mobile-nav.js"></script>
+<script>
+// Fix AI navigation links based on current page location
+(function() {
+    const aiLinks = document.querySelectorAll('.nav-ai-link');
+    if (aiLinks.length === 0) return;
+    
+    // Check if we're in the ai directory
+    const currentPath = window.location.pathname;
+    const isInAiDir = currentPath.includes('/ai/');
+    
+    aiLinks.forEach(link => {
+        const originalPath = link.getAttribute('data-path');
+        if (isInAiDir) {
+            // If we're in ai directory, use relative path from ai root
+            link.href = originalPath.replace('ai/', '');
+        } else {
+            // If we're in public root, use the original path
+            link.href = originalPath;
+        }
+    });
+})();
+</script> 
