@@ -16,12 +16,6 @@ $(document).ready(function() {
             progressBar.style.width = progress + '%';
         }
     }, 300);
-    
-    // Set up AJAX functionality
-    setupAjaxNavigation();
-    
-    // Set up auto-refresh
-    setupAutoRefresh();
 });
 
 /**
@@ -95,15 +89,13 @@ function renderProgressTracker(container) {
     
     // Define all possible application statuses in order
     const applicationStages = [
-        'Pending',
         'Submitted',
         'Verified',
         'Exam Scheduled',
         'Score Posted',
         'Course Assigned',
         'Enrollment Scheduled',
-        'Enrolled',
-        'Complete'
+        'Enrolled'
     ];
     
     // Calculate progress percentage
@@ -111,10 +103,8 @@ function renderProgressTracker(container) {
     const currentStageIndex = applicationStages.indexOf(status);
     let progressPercent = currentStageIndex !== -1 ? ((currentStageIndex + 1) / totalStages) * 100 : 0;
     
-    if (status === 'Rejected' || status === 'Cancelled') {
+    if (status === 'Rejected') {
         progressPercent = 0;
-    } else if (status === 'Complete') {
-        progressPercent = 100;
     }
     
     let stepsHtml = '';
@@ -124,11 +114,8 @@ function renderProgressTracker(container) {
     applicationStages.forEach(stageName => {
         let stageClass = '';
         
-        if ((status === 'Rejected' || status === 'Cancelled') && (stageName === 'Submitted' || stageName === 'Pending')) {
+        if (status === 'Rejected' && stageName === 'Submitted') {
             stageClass = 'step-rejected';
-        } else if (status === 'Complete' && stageName === 'Complete') {
-            stageClass = 'step-completed';
-            passedCurrentStage = true;
         } else if (status === stageName) {
             stageClass = 'step-active';
             passedCurrentStage = true;
@@ -150,11 +137,7 @@ function renderProgressTracker(container) {
         .replace('${progressPercent}', progressPercent)
         .replace('${statusClass}', statusClass)
         .replace('${status === \'Rejected\' ? \'Application Rejected\' : \'Current Stage: \' + status}', 
-                 status === 'Rejected' ? 'Application Rejected' : 
-                 status === 'Cancelled' ? 'Application Cancelled' : 
-                 status === 'Complete' ? 'Application Complete' : 
-                 status === 'Pending' ? 'Application Pending' : 
-                 'Current Stage: ' + status);
+                 status === 'Rejected' ? 'Application Rejected' : 'Current Stage: ' + status);
     
     container.append(html);
 }
@@ -177,42 +160,7 @@ function renderCurrentStageDetails(container) {
         template = document.querySelector('#rejected-stage-template');
         html = template.innerHTML
             .replace('${formatDate}', formatDate(app.updated_at, false))
-            .replace('${rejectionReason}', app.rejection_reason || 'No reason provided');
-    } else if (status === 'Cancelled') {
-        html = `
-            <div class="stage-details cancelled-details">
-                <h5><i class="bi bi-x-circle me-2"></i> Application Cancelled</h5>
-                <p>Your application was cancelled on ${formatDate(app.updated_at, false)}.</p>
-                <p class="text-muted">If you believe this is an error, please contact the admissions office for assistance.</p>
-                <div class="mt-3">
-                    <a href="application_form.php" class="btn btn-primary">Submit New Application</a>
-                </div>
-            </div>
-        `;
-    } else if (status === 'Complete') {
-        html = `
-            <div class="stage-details complete-details">
-                <h5><i class="bi bi-check-circle me-2"></i> Application Complete</h5>
-                <p>Congratulations! Your application process has been completed successfully.</p>
-                <div class="alert alert-success mt-3">
-                    <i class="bi bi-check-circle me-2"></i> 
-                    You are now eligible for enrollment at PSAU. Welcome to PSAU!
-                </div>
-                <p><strong>Completed on:</strong> ${formatDate(app.updated_at, false)}</p>
-            </div>
-        `;
-    } else if (status === 'Pending') {
-        html = `
-            <div class="stage-details pending-details">
-                <h5><i class="bi bi-hourglass-split me-2"></i> Application Pending</h5>
-                <p>Your application is currently pending review by the admissions office.</p>
-                <p><strong>Submitted on:</strong> ${formatDate(app.created_at, false)}</p>
-                <div class="alert alert-info mt-3">
-                    <i class="bi bi-info-circle me-2"></i> 
-                    Please wait for the admissions office to process your application. You will receive an email notification once your application status is updated.
-                </div>
-            </div>
-        `;
+            .replace('${rejectionReason}', app.rejection_reason);
     } else if (status === 'Submitted') {
         template = document.querySelector('#submitted-stage-template');
         html = template.innerHTML
@@ -336,222 +284,5 @@ function formatTime(timeString) {
         hour: 'numeric',
         minute: 'numeric',
         hour12: true
-    });
-}
-
-/**
- * Set up AJAX navigation for application progress
- */
-function setupAjaxNavigation() {
-    // Handle navigation links with AJAX
-    const navLinks = document.querySelectorAll('a[href*="dashboard.php"], a[href*="application_form.php"], a[href*="course_selection.php"]');
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const href = this.getAttribute('href');
-            loadPageViaAjax(href);
-        });
-    });
-    
-    // Handle back to dashboard link
-    const backLink = document.querySelector('a[href="dashboard.php"]');
-    if (backLink) {
-        backLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            loadDashboardViaAjax();
-        });
-    }
-}
-
-/**
- * Load page via AJAX
- */
-function loadPageViaAjax(url) {
-    showLoadingOverlay('Loading page...');
-    
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(html => {
-        hideLoadingOverlay();
-        // Replace main content
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.innerHTML = html;
-            // Re-initialize JavaScript for the new content
-            if (url.includes('dashboard.php')) {
-                // Load dashboard JavaScript
-                loadScript('js/dashboard.js');
-            } else if (url.includes('application_form.php')) {
-                // Load form JavaScript
-                loadScript('js/application_form.js');
-            } else if (url.includes('course_selection.php')) {
-                // Load course selection JavaScript
-                loadScript('js/course_selection.js');
-            }
-        }
-    })
-    .catch(error => {
-        hideLoadingOverlay();
-        console.error('Error loading page:', error);
-        showError('Failed to load page. Please try again.');
-        // Fallback to normal navigation
-        window.location.href = url;
-    });
-}
-
-/**
- * Load dashboard via AJAX
- */
-function loadDashboardViaAjax() {
-    loadPageViaAjax('dashboard.php');
-}
-
-/**
- * Set up auto-refresh for application progress
- */
-function setupAutoRefresh() {
-    // Refresh application progress data every 60 seconds
-    setInterval(() => {
-        refreshApplicationProgress();
-    }, 60000);
-}
-
-/**
- * Refresh application progress data via AJAX
- */
-function refreshApplicationProgress() {
-    fetch('application_progress.php', {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(html => {
-        // Parse the response and update only the progress content
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        
-        // Update progress content
-        const newProgressContent = doc.querySelector('#application-progress-content');
-        const currentProgressContent = document.querySelector('#application-progress-content');
-        if (newProgressContent && currentProgressContent) {
-            currentProgressContent.innerHTML = newProgressContent.innerHTML;
-            // Re-render the content
-            renderApplicationContent();
-        }
-        
-        console.log('Application progress data refreshed');
-    })
-    .catch(error => {
-        console.error('Error refreshing application progress:', error);
-    });
-}
-
-/**
- * Show loading overlay
- */
-function showLoadingOverlay(message = 'Loading...') {
-    // Remove existing overlay if any
-    hideLoadingOverlay();
-    
-    const overlay = document.createElement('div');
-    overlay.id = 'loading-overlay';
-    overlay.className = 'loading-overlay';
-    overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="spinner-border text-primary mb-3" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p>${message}</p>
-        </div>
-    `;
-    
-    // Add styles
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    `;
-    
-    const loadingContent = overlay.querySelector('.loading-content');
-    loadingContent.style.cssText = `
-        background: white;
-        padding: 2rem;
-        border-radius: 0.5rem;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    `;
-    
-    document.body.appendChild(overlay);
-}
-
-/**
- * Hide loading overlay
- */
-function hideLoadingOverlay() {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-        overlay.remove();
-    }
-}
-
-/**
- * Show error message
- */
-function showError(message) {
-    // Remove existing alerts
-    const existingAlerts = document.querySelectorAll('.alert-danger');
-    existingAlerts.forEach(alert => alert.remove());
-    
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-danger alert-dismissible fade show';
-    alert.innerHTML = `
-        <i class="bi bi-exclamation-triangle me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    // Insert at the top of main content
-    const mainContent = document.querySelector('.main-content .container-fluid');
-    if (mainContent) {
-        mainContent.insertBefore(alert, mainContent.firstChild);
-    }
-}
-
-/**
- * Load script dynamically
- */
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
     });
 } 

@@ -61,24 +61,19 @@
                                     <div class="progress-tracker" style="min-width: 520px;">
                                     <?php 
                                     $steps = [
-                                        'Pending' => 'Application Pending',
                                         'Submitted' => 'Application Submitted',
                                         'Verified' => 'Application Verified',
                                         'Exam Scheduled' => 'Entrance Exam Scheduled',
                                         'Score Posted' => 'Exam Score Posted',
                                         'Course Assigned' => 'Course Assigned',
                                         'Enrollment Scheduled' => 'Enrollment Scheduled',
-                                        'Enrolled' => 'Enrolled',
-                                        'Complete' => 'Application Complete'
+                                        'Enrolled' => 'Enrolled'
                                     ];
                                     
                                     $currentFound = false;
                                     foreach ($steps as $stepStatus => $stepLabel) {
-                                        if ($status === 'Rejected' || $status === 'Cancelled') {
-                                            $class = ($stepStatus === 'Submitted' || $stepStatus === 'Pending') ? 'completed' : (($stepStatus === 'Verified') ? 'rejected' : '');
-                                        } elseif ($status === 'Complete' && $stepStatus === 'Complete') {
-                                            $class = 'completed';
-                                            $currentFound = true;
+                                        if ($status === 'Rejected') {
+                                            $class = ($stepStatus === 'Submitted') ? 'completed' : (($stepStatus === 'Verified') ? 'rejected' : '');
                                         } elseif (!$currentFound && $stepStatus === $status) {
                                             $class = 'current';
                                             $currentFound = true;
@@ -142,6 +137,8 @@
                                                     <p><?php echo nl2br(htmlspecialchars($enrollmentSchedule['requirements'])); ?></p>
                                                     <?php endif; ?>
                                                     
+                                                    <hr>
+                                                    <a href="enrollment_eligibility.php" class="btn btn-primary">Proceed to Enrollment</a>
                                                 </div>
                                             <?php endif; ?>
                                         <?php endif; ?>
@@ -154,21 +151,6 @@
                                     <div class="alert alert-danger mt-4">
                                         <h6><i class="bi bi-exclamation-triangle-fill"></i> Application Rejected</h6>
                                         <p>Your application has been rejected. Please check your email for details or contact the admission office for more information.</p>
-                                    </div>
-                                <?php elseif ($status === 'Cancelled'): ?>
-                                    <div class="alert alert-danger mt-4">
-                                        <h6><i class="bi bi-x-circle-fill"></i> Application Cancelled</h6>
-                                        <p>Your application has been cancelled. If you believe this is an error, please contact the admission office for assistance.</p>
-                                    </div>
-                                <?php elseif ($status === 'Complete'): ?>
-                                    <div class="alert alert-success mt-4">
-                                        <h6><i class="bi bi-check-circle-fill"></i> Application Complete</h6>
-                                        <p>Congratulations! Your application process has been completed successfully. You are now eligible for enrollment at PSAU.</p>
-                                    </div>
-                                <?php elseif ($status === 'Pending'): ?>
-                                    <div class="alert alert-info mt-4">
-                                        <h6><i class="bi bi-hourglass-split"></i> Application Pending</h6>
-                                        <p>Your application is currently pending review. Please wait for the admissions office to process your application. You will be notified via email once your application status is updated.</p>
                                     </div>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -272,7 +254,6 @@
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Dashboard JavaScript -->
-    <script src="js/dashboard.js"></script>
+    <!-- Custom JavaScript -->
 </body>
 </html> 
