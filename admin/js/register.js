@@ -3,12 +3,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebas
 import { getAuth, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyB7HqxV971vmWiJiXnWdaFnMaFx1C1t6s8",
-    authDomain: "psau-admission-system.firebaseapp.com",
-    projectId: "psau-admission-system",
-    storageBucket: "psau-admission-system.appspot.com",
-    messagingSenderId: "522448258958",
-    appId: "1:522448258958:web:994b133a4f7b7f4c1b06df"
+    apiKey: "AIzaSyBQ5jLQX2JggHQU0ikymEEjywxEos5Lr3c",
+    authDomain: "psau-admission-system-f55f8.firebaseapp.com",
+    projectId: "psau-admission-system-f55f8",
+    storageBucket: "psau-admission-system-f55f8.firebasestorage.app",
+    messagingSenderId: "615441800587",
+    appId: "1:615441800587:web:8b0df9b012e24c147da38e",
+    measurementId: "G-4WWB01B974"
 };
 
 // Initialize Firebase
