@@ -2,7 +2,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const nodemailer = require('nodemailer');
 
-exports.sendEmail = onRequest({ region: 'us-central1' }, async (req, res) => {
+exports.sendEmail = onRequest({ region: 'us-central1', secrets: ['SMTP_USER', 'SMTP_PASS'] }, async (req, res) => {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -11,6 +11,11 @@ exports.sendEmail = onRequest({ region: 'us-central1' }, async (req, res) => {
     const { to, subject, html, from } = req.body || {};
     if (!to || !subject || !html) {
       return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    // Ensure secrets are present
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return res.status(500).json({ success: false, error: 'Missing SMTP credentials' });
     }
 
     const transporter = nodemailer.createTransport({
