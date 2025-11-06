@@ -38,7 +38,7 @@ function firebase_send_email($to, $subject, $message, $options = []) {
         'to' => $to,
         'subject' => $subject,
         'html' => $message,
-        'from' => $options['from'] ?? 'PSAU Admissions <jericogutierrezsison12@gmail.com>',
+        'from' => $options['from'] ?? 'PSAU Admissions <siriyaporn.kwangusan@gmail.com>',
     ];
     
     // Add CC if specified
