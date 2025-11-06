@@ -52,10 +52,12 @@ The PSAU Admission System provides an end-to-end solution for managing the unive
 1. Create a Firebase project
 2. Enable Authentication with Email/Password and Phone
 3. Set up Realtime Database
-4. Set up Cloud Functions with the following environment variables:
+4. Set up Cloud Functions with Firebase Secrets:
    ```
-   firebase functions:config:set gmail.email="jericogutierrezsison12@gmail.com" gmail.password="crsh iejc lhwz gasu"
+   firebase functions:secrets:set SMTP_USER
+   firebase functions:secrets:set SMTP_PASS
    ```
+   Enter `siriyaporn.kwangusan@gmail.com` for SMTP_USER and your Gmail App Password for SMTP_PASS.
 5. Deploy functions from the `/functions` directory
 
 ### Python Setup

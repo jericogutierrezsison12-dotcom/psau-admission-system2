@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin Registration - Multi-Step Process
- * Step 1: Verify restricted email (jericogutierrezsison12@gmail.com) with OTP
+ * Step 1: Verify restricted email (siriyaporn.kwangusan@gmail.com) with OTP
  * Step 2: Fill admin registration form with their own email
  * Step 3: Verify their own email with OTP
  * Step 4: Complete registration

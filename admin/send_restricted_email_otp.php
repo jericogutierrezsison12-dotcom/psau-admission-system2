@@ -1,6 +1,6 @@
 <?php
 /**
- * Send OTP to restricted email (jericogutierrezsison12@gmail.com)
+ * Send OTP to restricted email (siriyaporn.kwangusan@gmail.com)
  * This is the first step of admin registration
  */
 
@@ -59,7 +59,7 @@ try {
         . date('Y') . " PSAU Admission System</div>"
         ."</div>";
 
-    $result = firebase_send_email('jericogutierrezsison12@gmail.com', $subject, $message);
+    $result = firebase_send_email('siriyaporn.kwangusan@gmail.com', $subject, $message);
     if (!$result || (is_array($result) && empty($result['success']))) {
         throw new Exception('Failed to send OTP email');
     }

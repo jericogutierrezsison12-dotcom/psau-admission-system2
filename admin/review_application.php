@@ -364,8 +364,8 @@ function get_email_diagnostics() {
     
     // Check Gmail credentials
     $diagnostics['gmail_credentials'] = [
-        'username' => !empty('jericogutierrezsison12@gmail.com'),
-        'password' => !empty('crsh iejc lhwz gasu')
+        'username' => !empty('siriyaporn.kwangusan@gmail.com'),
+        'password' => !empty('wplb jxsh sdmn unva')
     ];
     
     return $diagnostics;

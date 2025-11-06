@@ -39,10 +39,10 @@ try {
     }
     
     // Check if email is allowed for admin registration
-    if ($email !== 'jericogutierrezsison12@gmail.com') {
+    if ($email !== 'siriyaporn.kwangusan@gmail.com') {
         echo json_encode([
             'success' => false,
-            'message' => 'Only jericogutierrezsison12@gmail.com is allowed for admin registration'
+            'message' => 'Only siriyaporn.kwangusan@gmail.com is allowed for admin registration'
         ]);
         exit;
     }
