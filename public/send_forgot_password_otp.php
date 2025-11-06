@@ -31,7 +31,7 @@ if (file_exists('../firebase/config.php')) {
     
     session_start();
     require_once '../includes/db_connect.php';
-    require_once '../includes/phpmailer_send.php'; // For sending emails via PHPMailer
+    require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
     require_once '../includes/otp_rate_limiting_enhanced.php';
     
@@ -41,7 +41,7 @@ if (file_exists('../firebase/config.php')) {
 } else {
     session_start();
     require_once '../includes/db_connect.php';
-    require_once '../includes/phpmailer_send.php'; // For sending emails via PHPMailer
+    require_once '../firebase/firebase_email.php'; // For sending emails
     require_once '../includes/api_calls.php'; // For reCAPTCHA verification
 }
 
@@ -121,8 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>";
 
     try {
-        // Send via PHPMailer SMTP
-        $email_result = send_email_phpmailer($email, $subject, $message);
+        // Try Firebase email first
+        $email_result = firebase_send_email($email, $subject, $message);
         if (is_array($email_result) && isset($email_result['success']) && $email_result['success']) {
             $response['success'] = true;
             $response['message'] = 'OTP sent to your email.';
@@ -143,8 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } catch (Exception $e) {
-        // If email completely fails, still provide OTP via logs (dev only)
-        error_log("Email send error: " . $e->getMessage());
+        // If Firebase completely fails, still provide OTP via logs
+        error_log("Firebase email error: " . $e->getMessage());
         error_log("OTP for {$email}: {$otp}");
         $response['success'] = true;
         

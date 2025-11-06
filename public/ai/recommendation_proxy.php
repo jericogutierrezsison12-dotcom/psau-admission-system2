@@ -119,7 +119,7 @@ if (trim($stanine) === '' || trim($gwa) === '' || trim($strand) === '') {
 }
 
 // Use the new recommendation API URL
-$base = 'https://recommender-np4e.onrender.com';
+$base = 'https://recommender2.onrender.com';
 $endpoints = [
     $base . '/api/get_recommendations'
 ];
