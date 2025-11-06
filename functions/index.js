@@ -23,13 +23,33 @@ exports.sendEmail = onRequest({ region: 'us-central1', secrets: ['SMTP_USER', 'S
     const smtpPass = process.env.SMTP_PASS.trim();
     
     // Log for debugging (first 4 chars only for security)
-    console.log('SMTP_USER:', smtpUser.substring(0, 4) + '...');
+    console.log('SMTP_USER length:', smtpUser.length);
+    console.log('SMTP_USER (first 20 chars):', smtpUser.substring(0, 20) + '...');
     console.log('SMTP_PASS length:', smtpPass.length);
+
+    // Check for duplicated email in SMTP_USER
+    const expectedEmail = 'siriyaporn.kwangusan@gmail.com';
+    if (smtpUser.includes(expectedEmail + expectedEmail) || smtpUser.length > 35) {
+      console.error('SMTP_USER appears to be duplicated!');
+      console.error('SMTP_USER value:', smtpUser);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'SMTP_USER is corrupted (duplicated). Please fix in Firebase secrets.' 
+      });
+    }
 
     // Verify credentials format
     if (!smtpUser.includes('@') || smtpUser.length < 5) {
       console.error('Invalid SMTP_USER format:', smtpUser.substring(0, 10) + '...');
       return res.status(500).json({ success: false, error: 'Invalid SMTP_USER format' });
+    }
+    
+    if (smtpUser.length !== 30) {
+      console.error('SMTP_USER length is incorrect. Expected 30, got:', smtpUser.length);
+      return res.status(500).json({ 
+        success: false, 
+        error: `SMTP_USER length is ${smtpUser.length}, expected 30. Secret may be corrupted.` 
+      });
     }
     
     if (smtpPass.length !== 16) {
