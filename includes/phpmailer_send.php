@@ -28,6 +28,13 @@ function send_email_phpmailer(string $to, string $subject, string $html, array $
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
+        // Optional SMTP debug to PHP error_log when SMTP_DEBUG is set (e.g., '1')
+        if ((getenv('SMTP_DEBUG') ?: '') !== '') {
+            $mail->SMTPDebug = 2; // verbose server messages
+            $mail->Debugoutput = function($str, $level) {
+                error_log("SMTP[$level] " . $str);
+            };
+        }
         $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
         $mail->Port       = (int)(getenv('SMTP_PORT') ?: 587);
         $mail->SMTPAuth   = true;
@@ -38,11 +45,16 @@ function send_email_phpmailer(string $to, string $subject, string $html, array $
         $mail->SMTPSecure = $secure === 'ssl' ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
         $mail->CharSet    = 'UTF-8';
 
-        $from = $options['from'] ?? (getenv('EMAIL_FROM') ?: 'PSAU Admissions <no-reply@psau-admission-system2.onrender.com>');
-        if (preg_match('/^(.*)<(.+)>$/', $from, $m)) {
-            $mail->setFrom(trim($m[2]), trim($m[1]));
-        } else {
-            $mail->setFrom($from, 'PSAU Admissions');
+        // Use authenticated user as From to avoid DMARC/"on behalf of" issues; move custom from to Reply-To
+        $authUser = $mail->Username;
+        $mail->setFrom($authUser ?: 'no-reply@psau-admission-system2.onrender.com', 'PSAU Admissions');
+        $specifiedFrom = $options['from'] ?? (getenv('EMAIL_FROM') ?: '');
+        if ($specifiedFrom) {
+            if (preg_match('/^(.*)<(.+)>$/', $specifiedFrom, $m)) {
+                $mail->addReplyTo(trim($m[2]), trim($m[1]));
+            } else {
+                $mail->addReplyTo($specifiedFrom);
+            }
         }
 
         $mail->addAddress($to);
