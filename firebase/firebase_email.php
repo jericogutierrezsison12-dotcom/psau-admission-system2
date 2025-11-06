@@ -4,8 +4,10 @@
  * This file handles sending emails through Firebase Cloud Functions
  */
 
-// Include Firebase configuration
+// Keep compatibility include (not strictly needed for PHPMailer path)
 require_once __DIR__ . '/config.php';
+// Use PHPMailer-based sender under the hood
+require_once __DIR__ . '/../includes/phpmailer_send.php';
 
 /**
  * Send email using Firebase Cloud Functions
@@ -16,142 +18,16 @@ require_once __DIR__ . '/config.php';
  * @return bool True if email request was successful, false otherwise
  */
 function firebase_send_email($to, $subject, $message, $options = []) {
-    global $firebase_config;
-    
-    // Log the attempt
-    error_log("Attempting to send email via Firebase to: $to, Subject: $subject");
-    
-    // Validate email
+    // Keep signature for backwards compatibility, but use PHPMailer underneath
     if (empty($to) || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        error_log("Invalid recipient email: $to");
         throw new Exception("Invalid recipient email address");
     }
-    
-    // Validate Firebase config
-    if (empty($firebase_config['email_function_url'])) {
-        error_log("Firebase email function URL is not configured");
-        throw new Exception("Firebase email service is not properly configured");
+    $result = send_email_phpmailer($to, $subject, $message, $options);
+    if (is_array($result) && !empty($result['success'])) {
+        return ['success' => true, 'message' => 'Email sent successfully'];
     }
-    
-    // Build email payload
-    $payload = [
-        'to' => $to,
-        'subject' => $subject,
-        'html' => $message,
-        'from' => $options['from'] ?? 'PSAU Admissions <jericogutierrezsison12@gmail.com>',
-    ];
-    
-    // Add CC if specified
-    if (!empty($options['cc'])) {
-        $payload['cc'] = $options['cc'];
-    }
-    
-    // Add any additional options
-    if (!empty($options['replyTo'])) {
-        $payload['replyTo'] = $options['replyTo'];
-    }
-    
-    // Convert payload to JSON
-    $json_payload = json_encode($payload);
-    if ($json_payload === false) {
-        error_log("JSON encode error: " . json_last_error_msg());
-        throw new Exception("Failed to encode email data");
-    }
-    
-    // Log the request
-    error_log("Sending request to Firebase: " . $firebase_config['email_function_url']);
-    error_log("Payload: " . $json_payload);
-    
-    // Set up cURL to call Firebase Cloud Function
-    $ch = curl_init($firebase_config['email_function_url']);
-    if ($ch === false) {
-        error_log("Failed to initialize cURL");
-        throw new Exception("Failed to initialize email service");
-    }
-    
-    // Set cURL options with error checking
-    $curl_options = [
-        CURLOPT_CUSTOMREQUEST => "POST",
-        CURLOPT_POSTFIELDS => $json_payload,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($json_payload),
-            'User-Agent: PSAU-Admission-System/1.0'
-        ],
-        CURLOPT_VERBOSE => false,
-        CURLOPT_FAILONERROR => false
-    ];
-    
-    if (curl_setopt_array($ch, $curl_options) === false) {
-        $error = curl_error($ch);
-        curl_close($ch);
-        error_log("Failed to set cURL options: " . $error);
-        throw new Exception("Failed to configure email service");
-    }
-    
-    // Execute the request with network error handling
-    $start_time = microtime(true);
-    $result = curl_exec($ch);
-    $end_time = microtime(true);
-    
-    // Get cURL info and errors
-    $info = curl_getinfo($ch);
-    $curl_error = curl_error($ch);
-    $curl_errno = curl_errno($ch);
-    $status_code = $info['http_code'];
-    $total_time = round(($end_time - $start_time) * 1000); // in milliseconds
-    
-    // Log request timing
-    error_log("Request timing: {$total_time}ms, Connect: {$info['connect_time']}s, Total: {$info['total_time']}s");
-    
-    // Close cURL handle
-    curl_close($ch);
-    
-    // Handle cURL errors
-    if ($result === false) {
-        $error_message = "cURL Error ($curl_errno): $curl_error";
-        error_log($error_message);
-        
-        // Provide more specific error messages
-        switch ($curl_errno) {
-            case CURLE_OPERATION_TIMEDOUT:
-                throw new Exception("Email service timed out. Please try again.");
-            case CURLE_COULDNT_CONNECT:
-                throw new Exception("Could not connect to email service. Please check your internet connection.");
-            case CURLE_SSL_CONNECT_ERROR:
-                throw new Exception("Secure connection failed. Please try again.");
-            default:
-                throw new Exception("Network error: " . $curl_error);
-        }
-    }
-    
-    // Try to parse the response
-    $response_data = json_decode($result, true);
-    if ($response_data === null && json_last_error() !== JSON_ERROR_NONE) {
-        error_log("Failed to parse response: " . json_last_error_msg());
-        error_log("Raw response: " . substr($result, 0, 1000));
-        throw new Exception("Invalid response from email service");
-    }
-    
-    // Check HTTP status code
-    if ($status_code < 200 || $status_code >= 300) {
-        $error_message = isset($response_data['error']) ? $response_data['error'] : "HTTP Error $status_code";
-        error_log("Firebase API Error: $error_message");
-        throw new Exception("Email service error: " . $error_message);
-    }
-    
-    // Log success
-    error_log("Email sent successfully to: $to (Status: $status_code)");
-    return [
-        'success' => true,
-        'message' => 'Email sent successfully',
-        'messageId' => $response_data['messageId'] ?? null
-    ];
+    $error = is_array($result) && isset($result['error']) ? $result['error'] : 'Unknown error';
+    throw new Exception($error);
 }
 
 /**

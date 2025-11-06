@@ -8,7 +8,7 @@ ob_start();
 
 // Include required files
 require_once '../includes/db_connect.php';
-require_once '../firebase/firebase_email.php';
+require_once '../includes/phpmailer_send.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -17,12 +17,12 @@ header('Content-Type: application/json');
 ob_clean();
 
 try {
-    // Test Firebase config
-    global $firebase_config;
     echo json_encode([
-        'firebase_config' => $firebase_config,
-        'email_function_url' => $firebase_config['email_function_url'] ?? 'NOT SET',
-        'api_key' => $firebase_config['apiKey'] ?? 'NOT SET'
+        'smtp_host' => getenv('SMTP_HOST') ?: 'NOT SET',
+        'smtp_port' => getenv('SMTP_PORT') ?: 'NOT SET',
+        'smtp_secure' => getenv('SMTP_SECURE') ?: 'NOT SET',
+        'smtp_user' => getenv('SMTP_USER') ? 'SET' : (getenv('GMAIL_EMAIL') ? 'SET (via GMAIL_EMAIL)' : 'NOT SET'),
+        'smtp_pass' => getenv('SMTP_PASS') || getenv('GMAIL_APP_PASSWORD') ? 'SET' : 'NOT SET',
     ]);
     
 } catch (Exception $e) {

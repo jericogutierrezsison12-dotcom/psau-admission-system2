@@ -52,7 +52,7 @@ try {
     ];
 
     // Build email content
-    require_once '../firebase/firebase_email.php';
+    require_once '../includes/phpmailer_send.php';
     $subject = 'PSAU Admin Registration: Your Verification Code';
     $message = "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
         ."<div style='background-color:#2E7D32;color:#fff;padding:16px;text-align:center;'>"
@@ -69,7 +69,7 @@ try {
         . date('Y') . " PSAU Admission System</div>"
         ."</div>";
 
-    $result = firebase_send_email($email, $subject, $message);
+    $result = send_email_phpmailer($email, $subject, $message);
     if (!$result || (is_array($result) && empty($result['success']))) {
         throw new Exception('Failed to send OTP email');
     }

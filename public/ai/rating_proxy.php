@@ -41,7 +41,7 @@ if (!in_array($course1_rating, $valid_ratings) || !in_array($course2_rating, $va
 }
 
 // Use the recommendation API URL
-$base = 'https://recommender2.onrender.com';
+$base = 'https://recommender-np4e.onrender.com';
 $url = $base . '/api/submit_ratings';
 
 function submit_ratings($url, $course1_rating, $course2_rating, $course3_rating){
