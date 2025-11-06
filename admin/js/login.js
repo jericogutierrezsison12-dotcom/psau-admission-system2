@@ -68,7 +68,7 @@ function togglePassword() {
 async function executeRecaptcha() {
     try {
         console.log('Executing reCAPTCHA...');
-        const token = await grecaptcha.execute('6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA', {action: 'admin_login'});
+        const token = await grecaptcha.execute('6LdKjAQsAAAAANHLf21GhSKRYi-RQZjLFckE-NDT', {action: 'admin_login'});
         console.log('reCAPTCHA executed successfully, token:', token ? token.substring(0, 15) + '...' : 'null');
         return token;
     } catch (error) {

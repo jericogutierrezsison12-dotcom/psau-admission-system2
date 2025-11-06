@@ -454,7 +454,7 @@ function validate_pdf_via_firebase($control_number, $pdf_path) {
  * @return bool True if verification successful, false otherwise
  */
 function verify_recaptcha($token, $action = null) {
-    $secret_key = getenv('RECAPTCHA_SECRET_KEY') ?: '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N';
+    $secret_key = getenv('RECAPTCHA_SECRET_KEY') ?: '6LdKjAQsAAAAAOpg4J-Key5d1aPqCK26ucr7PY4t';
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     
     // Check if running on localhost - special handling

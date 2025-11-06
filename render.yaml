@@ -6,16 +6,20 @@ services:
     buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: vendor/bin/heroku-php-apache2 public/
     envVars:
+      # Railway Database Configuration
+      # Railway automatically provides MYSQL_* environment variables
+      # These DB_* variables will be used if Railway's MYSQL_* vars are not available
+      # Update these values with your Railway database credentials if needed
       - key: DB_HOST
-        value: 34.170.34.174
+        value: shuttle.proxy.rlwy.net
       - key: DB_NAME
-        value: psau_admission
+        value: railway
       - key: DB_USER
         value: root
       - key: DB_PASS
-        value: Psau_2025
+        value: JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU
       - key: DB_PORT
-        value: 3306
+        value: 40148
       - key: FIREBASE_API_KEY
         value: AIzaSyBQ5jLQX2JggHQU0ikymEEjywxEos5Lr3c
       - key: FIREBASE_AUTH_DOMAIN
@@ -34,3 +38,7 @@ services:
         value: production
       - key: RENDER
         value: "true"
+      - key: RECAPTCHA_SITE_KEY
+        value: 6LdKjAQsAAAAANHLf21GhSKRYi-RQZjLFckE-NDT
+      - key: RECAPTCHA_SECRET_KEY
+        value: 6LdKjAQsAAAAAOpg4J-Key5d1aPqCK26ucr7PY4t

@@ -25,8 +25,8 @@ try {
 
 // Test 2: reCAPTCHA Configuration
 echo "<h2>2. reCAPTCHA Configuration Test</h2>";
-$recaptcha_site_key = '6LezOyYrAAAAAJRRTgIcrXDqa5_gOrkJNjNvoTFA';
-$recaptcha_secret_key = '6LezOyYrAAAAAFBdA-STTB2MsNfK6CyDC_2qFR8N';
+$recaptcha_site_key = '6LdKjAQsAAAAANHLf21GhSKRYi-RQZjLFckE-NDT';
+$recaptcha_secret_key = '6LdKjAQsAAAAAOpg4J-Key5d1aPqCK26ucr7PY4t';
 echo "Site Key: " . substr($recaptcha_site_key, 0, 20) . "...<br>";
 echo "Secret Key: " . substr($recaptcha_secret_key, 0, 20) . "...<br>";
 echo "✅ reCAPTCHA keys configured<br>";

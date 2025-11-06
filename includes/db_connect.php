@@ -15,12 +15,13 @@ if (file_exists(__DIR__ . '/../.env')) {
     }
 }
 
-// Database credentials - use environment variables if available, otherwise Railway defaults
-$host = $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
-$dbname = $_ENV['DB_NAME'] ?? 'railway';
-$username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
-$port = $_ENV['DB_PORT'] ?? 40148;
+// Database credentials - check Railway MYSQL_* vars first, then DB_* vars, then defaults
+// Railway automatically provides MYSQL_* environment variables when database is connected
+$host = $_ENV['MYSQL_HOST'] ?? $_ENV['DB_HOST'] ?? 'shuttle.proxy.rlwy.net';
+$dbname = $_ENV['MYSQL_DATABASE'] ?? $_ENV['DB_NAME'] ?? 'railway';
+$username = $_ENV['MYSQL_USER'] ?? $_ENV['DB_USER'] ?? 'root';
+$password = $_ENV['MYSQL_PASSWORD'] ?? $_ENV['DB_PASS'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
+$port = $_ENV['MYSQL_PORT'] ?? $_ENV['DB_PORT'] ?? 40148;
 
 // Create connection
 $conn = null;
