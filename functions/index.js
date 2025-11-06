@@ -26,12 +26,28 @@ exports.sendEmail = onRequest({ region: 'us-central1', secrets: ['SMTP_USER', 'S
     console.log('SMTP_USER:', smtpUser.substring(0, 4) + '...');
     console.log('SMTP_PASS length:', smtpPass.length);
 
+    // Verify credentials format
+    if (!smtpUser.includes('@') || smtpUser.length < 5) {
+      console.error('Invalid SMTP_USER format:', smtpUser.substring(0, 10) + '...');
+      return res.status(500).json({ success: false, error: 'Invalid SMTP_USER format' });
+    }
+    
+    if (smtpPass.length !== 16) {
+      console.error('SMTP_PASS length is not 16:', smtpPass.length);
+      return res.status(500).json({ success: false, error: 'SMTP_PASS must be 16 characters (App Password)' });
+    }
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { 
         user: smtpUser, 
         pass: smtpPass 
       },
+      // Explicit SMTP settings for Gmail
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
+      requireTLS: true,
     });
 
     await transporter.sendMail({
