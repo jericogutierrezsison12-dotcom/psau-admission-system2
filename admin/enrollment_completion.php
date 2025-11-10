@@ -111,6 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'manual') {
             $control_number = trim($_POST['control_number'] ?? '');
             $decision = $_POST['decision'] ?? 'completed';
+            $input_first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : null;
+            $input_last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : null;
             if ($control_number === '') {
                 throw new Exception('Control number is required.');
             }
@@ -118,6 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = find_user_by_control_number($conn, $control_number);
             if (!$user) {
                 throw new Exception('Control number not found.');
+            }
+            // If names are provided in manual form, validate them
+            if ($input_first_name !== null && $input_first_name !== '' && strtolower($input_first_name) !== strtolower((string)$user['first_name'])) {
+                throw new Exception('First name does not match registered record.');
+            }
+            if ($input_last_name !== null && $input_last_name !== '' && strtolower($input_last_name) !== strtolower((string)$user['last_name'])) {
+                throw new Exception('Last name does not match registered record.');
             }
             mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
             $conn->commit();
@@ -135,21 +144,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$handle) {
                 throw new Exception('Unable to read uploaded file.');
             }
-            // Expect headers: control_number, first_name, last_name, decision
-            $headers = fgetcsv($handle);
-            $headers = array_map(function($h){ return strtolower(trim($h)); }, $headers ?: []);
-            $idx_cn = array_search('control_number', $headers);
-            $idx_fn = array_search('first name', $headers);
-            $idx_ln = array_search('last name', $headers);
-            $idx_dec = array_search('decision', $headers);
+            // Expect headers: control_number, decision (first_name and last_name optional)
+            $headers = fgetcsv($handle) ?: [];
+            // Build normalized map: lowercase, remove spaces and underscores
+            $norm = [];
+            foreach ($headers as $i => $h) {
+                $k = strtolower(trim($h));
+                $k = str_replace([' ', '_'], '', $k);
+                $norm[$i] = $k;
+            }
+            // Locate indices with flexible matching
+            $idx_cn = null; $idx_dec = null; $idx_fn = null; $idx_ln = null;
+            foreach ($norm as $i => $k) {
+                if ($idx_cn === null && ($k === 'controlnumber' || $k === 'controlno' || $k === 'cn')) $idx_cn = $i;
+                if ($idx_dec === null && ($k === 'decision' || $k === 'status')) $idx_dec = $i;
+                if ($idx_fn === null && ($k === 'firstname' || $k === 'first')) $idx_fn = $i;
+                if ($idx_ln === null && ($k === 'lastname' || $k === 'last')) $idx_ln = $i;
+            }
             if ($idx_cn === false || $idx_dec === false) {
-                throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
+                // Adjust for null since we didn't use array_search
+                if ($idx_cn === null || $idx_dec === null) {
+                    throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
+                }
             }
             // First Name and Last Name are optional but recommended
-            if ($idx_fn === false) {
+            if ($idx_fn === null) {
                 $idx_fn = null;
             }
-            if ($idx_ln === false) {
+            if ($idx_ln === null) {
                 $idx_ln = null;
             }
             $processed = 0; $failed = 0;
