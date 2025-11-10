@@ -146,6 +146,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // Expect headers: control_number, decision (first_name and last_name optional)
             $headers = fgetcsv($handle) ?: [];
+            // Strip UTF-8 BOM on first header cell if present
+            if (!empty($headers)) {
+                $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headers[0]);
+            }
             // Build normalized map: lowercase, remove spaces and underscores
             $norm = [];
             foreach ($headers as $i => $h) {
@@ -183,10 +187,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $control_number = trim($row[$idx_cn] ?? '');
                 $first_name = $idx_fn !== null && isset($row[$idx_fn]) ? trim($row[$idx_fn]) : null;
                 $last_name = $idx_ln !== null && isset($row[$idx_ln]) ? trim($row[$idx_ln]) : null;
-                $decision = strtolower(trim($row[$idx_dec] ?? ''));
+                $decisionRaw = trim((string)($row[$idx_dec] ?? ''));
+                $decision = strtolower($decisionRaw);
+                // Normalize decision variants
+                if ($decision === 'canceled') $decision = 'cancelled';
+                if ($decision === 'complete') $decision = 'completed';
+                // Skip rows that are pending or empty decision (from exported schedule CSV)
+                if ($decision === '' || $decision === 'pending') {
+                    // Not counted as failure; just skip
+                    continue;
+                }
                 if ($control_number === '' || !in_array($decision, ['completed','cancelled'], true)) {
                     $failed++;
-                    $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => 'Invalid row data' ];
+                    $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "Invalid row data (decision must be completed/cancelled)" ];
                     continue;
                 }
                 try {
