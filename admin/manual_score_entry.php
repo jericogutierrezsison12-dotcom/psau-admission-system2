@@ -28,9 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
         $conn->beginTransaction();
         
         // Get form data
+        $first_name = trim($_POST['first_name'] ?? '');
+        $last_name = trim($_POST['last_name'] ?? '');
         $control_number = trim($_POST['control_number']);
         $stanine_score = intval($_POST['stanine_score']);
-        $remarks = isset($_POST['remarks']) ? trim($_POST['remarks']) : null;
         
         // Validate control number exists in users table and get user details
         $stmt = $conn->prepare("
@@ -45,6 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
         if (!$user) {
             throw new Exception("Invalid control number. No applicant found with this control number.");
         }
+        // Validate name matches
+        if ($first_name === '' || $last_name === '') {
+            throw new Exception("First name and Last name are required.");
+        }
+        if (strtolower(trim($user['first_name'])) !== strtolower($first_name) || strtolower(trim($user['last_name'])) !== strtolower($last_name)) {
+            throw new Exception("Name does not match the control number on record.");
+        }
         
         // Check if score already exists
         $stmt = $conn->prepare("SELECT id FROM entrance_exam_scores WHERE control_number = ?");
@@ -57,15 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
                 SET stanine_score = ?, 
                     uploaded_by = ?, 
                     upload_date = NOW(), 
-                    upload_method = 'manual',
-                    remarks = ?
+                    upload_method = 'manual'
                 WHERE control_number = ?
             ");
             
             $stmt->execute([
                 $stanine_score,
                 $admin_id,
-                $remarks,
                 $control_number
             ]);
             
@@ -74,15 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
             // Insert new score
             $stmt = $conn->prepare("
                 INSERT INTO entrance_exam_scores 
-                (control_number, stanine_score, uploaded_by, upload_method, remarks)
-                VALUES (?, ?, ?, 'manual', ?)
+                (control_number, stanine_score, uploaded_by, upload_method)
+                VALUES (?, ?, ?, 'manual')
             ");
             
             $stmt->execute([
                 $control_number,
                 $stanine_score,
-                $admin_id,
-                $remarks
+                $admin_id
             ]);
             
             $message = "Score added successfully for control number: $control_number";

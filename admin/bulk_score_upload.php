@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         }
         
         // Validate header row
-        $expected_headers = ['control number', 'first name', 'last name', 'stanine score', 'remarks'];
+        $expected_headers = ['control number', 'first name', 'last name', 'stanine score'];
         $headers = array_map(function($header) {
             return strtolower(trim(str_replace('_', ' ', $header)));
         }, $rows[0]);
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         $first_name_index = array_search('first name', $headers);
         $last_name_index = array_search('last name', $headers);
         $stanine_score_index = array_search('stanine score', $headers);
-        $remarks_index = array_search('remarks', $headers);
+        $remarks_index = false;
         
         if ($control_number_index === false || $stanine_score_index === false) {
             throw new Exception("Invalid Excel format. Required columns 'Control Number' and 'Stanine Score' not found. Please use the provided template.");
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                 $first_name = $first_name_index !== null && isset($row[$first_name_index]) ? trim($row[$first_name_index]) : null;
                 $last_name = $last_name_index !== null && isset($row[$last_name_index]) ? trim($row[$last_name_index]) : null;
                 $stanine_score = intval($row[$stanine_score_index]);
-                $remarks = $remarks_index !== false ? trim($row[$remarks_index]) : null;
+                $remarks = null;
                 
                 // Validate control number exists and get user details
                 $stmt = $conn->prepare("SELECT id, first_name, last_name FROM users WHERE control_number = ?");
@@ -168,30 +168,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                         SET stanine_score = ?, 
                             uploaded_by = ?, 
                             upload_date = NOW(), 
-                            upload_method = 'bulk',
-                            remarks = ?
+                            upload_method = 'bulk'
                         WHERE control_number = ?
                     ");
                     
                     $stmt->execute([
                         $stanine_score,
                         $admin_id,
-                        $remarks,
                         $control_number
                     ]);
                 } else {
                     // Insert new score
                     $stmt = $conn->prepare("
                         INSERT INTO entrance_exam_scores 
-                        (control_number, stanine_score, uploaded_by, upload_method, remarks)
-                        VALUES (?, ?, ?, 'bulk', ?)
+                        (control_number, stanine_score, uploaded_by, upload_method)
+                        VALUES (?, ?, ?, 'bulk')
                     ");
                     
                     $stmt->execute([
                         $control_number,
                         $stanine_score,
-                        $admin_id,
-                        $remarks
+                        $admin_id
                     ]);
                 }
 
