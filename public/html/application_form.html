@@ -95,7 +95,6 @@
                                         <option value="Magalang Christian Ecumenical School, Inc., Magalang, Pampanga"></option>
                                         <option value="St. Nathanael Academy, Inc., Magalang, Pampanga"></option>
                                         <option value="Rodolfo V. Feliciano Memorial High School, Magalang, Pampanga"></option>
-                                        <option value="Others"></option>
                                     </datalist>
                                 </div>
                                 
@@ -139,7 +138,10 @@
                                 
                                 <div class="mb-3">
                                     <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control mb-2" id="address_suggest" list="addressOptions" placeholder="Quick pick barangay (optional)">
+                                    <input type="text" class="form-control" id="address" name="address" list="addressOptions"
+                                              placeholder="Example: 123 Main Street, Barangay San Vicente, San Fernando, Pampanga"
+                                              required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                    <small class="text-muted">Enter complete address or pick from suggestions</small>
                                     <datalist id="addressOptions">
                                         <option value="Ayala, Magalang, Pampanga"></option>
                                         <option value="Bucanan, Magalang, Pampanga"></option>
@@ -168,12 +170,7 @@
                                         <option value="Santo Niño, Magalang, Pampanga"></option>
                                         <option value="Santo Rosario, Magalang, Pampanga"></option>
                                         <option value="Turu, Magalang, Pampanga"></option>
-                                        <option value="Others"></option>
                                     </datalist>
-                                    <textarea class="form-control" id="address" name="address" rows="3" 
-                                              placeholder="Example: 123 Main Street, Barangay San Vicente, San Fernando, Pampanga" 
-                                              required <?php echo $disableUpload ? 'disabled' : ''; ?>></textarea>
-                                    <small class="text-muted">Enter complete address (House/Building Number, Street, Barangay, City/Municipality, Province)</small>
                                 </div>
                                 
                                 <!-- 2x2 Image Upload Section -->
