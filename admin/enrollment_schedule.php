@@ -55,6 +55,11 @@ $stmt = $conn->prepare("
            v.name as venue_name, v.capacity as venue_capacity,
            c.course_code, c.course_name,
            (
+               SELECT COUNT(*) 
+               FROM enrollment_assignments 
+               WHERE schedule_id = es.id
+           ) as student_count,
+           (
                SELECT GROUP_CONCAT(instruction_text SEPARATOR '\n')
                FROM enrollment_instructions
                ORDER BY id

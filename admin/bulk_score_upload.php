@@ -91,18 +91,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         }
         
         // Validate header row
-        $expected_headers = ['control number', 'stanine score', 'remarks'];
+        $expected_headers = ['control number', 'first name', 'last name', 'stanine score', 'remarks'];
         $headers = array_map(function($header) {
             return strtolower(trim(str_replace('_', ' ', $header)));
         }, $rows[0]);
         
         // Check if required columns exist
         $control_number_index = array_search('control number', $headers);
+        $first_name_index = array_search('first name', $headers);
+        $last_name_index = array_search('last name', $headers);
         $stanine_score_index = array_search('stanine score', $headers);
         $remarks_index = array_search('remarks', $headers);
         
         if ($control_number_index === false || $stanine_score_index === false) {
             throw new Exception("Invalid Excel format. Required columns 'Control Number' and 'Stanine Score' not found. Please use the provided template.");
+        }
+        
+        // First Name and Last Name are optional but recommended
+        if ($first_name_index === false) {
+            $first_name_index = null;
+        }
+        if ($last_name_index === false) {
+            $last_name_index = null;
         }
         
         // Process rows
@@ -120,15 +130,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
             
             try {
                 $control_number = trim($row[$control_number_index]);
+                $first_name = $first_name_index !== null && isset($row[$first_name_index]) ? trim($row[$first_name_index]) : null;
+                $last_name = $last_name_index !== null && isset($row[$last_name_index]) ? trim($row[$last_name_index]) : null;
                 $stanine_score = intval($row[$stanine_score_index]);
                 $remarks = $remarks_index !== false ? trim($row[$remarks_index]) : null;
                 
-                // Validate control number exists
-                $stmt = $conn->prepare("SELECT id FROM users WHERE control_number = ?");
+                // Validate control number exists and get user details
+                $stmt = $conn->prepare("SELECT id, first_name, last_name FROM users WHERE control_number = ?");
                 $stmt->execute([$control_number]);
+                $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
                 
-                if ($stmt->rowCount() == 0) {
+                if (!$user_data) {
                     throw new Exception("Invalid control number: $control_number");
+                }
+                
+                // If first_name or last_name provided, validate they match
+                if ($first_name !== null && strtolower(trim($user_data['first_name'])) !== strtolower($first_name)) {
+                    throw new Exception("First name mismatch for control number: $control_number (Expected: {$user_data['first_name']}, Got: $first_name)");
+                }
+                if ($last_name !== null && strtolower(trim($user_data['last_name'])) !== strtolower($last_name)) {
+                    throw new Exception("Last name mismatch for control number: $control_number (Expected: {$user_data['last_name']}, Got: $last_name)");
                 }
                 
                 // Validate stanine score

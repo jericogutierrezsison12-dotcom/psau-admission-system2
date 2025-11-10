@@ -135,13 +135,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$handle) {
                 throw new Exception('Unable to read uploaded file.');
             }
-            // Expect headers: control_number, decision
+            // Expect headers: control_number, first_name, last_name, decision
             $headers = fgetcsv($handle);
             $headers = array_map(function($h){ return strtolower(trim($h)); }, $headers ?: []);
             $idx_cn = array_search('control_number', $headers);
+            $idx_fn = array_search('first name', $headers);
+            $idx_ln = array_search('last name', $headers);
             $idx_dec = array_search('decision', $headers);
             if ($idx_cn === false || $idx_dec === false) {
-                throw new Exception("CSV must contain headers: control_number, decision");
+                throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
+            }
+            // First Name and Last Name are optional but recommended
+            if ($idx_fn === false) {
+                $idx_fn = null;
+            }
+            if ($idx_ln === false) {
+                $idx_ln = null;
             }
             $processed = 0; $failed = 0;
             $row_num = 1;
@@ -150,6 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $row_num++;
                 if (!is_array($row) || count(array_filter($row, fn($v)=>$v!==null && $v!=='')) === 0) continue;
                 $control_number = trim($row[$idx_cn] ?? '');
+                $first_name = $idx_fn !== null && isset($row[$idx_fn]) ? trim($row[$idx_fn]) : null;
+                $last_name = $idx_ln !== null && isset($row[$idx_ln]) ? trim($row[$idx_ln]) : null;
                 $decision = strtolower(trim($row[$idx_dec] ?? ''));
                 if ($control_number === '' || !in_array($decision, ['completed','cancelled'], true)) {
                     $failed++;
@@ -161,6 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$user) {
                         $failed++;
                         $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => 'Control number not found' ];
+                        continue;
+                    }
+                    // If first_name or last_name provided, validate they match
+                    if ($first_name !== null && strtolower(trim($user['first_name'])) !== strtolower($first_name)) {
+                        $failed++;
+                        $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "First name mismatch (Expected: {$user['first_name']}, Got: $first_name)" ];
+                        continue;
+                    }
+                    if ($last_name !== null && strtolower(trim($user['last_name'])) !== strtolower($last_name)) {
+                        $failed++;
+                        $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "Last name mismatch (Expected: {$user['last_name']}, Got: $last_name)" ];
                         continue;
                     }
                     mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);

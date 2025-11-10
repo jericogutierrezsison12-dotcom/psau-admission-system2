@@ -83,9 +83,21 @@
                                 
                                 <div class="mb-3">
                                     <label for="previous_school" class="form-label">Previous School <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="previous_school" name="previous_school" 
-                                           placeholder="Example: Pampanga High School, Angeles City" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
-                                    <small class="text-muted">Enter complete school name and location</small>
+                                    <select class="form-select" id="previous_school" name="previous_school" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                        <option value="">Select a school...</option>
+                                        <option value="Andres M. Luciano National High School, Magalang, Pampanga">Andres M. Luciano National High School, Magalang, Pampanga</option>
+                                        <option value="Balitucan National High School, Magalang, Pampanga">Balitucan National High School, Magalang, Pampanga</option>
+                                        <option value="Dolores National High School, Magalang, Pampanga">Dolores National High School, Magalang, Pampanga</option>
+                                        <option value="Tinajero National High School, Magalang, Pampanga">Tinajero National High School, Magalang, Pampanga</option>
+                                        <option value="Magalang Institute Corporation, Magalang, Pampanga">Magalang Institute Corporation, Magalang, Pampanga</option>
+                                        <option value="Magalang Christian Ecumenical School, Inc., Magalang, Pampanga">Magalang Christian Ecumenical School, Inc., Magalang, Pampanga</option>
+                                        <option value="St. Nathanael Academy, Inc., Magalang, Pampanga">St. Nathanael Academy, Inc., Magalang, Pampanga</option>
+                                        <option value="Rodolfo V. Feliciano Memorial High School, Magalang, Pampanga">Rodolfo V. Feliciano Memorial High School, Magalang, Pampanga</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                    <input type="text" class="form-control mt-2 d-none" id="previous_school_other" name="previous_school_other" 
+                                           placeholder="Enter school name and location" <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                    <small class="text-muted">Select your school from the list or choose "Others" to enter manually</small>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -114,17 +126,57 @@
                                 
                                 <div class="mb-3">
                                     <label for="gpa" class="form-label">General Average/GPA <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="gpa" name="gpa"
-                                        min="75" max="100" step="0.01" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
-                                    <small class="text-muted">Enter your general average/GPA (75-100)</small>
+                                    <select class="form-select" id="gpa" name="gpa" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                        <option value="">Select average/GPA range...</option>
+                                        <option value="75-79">75-79</option>
+                                        <option value="80-84">80-84</option>
+                                        <option value="85-89">85-89</option>
+                                        <option value="90-94">90-94</option>
+                                        <option value="95-100">95-100</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                    <input type="number" class="form-control mt-2 d-none" id="gpa_other" name="gpa_other"
+                                        min="75" max="100" step="0.01" placeholder="Enter specific GPA (75-100)" <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                    <small class="text-muted">Select your average/GPA range or choose "Others" to enter specific value</small>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="address" name="address" rows="3" 
-                                              placeholder="Example: 123 Main Street, Barangay San Vicente, San Fernando, Pampanga" 
-                                              required <?php echo $disableUpload ? 'disabled' : ''; ?>></textarea>
-                                    <small class="text-muted">Enter complete address (House/Building Number, Street, Barangay, City/Municipality, Province)</small>
+                                    <select class="form-select" id="address" name="address" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                        <option value="">Select barangay...</option>
+                                        <option value="Ayala, Magalang, Pampanga">Ayala, Magalang, Pampanga</option>
+                                        <option value="Bucanan, Magalang, Pampanga">Bucanan, Magalang, Pampanga</option>
+                                        <option value="Camias, Magalang, Pampanga">Camias, Magalang, Pampanga</option>
+                                        <option value="Dolores, Magalang, Pampanga">Dolores, Magalang, Pampanga</option>
+                                        <option value="Escaler, Magalang, Pampanga">Escaler, Magalang, Pampanga</option>
+                                        <option value="La Paz, Magalang, Pampanga">La Paz, Magalang, Pampanga</option>
+                                        <option value="Navaling, Magalang, Pampanga">Navaling, Magalang, Pampanga</option>
+                                        <option value="San Agustin, Magalang, Pampanga">San Agustin, Magalang, Pampanga</option>
+                                        <option value="San Antonio, Magalang, Pampanga">San Antonio, Magalang, Pampanga</option>
+                                        <option value="San Francisco, Magalang, Pampanga">San Francisco, Magalang, Pampanga</option>
+                                        <option value="San Ildefonso, Magalang, Pampanga">San Ildefonso, Magalang, Pampanga</option>
+                                        <option value="San Isidro, Magalang, Pampanga">San Isidro, Magalang, Pampanga</option>
+                                        <option value="San Jose, Magalang, Pampanga">San Jose, Magalang, Pampanga</option>
+                                        <option value="San Miguel, Magalang, Pampanga">San Miguel, Magalang, Pampanga</option>
+                                        <option value="San Nicolas I, Magalang, Pampanga">San Nicolas I, Magalang, Pampanga</option>
+                                        <option value="San Nicolas II (Concepcion), Magalang, Pampanga">San Nicolas II (Concepcion), Magalang, Pampanga</option>
+                                        <option value="San Pablo, Magalang, Pampanga">San Pablo, Magalang, Pampanga</option>
+                                        <option value="San Pedro I, Magalang, Pampanga">San Pedro I, Magalang, Pampanga</option>
+                                        <option value="San Pedro II, Magalang, Pampanga">San Pedro II, Magalang, Pampanga</option>
+                                        <option value="San Roque, Magalang, Pampanga">San Roque, Magalang, Pampanga</option>
+                                        <option value="San Vicente, Magalang, Pampanga">San Vicente, Magalang, Pampanga</option>
+                                        <option value="Santa Cruz, Magalang, Pampanga">Santa Cruz, Magalang, Pampanga</option>
+                                        <option value="Santa Lucia, Magalang, Pampanga">Santa Lucia, Magalang, Pampanga</option>
+                                        <option value="Santa Maria, Magalang, Pampanga">Santa Maria, Magalang, Pampanga</option>
+                                        <option value="Santo Niño, Magalang, Pampanga">Santo Niño, Magalang, Pampanga</option>
+                                        <option value="Santo Rosario, Magalang, Pampanga">Santo Rosario, Magalang, Pampanga</option>
+                                        <option value="Turu, Magalang, Pampanga">Turu, Magalang, Pampanga</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                    <textarea class="form-control mt-2 d-none" id="address_other" name="address_other" rows="3" 
+                                              placeholder="Enter complete address (House/Building Number, Street, Barangay, City/Municipality, Province)" 
+                                              <?php echo $disableUpload ? 'disabled' : ''; ?>></textarea>
+                                    <small class="text-muted">Select your barangay or choose "Others" to enter manually</small>
                                 </div>
                                 
                                 <!-- 2x2 Image Upload Section -->

@@ -22,11 +22,11 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 is_admin_logged_in();
 
 // Fallback data shared by both XLSX and CSV
-$headers = ['Control Number', 'Stanine Score', 'Remarks'];
+$headers = ['Control Number', 'First Name', 'Last Name', 'Stanine Score', 'Remarks'];
 $sampleData = [
-    ['2024-0001', 7, 'Sample entry'],
-    ['2024-0002', 5, ''],
-    ['2024-0003', 9, ''],
+    ['PSAU000001', 'Juan', 'Dela Cruz', 7, 'Sample entry'],
+    ['PSAU000002', 'Maria', 'Santos', 5, ''],
+    ['PSAU000003', 'Jose', 'Rizal', 9, ''],
 ];
 
 // If PhpSpreadsheet is unavailable, generate CSV fallback
@@ -47,10 +47,12 @@ if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
     fputcsv($out, []);
     fputcsv($out, ['Instructions:']);
     fputcsv($out, ["1. Control Number: Enter the applicant's control number"]);
-    fputcsv($out, ['2. Stanine Score: Enter a score from 1 to 9']);
-    fputcsv($out, ['3. Remarks: Optional notes about the score']);
-    fputcsv($out, ['4. Do not modify the column headers']);
-    fputcsv($out, ['5. Remove sample data before uploading']);
+    fputcsv($out, ['2. First Name: Enter the applicant\'s first name']);
+    fputcsv($out, ['3. Last Name: Enter the applicant\'s last name']);
+    fputcsv($out, ['4. Stanine Score: Enter a score from 1 to 9']);
+    fputcsv($out, ['5. Remarks: Optional notes about the score']);
+    fputcsv($out, ['6. Do not modify the column headers']);
+    fputcsv($out, ['7. Remove sample data before uploading']);
     fclose($out);
     exit;
 }
@@ -91,10 +93,10 @@ $headerStyle = [
     ],
 ];
 
-$sheet->getStyle('A1:C1')->applyFromArray($headerStyle);
+$sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
 
-// Add data validation for stanine score
-$validation = $sheet->getCell('B2')->getDataValidation();
+// Add data validation for stanine score (now in column D)
+$validation = $sheet->getCell('D2')->getDataValidation();
 $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_WHOLE);
 $validation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
 $validation->setAllowBlank(false);
@@ -107,8 +109,8 @@ $validation->setError('Please enter a stanine score between 1 and 9');
 $validation->setPromptTitle('Stanine Score');
 $validation->setPrompt('Enter a stanine score from 1 to 9');
 
-// Apply validation to all cells in column B
-$sheet->setDataValidation('B2:B1000', $validation);
+// Apply validation to all cells in column D
+$sheet->setDataValidation('D2:D1000', $validation);
 
 // Add sample data
 $sheet->fromArray($sampleData, null, 'A2');
@@ -116,17 +118,19 @@ $sheet->fromArray($sampleData, null, 'A2');
 // Add instructions
 $sheet->setCellValue('A6', 'Instructions:');
 $sheet->setCellValue('A7', '1. Control Number: Enter the applicant\'s control number');
-$sheet->setCellValue('A8', '2. Stanine Score: Enter a score from 1 to 9');
-$sheet->setCellValue('A9', '3. Remarks: Optional notes about the score');
-$sheet->setCellValue('A10', '4. Do not modify the column headers');
-$sheet->setCellValue('A11', '5. Remove sample data before uploading');
+$sheet->setCellValue('A8', '2. First Name: Enter the applicant\'s first name');
+$sheet->setCellValue('A9', '3. Last Name: Enter the applicant\'s last name');
+$sheet->setCellValue('A10', '4. Stanine Score: Enter a score from 1 to 9');
+$sheet->setCellValue('A11', '5. Remarks: Optional notes about the score');
+$sheet->setCellValue('A12', '6. Do not modify the column headers');
+$sheet->setCellValue('A13', '7. Remove sample data before uploading');
 
 // Style the instructions
-$sheet->getStyle('A6:A11')->getFont()->setBold(true);
-$sheet->getStyle('A7:A11')->getFont()->setBold(false);
+$sheet->getStyle('A6:A13')->getFont()->setBold(true);
+$sheet->getStyle('A7:A13')->getFont()->setBold(false);
 
 // Auto-size columns
-foreach (range('A', 'C') as $col) {
+foreach (range('A', 'E') as $col) {
     $sheet->getColumnDimension($col)->setAutoSize(true);
 }
 
