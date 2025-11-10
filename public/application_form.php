@@ -101,28 +101,10 @@ if ($user) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
     // Get form data for educational background
     $previous_school = $_POST['previous_school'] ?? '';
-    $previous_school_other = $_POST['previous_school_other'] ?? '';
     $school_year = $_POST['school_year'] ?? '';
     $strand = $_POST['strand'] ?? '';
     $gpa = $_POST['gpa'] ?? '';
-    $gpa_other = $_POST['gpa_other'] ?? '';
     $address = $_POST['address'] ?? '';
-    $address_other = $_POST['address_other'] ?? '';
-    
-    // Handle "Others" option for previous_school
-    if ($previous_school === 'others') {
-        $previous_school = trim($previous_school_other);
-    }
-    
-    // Handle "Others" option for GPA
-    if ($gpa === 'others') {
-        $gpa = trim($gpa_other);
-    }
-    
-    // Handle "Others" option for address
-    if ($address === 'others') {
-        $address = trim($address_other);
-    }
     
     // Validate required fields
     if (empty($previous_school) || empty($school_year) || empty($strand) || empty($gpa) || empty($address)) {
@@ -139,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
         $message = 'Invalid school year range. The start year must be less than the end year.';
         $messageType = 'danger';
     }
-    // Validate GPA - check if it's a range or a number
-    elseif (!preg_match('/^\d{2}-\d{2}$/', $gpa) && (!is_numeric($gpa) || $gpa < 75 || $gpa > 100)) {
-        $message = 'GPA must be a range (e.g., 85-89) or a number between 75 and 100.';
+    // Validate GPA
+    elseif (!is_numeric($gpa) || $gpa < 75 || $gpa > 100) {
+        $message = 'GPA must be a number between 75 and 100.';
         $messageType = 'danger';
     }
     // Check if PDF file was uploaded    

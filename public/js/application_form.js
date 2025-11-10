@@ -196,57 +196,6 @@ function initFormFunctionality() {
         });
     }
     
-    // Handle "Others" option for previous_school
-    const previousSchoolSelect = document.getElementById('previous_school');
-    const previousSchoolOther = document.getElementById('previous_school_other');
-    if (previousSchoolSelect && previousSchoolOther) {
-        previousSchoolSelect.addEventListener('change', function() {
-            if (this.value === 'others') {
-                previousSchoolOther.classList.remove('d-none');
-                previousSchoolOther.required = true;
-            } else {
-                previousSchoolOther.classList.add('d-none');
-                previousSchoolOther.required = false;
-                previousSchoolOther.value = '';
-            }
-            checkFormValidity();
-        });
-    }
-    
-    // Handle "Others" option for GPA
-    const gpaSelect = document.getElementById('gpa');
-    const gpaOther = document.getElementById('gpa_other');
-    if (gpaSelect && gpaOther) {
-        gpaSelect.addEventListener('change', function() {
-            if (this.value === 'others') {
-                gpaOther.classList.remove('d-none');
-                gpaOther.required = true;
-            } else {
-                gpaOther.classList.add('d-none');
-                gpaOther.required = false;
-                gpaOther.value = '';
-            }
-            checkFormValidity();
-        });
-    }
-    
-    // Handle "Others" option for address
-    const addressSelect = document.getElementById('address');
-    const addressOther = document.getElementById('address_other');
-    if (addressSelect && addressOther) {
-        addressSelect.addEventListener('change', function() {
-            if (this.value === 'others') {
-                addressOther.classList.remove('d-none');
-                addressOther.required = true;
-            } else {
-                addressOther.classList.add('d-none');
-                addressOther.required = false;
-                addressOther.value = '';
-            }
-            checkFormValidity();
-        });
-    }
-    
     // Check if all required fields are filled
     function checkFormValidity() {
         if (!submitBtn || !form) return;
@@ -262,15 +211,10 @@ function initFormFunctionality() {
         
         // Special validation for GPA
         const gpaField = document.getElementById('gpa');
-        if (gpaField && gpaField.value && gpaField.value !== 'others') {
-            // If it's a range, it's valid
-        } else if (gpaField && gpaField.value === 'others') {
-            const gpaOtherField = document.getElementById('gpa_other');
-            if (gpaOtherField && gpaOtherField.value) {
-                const gpaValue = parseFloat(gpaOtherField.value);
-                if (gpaValue < 75 || gpaValue > 100) {
-                    isValid = false;
-                }
+        if (gpaField && gpaField.value) {
+            const gpaValue = parseFloat(gpaField.value);
+            if (gpaValue < 75 || gpaValue > 100) {
+                isValid = false;
             }
         }
         
