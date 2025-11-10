@@ -117,7 +117,12 @@ function renderProgressTracker(container) {
         if (status === 'Rejected' && stageName === 'Submitted') {
             stageClass = 'step-rejected';
         } else if (status === stageName) {
-            stageClass = 'step-active';
+            // Special-case: when the final stage 'Enrolled' is current, show it as green (completed)
+            if (stageName === 'Enrolled') {
+                stageClass = 'step-completed';
+            } else {
+                stageClass = 'step-active';
+            }
             passedCurrentStage = true;
         } else if (!passedCurrentStage) {
             stageClass = 'step-completed';
