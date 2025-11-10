@@ -47,7 +47,7 @@ try {
                 WHEN ea.status = 'completed' THEN 'Completed'
                 WHEN ea.status = 'cancelled' THEN 'Cancelled'
                 ELSE 'Pending'
-            END as enrollment_status
+            END as decision
         FROM enrollment_assignments ea
         JOIN users u ON ea.student_id = u.id
         WHERE ea.schedule_id = ?
@@ -69,8 +69,8 @@ try {
     // Add BOM for UTF-8 Excel compatibility
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
     
-    // Write header row
-    fputcsv($output, ['Control Number', 'First Name', 'Last Name', 'Status']);
+    // Write header row to match enrollment completion CSV format
+    fputcsv($output, ['Control Number', 'First Name', 'Last Name', 'Decision']);
     
     // Write data rows
     foreach ($students as $student) {
@@ -78,7 +78,7 @@ try {
             $student['control_number'],
             $student['first_name'],
             $student['last_name'],
-            $student['enrollment_status']
+            $student['decision']
         ]);
     }
     
