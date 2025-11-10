@@ -224,6 +224,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             break;
                         }
 
+                        // Avoid duplicate assignment of the same student to the same schedule
+                        $stmt = $conn->prepare('SELECT 1 FROM enrollment_assignments WHERE student_id = ? AND schedule_id = ? LIMIT 1');
+                        $stmt->execute([$applicant['user_id'], $schedule_id]);
+                        $alreadyAssigned = (bool)$stmt->fetchColumn();
+                        if ($alreadyAssigned) {
+                            continue;
+                        }
+
                         // Assign applicant to this schedule
                         $stmt = $conn->prepare('INSERT INTO enrollment_assignments (student_id, schedule_id, assigned_by, is_auto_assigned, status) VALUES (?, ?, ?, 1, "pending")');
                         $stmt->execute([$applicant['user_id'], $schedule_id, $created_by]);
@@ -252,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
 
                     // Update current_count in schedule
-                    $stmt = $conn->prepare('UPDATE enrollment_schedules SET current_count = ? WHERE id = ?');
+                    $stmt = $conn->prepare('UPDATE enrollment_schedules SET current_count = current_count + ? WHERE id = ?');
                     $stmt->execute([$current_count, $schedule_id]);
 
                     $conn->commit();
@@ -322,6 +330,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $skipped_applicants[] = $applicant_id;
                 continue;
             }
+            // Avoid duplicate assignment of the same student to the same schedule
+            $stmt2 = $conn->prepare('SELECT 1 FROM enrollment_assignments WHERE student_id = ? AND schedule_id = ? LIMIT 1');
+            $stmt2->execute([$applicant_id, $schedule['id']]);
+            if ($stmt2->fetchColumn()) {
+                $skipped_count++;
+                continue;
+            }
             // Assign applicant
             $stmt2 = $conn->prepare('INSERT INTO enrollment_assignments (student_id, schedule_id, assigned_by, is_auto_assigned, status) VALUES (?, ?, ?, 0, "pending")');
             $stmt2->execute([$applicant_id, $schedule['id'], $created_by]);
@@ -331,8 +346,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Update application status
             $stmt2 = $conn->prepare('UPDATE applications SET status = "Enrollment Scheduled" WHERE user_id = ?');
             $stmt2->execute([$applicant_id]);
-            // Fetch full user info
-            $stmt3 = $conn->prepare('SELECT first_name, last_name, email FROM users WHERE id = ?');
+            // Fetch full user info (include control number for emails)
+            $stmt3 = $conn->prepare('SELECT first_name, last_name, email, control_number FROM users WHERE id = ?');
             $stmt3->execute([$applicant_id]);
             $user = $stmt3->fetch(PDO::FETCH_ASSOC);
             // Fetch full schedule info (with venue, course_code, course_name, instructions, requirements)
