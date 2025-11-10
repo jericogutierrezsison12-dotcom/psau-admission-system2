@@ -90,9 +90,18 @@
                                 
                                 <div class="mb-3">
                                     <label for="school_year" class="form-label">School Year <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="school_year" name="school_year" 
-                                           placeholder="Example: 2023-2024" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
-                                    <small class="text-muted">Format: YYYY-YYYY (e.g., 2023-2024)</small>
+                                    <select class="form-select" id="school_year" name="school_year" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                        <option value="">Select school year...</option>
+                                        <option value="2025-2026">2025-2026</option>
+                                        <option value="2026-2027">2026-2027</option>
+                                        <option value="2027-2028">2027-2028</option>
+                                        <option value="2028-2029">2028-2029</option>
+                                        <option value="2029-2030">2029-2030</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                    <input type="text" class="form-control mt-2 d-none" id="school_year_other" name="school_year_other" 
+                                           placeholder="Enter school year (e.g., 2023-2024)" <?php echo $disableUpload ? 'disabled' : ''; ?>>
+                                    <small class="text-muted">Select from the list or choose "Others" to enter manually</small>
                                 </div>
                                 
                                 <div class="mb-3">
