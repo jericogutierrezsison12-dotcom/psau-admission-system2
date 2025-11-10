@@ -162,7 +162,47 @@ function firebase_send_email($to, $subject, $message, $options = []) {
  * @return string
  */
 function build_applicant_details_block($user, $override_control_number = null) {
-    $control_number = $override_control_number ?? ($user['control_number'] ?? 'N/A');
+    // Normalize provided control number and treat empty strings as missing
+    $control_number = '';
+    if (isset($override_control_number)) {
+        $control_number = trim((string)$override_control_number);
+    }
+    if ($control_number === '' && isset($user['control_number'])) {
+        $control_number = trim((string)$user['control_number']);
+    }
+    // Attempt a lightweight DB lookup if still missing, using user id or email
+    if ($control_number === '') {
+        try {
+            // Attempt to include DB connection if available
+            $db_path = dirname(__DIR__) . '/includes/db_connect.php';
+            if (file_exists($db_path)) {
+                require_once $db_path;
+                if (isset($conn) && $conn instanceof PDO) {
+                    if (!empty($user['id'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE id = ? LIMIT 1');
+                        $stmt->execute([$user['id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    if ($control_number === '' && !empty($user['email'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE email = ? LIMIT 1');
+                        $stmt->execute([$user['email']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // Silently ignore lookup errors; we'll fall back to N/A
+        }
+    }
+    if ($control_number === '') {
+        $control_number = 'N/A';
+    }
     $first_name = trim($user['first_name'] ?? '');
     $last_name = trim($user['last_name'] ?? '');
     $full_name = trim($first_name . ' ' . $last_name);
