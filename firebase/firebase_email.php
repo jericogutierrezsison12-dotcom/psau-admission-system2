@@ -170,7 +170,7 @@ function build_applicant_details_block($user, $override_control_number = null) {
     if ($control_number === '' && isset($user['control_number'])) {
         $control_number = trim((string)$user['control_number']);
     }
-    // Attempt a lightweight DB lookup if still missing, using user id or email
+    // Attempt a lightweight DB lookup if still missing, using user id, application id, or email
     if ($control_number === '') {
         try {
             // Attempt to include DB connection if available
@@ -178,9 +178,34 @@ function build_applicant_details_block($user, $override_control_number = null) {
             if (file_exists($db_path)) {
                 require_once $db_path;
                 if (isset($conn) && $conn instanceof PDO) {
-                    if (!empty($user['id'])) {
+                    // Prefer explicit user_id if provided
+                    if (!empty($user['user_id'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE id = ? LIMIT 1');
+                        $stmt->execute([$user['user_id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    // Some callers may pass 'id' as user id
+                    if ($control_number === '' && !empty($user['id'])) {
                         $stmt = $conn->prepare('SELECT control_number FROM users WHERE id = ? LIMIT 1');
                         $stmt->execute([$user['id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    // If we only have application_id, try joining applications to users
+                    if ($control_number === '' && !empty($user['application_id'])) {
+                        $stmt = $conn->prepare('
+                            SELECT u.control_number
+                            FROM applications a
+                            JOIN users u ON u.id = a.user_id
+                            WHERE a.id = ?
+                            LIMIT 1
+                        ');
+                        $stmt->execute([$user['application_id']]);
                         $control_number_db = trim((string)$stmt->fetchColumn());
                         if ($control_number_db !== '') {
                             $control_number = $control_number_db;
