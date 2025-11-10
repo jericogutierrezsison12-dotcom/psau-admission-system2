@@ -111,8 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'manual') {
             $control_number = trim($_POST['control_number'] ?? '');
             $decision = $_POST['decision'] ?? 'completed';
-            $input_first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : null;
-            $input_last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : null;
+            $input_first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+            $input_last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
             if ($control_number === '') {
                 throw new Exception('Control number is required.');
             }
@@ -121,11 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$user) {
                 throw new Exception('Control number not found.');
             }
-            // If names are provided in manual form, validate them
-            if ($input_first_name !== null && $input_first_name !== '' && strtolower($input_first_name) !== strtolower((string)$user['first_name'])) {
+            // Require names in manual form (same logic style as manual stanine)
+            if ($input_first_name === '' || $input_last_name === '') {
+                throw new Exception('First name and Last name are required for manual update.');
+            }
+            if (strtolower($input_first_name) !== strtolower((string)$user['first_name'])) {
                 throw new Exception('First name does not match registered record.');
             }
-            if ($input_last_name !== null && $input_last_name !== '' && strtolower($input_last_name) !== strtolower((string)$user['last_name'])) {
+            if (strtolower($input_last_name) !== strtolower((string)$user['last_name'])) {
                 throw new Exception('Last name does not match registered record.');
             }
             mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
