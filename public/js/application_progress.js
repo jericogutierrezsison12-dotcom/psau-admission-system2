@@ -124,6 +124,9 @@ function renderProgressTracker(container) {
                 stageClass = 'step-active';
             }
             passedCurrentStage = true;
+        } else if (status === 'Enrollment Cancelled' && stageName === 'Enrolled') {
+            // If enrollment was cancelled, show the last stage as red
+            stageClass = 'step-rejected';
         } else if (!passedCurrentStage) {
             stageClass = 'step-completed';
         }

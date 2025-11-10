@@ -19,6 +19,7 @@ $application = null;
 $hasApplication = false;
 $status = 'Not Started';
 $statusClass = 'danger';
+$enrollmentCancelled = false;
 
 if ($user) {
     // Check if user has an application
@@ -30,6 +31,18 @@ if ($user) {
         $hasApplication = true;
         $status = $application['status'];
         
+        // If enrollment was cancelled (logged in status_history), override display status to show red
+        try {
+            $stmtChk = $conn->prepare("SELECT 1 FROM status_history WHERE application_id = ? AND status = 'Enrollment Cancelled' ORDER BY created_at DESC LIMIT 1");
+            $stmtChk->execute([$application['id']]);
+            $enrollmentCancelled = (bool)$stmtChk->fetchColumn();
+            if ($enrollmentCancelled) {
+                $status = 'Enrollment Cancelled';
+            }
+        } catch (Exception $e) {
+            // ignore
+        }
+
         // Set status class for styling
         switch ($status) {
             case 'Submitted':
@@ -55,6 +68,9 @@ if ($user) {
                 break;
             case 'Enrolled':
                 $statusClass = 'success';
+                break;
+            case 'Enrollment Cancelled':
+                $statusClass = 'danger';
                 break;
             default:
                 $statusClass = 'danger';
