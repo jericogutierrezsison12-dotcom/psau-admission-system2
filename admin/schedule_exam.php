@@ -87,17 +87,38 @@ foreach ($exam_required_documents as $index => $document) {
     }
 }
 
-// Get all exam schedules
-$stmt = $conn->prepare("
-    SELECT es.*, a.username as admin_name,
-           (SELECT COUNT(*) FROM exams WHERE exam_schedule_id = es.id) as current_count,
-           v.name as venue_name
-    FROM exam_schedules es
-    JOIN admins a ON es.created_by = a.id
-    LEFT JOIN venues v ON es.venue_id = v.id
-    ORDER BY es.exam_date ASC, es.exam_time ASC
-");
-$stmt->execute();
+// Year filter for exam schedules
+$selectedYear = isset($_GET['year']) && preg_match('/^\\d{4}$/', $_GET['year']) ? $_GET['year'] : '';
+
+// Available years (DESC so newest first)
+$years_stmt = $conn->query("SELECT DISTINCT YEAR(exam_date) AS y FROM exam_schedules ORDER BY y DESC");
+$available_years = $years_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+// Get exam schedules (newest first), optionally filtered by year
+if ($selectedYear) {
+    $stmt = $conn->prepare("
+        SELECT es.*, a.username as admin_name,
+               (SELECT COUNT(*) FROM exams WHERE exam_schedule_id = es.id) as current_count,
+               v.name as venue_name
+        FROM exam_schedules es
+        JOIN admins a ON es.created_by = a.id
+        LEFT JOIN venues v ON es.venue_id = v.id
+        WHERE YEAR(es.exam_date) = ?
+        ORDER BY es.exam_date DESC, es.exam_time DESC
+    ");
+    $stmt->execute([$selectedYear]);
+} else {
+    $stmt = $conn->prepare("
+        SELECT es.*, a.username as admin_name,
+               (SELECT COUNT(*) FROM exams WHERE exam_schedule_id = es.id) as current_count,
+               v.name as venue_name
+        FROM exam_schedules es
+        JOIN admins a ON es.created_by = a.id
+        LEFT JOIN venues v ON es.venue_id = v.id
+        ORDER BY es.exam_date DESC, es.exam_time DESC
+    ");
+    $stmt->execute();
+}
 $exam_schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all verified applicants not yet scheduled for an exam

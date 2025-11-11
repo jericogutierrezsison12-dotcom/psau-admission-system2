@@ -49,33 +49,70 @@ try {
     error_log("Error fetching courses: " . $e->getMessage());
 }
 
-// Get enrollment schedules with instructions and requirements
-$stmt = $conn->prepare("
-    SELECT es.*, a.username as admin_name,
-           v.name as venue_name, v.capacity as venue_capacity,
-           c.course_code, c.course_name,
-           (
-               SELECT COUNT(*) 
-               FROM enrollment_assignments 
-               WHERE schedule_id = es.id
-           ) as student_count,
-           (
-               SELECT GROUP_CONCAT(instruction_text SEPARATOR '\n')
-               FROM enrollment_instructions
-               ORDER BY id
-           ) AS instructions,
-           (
-               SELECT GROUP_CONCAT(CONCAT(document_name, '\n', description) SEPARATOR '\n\n')
-               FROM required_documents
-               ORDER BY id
-           ) AS requirements
-    FROM enrollment_schedules es
-    JOIN admins a ON es.created_by = a.id
-    LEFT JOIN venues v ON es.venue_id = v.id
-    LEFT JOIN courses c ON es.course_id = c.id
-    ORDER BY es.enrollment_date ASC, es.start_time ASC
-");
-$stmt->execute();
+// Year filter for enrollment schedules
+$selectedEnrollYear = isset($_GET['year']) && preg_match('/^\\d{4}$/', $_GET['year']) ? $_GET['year'] : '';
+
+// Available years (DESC so newest first)
+$enroll_years_stmt = $conn->query("SELECT DISTINCT YEAR(enrollment_date) AS y FROM enrollment_schedules ORDER BY y DESC");
+$available_enrollment_years = $enroll_years_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+// Get enrollment schedules with instructions and requirements (newest first), optionally filtered by year
+if ($selectedEnrollYear) {
+    $stmt = $conn->prepare("
+        SELECT es.*, a.username as admin_name,
+               v.name as venue_name, v.capacity as venue_capacity,
+               c.course_code, c.course_name,
+               (
+                   SELECT COUNT(*) 
+                   FROM enrollment_assignments 
+                   WHERE schedule_id = es.id
+               ) as student_count,
+               (
+                   SELECT GROUP_CONCAT(instruction_text SEPARATOR '\n')
+                   FROM enrollment_instructions
+                   ORDER BY id
+               ) AS instructions,
+               (
+                   SELECT GROUP_CONCAT(CONCAT(document_name, '\n', description) SEPARATOR '\n\n')
+                   FROM required_documents
+                   ORDER BY id
+               ) AS requirements
+        FROM enrollment_schedules es
+        JOIN admins a ON es.created_by = a.id
+        LEFT JOIN venues v ON es.venue_id = v.id
+        LEFT JOIN courses c ON es.course_id = c.id
+        WHERE YEAR(es.enrollment_date) = ?
+        ORDER BY es.enrollment_date DESC, es.start_time DESC
+    ");
+    $stmt->execute([$selectedEnrollYear]);
+} else {
+    $stmt = $conn->prepare("
+        SELECT es.*, a.username as admin_name,
+               v.name as venue_name, v.capacity as venue_capacity,
+               c.course_code, c.course_name,
+               (
+                   SELECT COUNT(*) 
+                   FROM enrollment_assignments 
+                   WHERE schedule_id = es.id
+               ) as student_count,
+               (
+                   SELECT GROUP_CONCAT(instruction_text SEPARATOR '\n')
+                   FROM enrollment_instructions
+                   ORDER BY id
+               ) AS instructions,
+               (
+                   SELECT GROUP_CONCAT(CONCAT(document_name, '\n', description) SEPARATOR '\n\n')
+                   FROM required_documents
+                   ORDER BY id
+               ) AS requirements
+        FROM enrollment_schedules es
+        JOIN admins a ON es.created_by = a.id
+        LEFT JOIN venues v ON es.venue_id = v.id
+        LEFT JOIN courses c ON es.course_id = c.id
+        ORDER BY es.enrollment_date DESC, es.start_time DESC
+    ");
+    $stmt->execute();
+}
 $enrollment_schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Prepare instructions and required documents per schedule
