@@ -13,19 +13,10 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
         return ['success' => false, 'text' => '', 'raw' => null, 'message' => 'File not found'];
     }
 
-    $url = 'https://api.ocr.space/parse/image';
+    $url = 'https://ocr-1-34tx.onrender.com/extract';
 
-    // Prepare multipart/form-data
+    // Prepare multipart/form-data for the new OCR endpoint
     $post_fields = [
-        'apikey' => $api_key,
-        'isOverlayRequired' => 'false',
-        'isCreateSearchablePdf' => 'false',
-        'isTable' => 'false',
-        // Use faster engine; enable orientation/scale to better read rotated report cards
-        'OCREngine' => 1,
-        'detectOrientation' => 'true',
-        'scale' => 'true',
-        'language' => 'eng',
         'file' => new CURLFile($pdf_path, mime_content_type($pdf_path), basename($pdf_path))
     ];
 
@@ -39,16 +30,16 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
     // Aggressive timeouts for faster feedback
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 45);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 120); // Increased timeout for OCR processing
     curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1024);
-    curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 10);
+    curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 30);
 
     $response = curl_exec($ch);
 
     if (curl_errno($ch)) {
         $err = curl_error($ch);
         curl_close($ch);
-        error_log('OCR.Space Error: ' . $err);
+        error_log('OCR API Error: ' . $err);
         $msg = (stripos($err, 'Operation timed out') !== false) ? 'OCR timed out. Please upload a clearer or smaller PDF and try again.' : 'OCR service error';
         return ['success' => false, 'text' => '', 'raw' => null, 'message' => $msg];
     }
@@ -57,24 +48,39 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
 
     $decoded = json_decode($response, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log('OCR.Space JSON parse error');
+        error_log('OCR API JSON parse error');
         return ['success' => false, 'text' => '', 'raw' => $response, 'message' => 'Invalid OCR response'];
     }
 
-    if (!empty($decoded['IsErroredOnProcessing'])) {
-        $msg = $decoded['ErrorMessage'] ?? 'OCR processing error';
-        if (is_array($msg)) { $msg = implode('; ', $msg); }
-        error_log('OCR.Space reported error: ' . $msg);
+    // Handle different response formats from the new OCR API
+    $text = '';
+    if (isset($decoded['text'])) {
+        $text = $decoded['text'];
+    } elseif (isset($decoded['extracted_text'])) {
+        $text = $decoded['extracted_text'];
+    } elseif (isset($decoded['result'])) {
+        $text = is_string($decoded['result']) ? $decoded['result'] : '';
+    } elseif (isset($decoded['error'])) {
+        $msg = is_string($decoded['error']) ? $decoded['error'] : 'OCR processing error';
+        error_log('OCR API reported error: ' . $msg);
         return ['success' => false, 'text' => '', 'raw' => $decoded, 'message' => $msg];
+    } elseif (is_string($decoded)) {
+        // If response is plain text
+        $text = $decoded;
     }
 
-    $text = '';
-    if (!empty($decoded['ParsedResults']) && is_array($decoded['ParsedResults'])) {
+    // Fallback: try to extract text from ParsedResults (OCR.Space format compatibility)
+    if (empty($text) && !empty($decoded['ParsedResults']) && is_array($decoded['ParsedResults'])) {
         foreach ($decoded['ParsedResults'] as $res) {
             if (!empty($res['ParsedText'])) {
                 $text .= $res['ParsedText'] . "\n";
             }
         }
+    }
+
+    if (empty($text)) {
+        error_log('OCR API: No text extracted from response');
+        return ['success' => false, 'text' => '', 'raw' => $decoded, 'message' => 'No text extracted from document'];
     }
 
     return ['success' => true, 'text' => $text, 'raw' => $decoded, 'message' => 'OK'];

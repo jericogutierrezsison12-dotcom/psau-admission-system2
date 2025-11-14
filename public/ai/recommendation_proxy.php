@@ -119,7 +119,7 @@ if (trim($stanine) === '' || trim($gwa) === '' || trim($strand) === '') {
 }
 
 // Use the recommendation API URL
-$base = 'https://recommender-np4e.onrender.com';
+$base = 'https://recommender-hzzf.onrender.com';
 $endpoints = [
     $base . '/api/get_recommendations'
 ];
