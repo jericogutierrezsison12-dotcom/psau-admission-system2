@@ -123,8 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'manual') {
             $control_number = trim($_POST['control_number'] ?? '');
             $decision = $_POST['decision'] ?? 'completed';
-            $input_first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
-            $input_last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
             if ($control_number === '') {
                 throw new Exception('Control number is required.');
             }
@@ -132,16 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = find_user_by_control_number($conn, $control_number);
             if (!$user) {
                 throw new Exception('Control number not found.');
-            }
-            // Require names in manual form (same logic style as manual stanine)
-            if ($input_first_name === '' || $input_last_name === '') {
-                throw new Exception('First name and Last name are required for manual update.');
-            }
-            if (strtolower($input_first_name) !== strtolower((string)$user['first_name'])) {
-                throw new Exception('First name does not match registered record.');
-            }
-            if (strtolower($input_last_name) !== strtolower((string)$user['last_name'])) {
-                throw new Exception('Last name does not match registered record.');
             }
             mark_enrollment($conn, (int)$user['id'], $decision, $admin_name, null, null);
             $conn->commit();
@@ -159,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$handle) {
                 throw new Exception('Unable to read uploaded file.');
             }
-            // Expect headers: control_number, decision (first_name and last_name optional)
+            // Expect headers: control_number, decision (first_name and last_name optional but recommended)
             $headers = fgetcsv($handle) ?: [];
             // Strip UTF-8 BOM on first header cell if present
             if (!empty($headers)) {
@@ -180,11 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($idx_fn === null && ($k === 'firstname' || $k === 'first')) $idx_fn = $i;
                 if ($idx_ln === null && ($k === 'lastname' || $k === 'last')) $idx_ln = $i;
             }
-            if ($idx_cn === false || $idx_dec === false) {
-                // Adjust for null since we didn't use array_search
-                if ($idx_cn === null || $idx_dec === null) {
-                    throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
-                }
+            if ($idx_cn === null || $idx_dec === null) {
+                throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
             }
             // First Name and Last Name are optional but recommended
             if ($idx_fn === null) {
