@@ -13,7 +13,15 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
         return ['success' => false, 'text' => '', 'raw' => null, 'message' => 'File not found'];
     }
 
-    $url = 'https://ocr-1-34tx.onrender.com';
+    // Try different possible endpoints
+    $base_url = 'https://ocr-1-34tx.onrender.com';
+    $possible_endpoints = [
+        $base_url . '/extract',
+        $base_url . '/api/extract',
+        $base_url . '/ocr',
+        $base_url . '/api/ocr',
+        $base_url // Base URL as fallback
+    ];
 
     // Prepare multipart/form-data for the new OCR endpoint
     $post_fields = [
@@ -23,33 +31,72 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
     // Keep a bounded script time to avoid long waits
     @set_time_limit(60);
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-    // Aggressive timeouts for faster feedback
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120); // Increased timeout for OCR processing
-    curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1024);
-    curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 30);
+    $response = null;
+    $http_code = 0;
+    $last_error = null;
+    $successful_url = null;
 
-    $response = curl_exec($ch);
+    // Try each endpoint until one works
+    foreach ($possible_endpoints as $url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 120); // Increased timeout for OCR processing
+        curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1024);
+        curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 30);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 
-    if (curl_errno($ch)) {
-        $err = curl_error($ch);
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        $curl_errno = curl_errno($ch);
+        
         curl_close($ch);
-        error_log('OCR API Error: ' . $err);
-        $msg = (stripos($err, 'Operation timed out') !== false) ? 'OCR timed out. Please upload a clearer or smaller PDF and try again.' : 'OCR service error';
+
+        // If we got a successful response (200-299), try to parse it
+        if ($http_code >= 200 && $http_code < 300 && $response !== false) {
+            $successful_url = $url;
+            error_log("OCR API: Successfully connected to endpoint: $url (HTTP $http_code)");
+            break;
+        } else {
+            $last_error = "HTTP $http_code: $curl_error";
+            error_log("OCR API: Failed endpoint $url - $last_error");
+            // Continue to next endpoint
+        }
+    }
+
+    // If all endpoints failed
+    if ($response === false || $http_code < 200 || $http_code >= 300) {
+        error_log('OCR API Error: All endpoints failed. Last error: ' . ($last_error ?: 'Unknown error'));
+        $msg = (stripos($last_error ?: '', 'Operation timed out') !== false) 
+            ? 'OCR timed out. Please upload a clearer or smaller PDF and try again.' 
+            : 'OCR service error: Unable to connect to OCR service.';
         return ['success' => false, 'text' => '', 'raw' => null, 'message' => $msg];
     }
 
-    curl_close($ch);
+    // Log the raw response for debugging (first 500 chars)
+    error_log('OCR API Response (first 500 chars): ' . substr($response, 0, 500));
 
     $decoded = json_decode($response, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log('OCR API JSON parse error');
-        return ['success' => false, 'text' => '', 'raw' => $response, 'message' => 'Invalid OCR response'];
+        error_log('OCR API JSON parse error: ' . json_last_error_msg());
+        error_log('OCR API Raw response: ' . substr($response, 0, 1000));
+        // If response is not JSON, it might be plain text or HTML
+        if (is_string($response) && !empty(trim($response))) {
+            // Try to extract text from HTML response
+            if (stripos($response, '<html') !== false || stripos($response, '<!DOCTYPE') !== false) {
+                error_log('OCR API: Received HTML response instead of JSON');
+                return ['success' => false, 'text' => '', 'raw' => $response, 'message' => 'OCR service returned HTML instead of JSON. Please check the API endpoint.'];
+            }
+            // If it's plain text, use it directly
+            return ['success' => true, 'text' => trim($response), 'raw' => $response, 'message' => 'OK'];
+        }
+        return ['success' => false, 'text' => '', 'raw' => $response, 'message' => 'Invalid OCR response format'];
     }
 
     // Handle different response formats from the new OCR API
@@ -79,10 +126,12 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
     }
 
     if (empty($text)) {
-        error_log('OCR API: No text extracted from response');
-        return ['success' => false, 'text' => '', 'raw' => $decoded, 'message' => 'No text extracted from document'];
+        error_log('OCR API: No text extracted from response. Response structure: ' . json_encode(array_keys($decoded ?: [])));
+        error_log('OCR API: Full response: ' . json_encode($decoded));
+        return ['success' => false, 'text' => '', 'raw' => $decoded, 'message' => 'No text extracted from document. Please check the OCR service response format.'];
     }
 
+    error_log("OCR API: Successfully extracted " . strlen($text) . " characters of text");
     return ['success' => true, 'text' => $text, 'raw' => $decoded, 'message' => 'OK'];
 }
 
