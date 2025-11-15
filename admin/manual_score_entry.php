@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
         if (!$user) {
             throw new Exception("Invalid control number. No applicant found with this control number.");
         }
+        
         // Validate name matches
         if ($first_name === '' || $last_name === '') {
             throw new Exception("First name and Last name are required.");

@@ -224,14 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             break;
                         }
 
-                        // Avoid duplicate assignment of the same student to the same schedule
-                        $stmt = $conn->prepare('SELECT 1 FROM enrollment_assignments WHERE student_id = ? AND schedule_id = ? LIMIT 1');
-                        $stmt->execute([$applicant['user_id'], $schedule_id]);
-                        $alreadyAssigned = (bool)$stmt->fetchColumn();
-                        if ($alreadyAssigned) {
-                            continue;
-                        }
-
                         // Assign applicant to this schedule
                         $stmt = $conn->prepare('INSERT INTO enrollment_assignments (student_id, schedule_id, assigned_by, is_auto_assigned, status) VALUES (?, ?, ?, 1, "pending")');
                         $stmt->execute([$applicant['user_id'], $schedule_id, $created_by]);
@@ -260,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
 
                     // Update current_count in schedule
-                    $stmt = $conn->prepare('UPDATE enrollment_schedules SET current_count = current_count + ? WHERE id = ?');
+                    $stmt = $conn->prepare('UPDATE enrollment_schedules SET current_count = ? WHERE id = ?');
                     $stmt->execute([$current_count, $schedule_id]);
 
                     $conn->commit();
@@ -330,13 +322,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $skipped_applicants[] = $applicant_id;
                 continue;
             }
-            // Avoid duplicate assignment of the same student to the same schedule
-            $stmt2 = $conn->prepare('SELECT 1 FROM enrollment_assignments WHERE student_id = ? AND schedule_id = ? LIMIT 1');
-            $stmt2->execute([$applicant_id, $schedule['id']]);
-            if ($stmt2->fetchColumn()) {
-                $skipped_count++;
-                continue;
-            }
             // Assign applicant
             $stmt2 = $conn->prepare('INSERT INTO enrollment_assignments (student_id, schedule_id, assigned_by, is_auto_assigned, status) VALUES (?, ?, ?, 0, "pending")');
             $stmt2->execute([$applicant_id, $schedule['id'], $created_by]);
@@ -346,8 +331,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Update application status
             $stmt2 = $conn->prepare('UPDATE applications SET status = "Enrollment Scheduled" WHERE user_id = ?');
             $stmt2->execute([$applicant_id]);
-            // Fetch full user info (include control number for emails)
-            $stmt3 = $conn->prepare('SELECT first_name, last_name, email, control_number FROM users WHERE id = ?');
+            // Fetch full user info
+            $stmt3 = $conn->prepare('SELECT first_name, last_name, email FROM users WHERE id = ?');
             $stmt3->execute([$applicant_id]);
             $user = $stmt3->fetch(PDO::FETCH_ASSOC);
             // Fetch full schedule info (with venue, course_code, course_name, instructions, requirements)
@@ -402,7 +387,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     header('Location: enrollment_schedule.php?tab=schedules');
     exit;
-} else {
-    header('Location: enrollment_schedule.php');
+}
+
+// Handle CSV download
+if (isset($_GET['action']) && $_GET['action'] === 'download_csv' && isset($_GET['schedule_id'])) {
+    $schedule_id = intval($_GET['schedule_id']);
+    
+    // Get schedule details
+    $stmt = $conn->prepare("
+        SELECT es.*, v.name as venue_name, c.course_code, c.course_name
+        FROM enrollment_schedules es
+        LEFT JOIN venues v ON es.venue_id = v.id
+        LEFT JOIN courses c ON es.course_id = c.id
+        WHERE es.id = ?
+    ");
+    $stmt->execute([$schedule_id]);
+    $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$schedule) {
+        header('Location: enrollment_schedule.php');
+        exit;
+    }
+    
+    // Get assigned applicants with their enrollment status
+    $stmt = $conn->prepare("
+        SELECT 
+            u.control_number,
+            u.first_name,
+            u.last_name,
+            es.enrollment_date,
+            CASE 
+                WHEN ea.status = 'completed' THEN 'Completed'
+                WHEN ea.status = 'cancelled' THEN 'Cancelled'
+                ELSE 'Pending'
+            END as decision
+        FROM enrollment_assignments ea
+        JOIN users u ON ea.student_id = u.id
+        JOIN enrollment_schedules es ON ea.schedule_id = es.id
+        WHERE es.id = ?
+        ORDER BY u.last_name, u.first_name
+    ");
+    $stmt->execute([$schedule_id]);
+    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Set headers for CSV download
+    $filename = 'enrollment_schedule_' . date('Y-m-d', strtotime($schedule['enrollment_date'])) . '_' . $schedule_id . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Pragma: public');
+    
+    // Open output stream
+    $output = fopen('php://output', 'w');
+    
+    // Add BOM for UTF-8 Excel compatibility
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Write header row
+    fputcsv($output, ['Control Number', 'First Name', 'Last Name', 'Enrollment Date', 'Decision']);
+    
+    // Write data rows
+    foreach ($students as $student) {
+        fputcsv($output, [
+            $student['control_number'],
+            $student['first_name'],
+            $student['last_name'],
+            date('Y-m-d', strtotime($student['enrollment_date'])),
+            $student['decision']
+        ]);
+    }
+    
+    fclose($output);
     exit;
 }
+
+header('Location: enrollment_schedule.php');
+exit;

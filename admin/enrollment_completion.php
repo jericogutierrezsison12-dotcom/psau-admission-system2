@@ -21,7 +21,7 @@ function find_user_by_control_number(PDO $conn, $control_number) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent_count = null, &$email_failed_count = null) {
+function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     // status: completed => Enrolled, cancelled => Enrollment Cancelled
     // Find latest application for user
     $stmt = $conn->prepare('SELECT id, status FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1');
@@ -90,25 +90,13 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent
             "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment was cancelled. For details, please contact admissions.</p>";
         try {
             $email_sent_result = firebase_send_email($userInfo['email'], $subject, $bodyMsg);
-            if (isset($email_sent_result['success']) && $email_sent_result['success'] === true) {
-                if ($email_sent_count !== null) {
-                    $email_sent_count++;
-                }
-                error_log("Enrollment completion: Email sent successfully to {$userInfo['email']} for user_id: $user_id");
-            } else {
-                if ($email_failed_count !== null) {
-                    $email_failed_count++;
-                }
-                error_log("Failed to send enrollment status email to {$userInfo['email']} for user_id: $user_id. Result: " . json_encode($email_sent_result));
+            if (!isset($email_sent_result['success']) || !$email_sent_result['success']) {
+                error_log("Failed to send enrollment status email: " . json_encode($email_sent_result));
                 global $error;
                 $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email was not sent.';
             }
         } catch (Exception $e) {
-            if ($email_failed_count !== null) {
-                $email_failed_count++;
-            }
-            error_log('Enrollment Completion Email error for user_id: ' . $user_id . ' - ' . $e->getMessage());
-            error_log('Enrollment Completion Email exception trace: ' . $e->getTraceAsString());
+            error_log('Enrollment Completion Email error: ' . $e->getMessage());
             global $error;
             $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email could not be sent.';
         }
@@ -122,16 +110,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($action === 'manual') {
             $control_number = trim($_POST['control_number'] ?? '');
+            $input_first_name = trim($_POST['first_name'] ?? '');
+            $input_last_name = trim($_POST['last_name'] ?? '');
             $decision = $_POST['decision'] ?? 'completed';
             if ($control_number === '') {
                 throw new Exception('Control number is required.');
+            }
+            if ($input_first_name === '' || $input_last_name === '') {
+                throw new Exception('First name and Last name are required.');
             }
             $conn->beginTransaction();
             $user = find_user_by_control_number($conn, $control_number);
             if (!$user) {
                 throw new Exception('Control number not found.');
             }
-            mark_enrollment($conn, (int)$user['id'], $decision, $admin_name, null, null);
+            // Validate name matches
+            if (strtolower(trim($user['first_name'])) !== strtolower($input_first_name) || strtolower(trim($user['last_name'])) !== strtolower($input_last_name)) {
+                throw new Exception("Name does not match the control number on record.");
+            }
+            mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
             $conn->commit();
             $success = 'Successfully updated enrollment for ' . htmlspecialchars($control_number) . '.';
         } elseif ($action === 'csv') {
@@ -147,61 +144,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$handle) {
                 throw new Exception('Unable to read uploaded file.');
             }
-            // Expect headers: control_number, decision (first_name and last_name optional but recommended)
-            $headers = fgetcsv($handle) ?: [];
-            // Strip UTF-8 BOM on first header cell if present
-            if (!empty($headers)) {
-                $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headers[0]);
-            }
-            // Build normalized map: lowercase, remove spaces and underscores
-            $norm = [];
-            foreach ($headers as $i => $h) {
-                $k = strtolower(trim($h));
-                $k = str_replace([' ', '_'], '', $k);
-                $norm[$i] = $k;
-            }
-            // Locate indices with flexible matching
-            $idx_cn = null; $idx_dec = null; $idx_fn = null; $idx_ln = null;
-            foreach ($norm as $i => $k) {
-                if ($idx_cn === null && ($k === 'controlnumber' || $k === 'controlno' || $k === 'cn')) $idx_cn = $i;
-                if ($idx_dec === null && ($k === 'decision' || $k === 'status')) $idx_dec = $i;
-                if ($idx_fn === null && ($k === 'firstname' || $k === 'first')) $idx_fn = $i;
-                if ($idx_ln === null && ($k === 'lastname' || $k === 'last')) $idx_ln = $i;
-            }
-            if ($idx_cn === null || $idx_dec === null) {
-                throw new Exception("CSV must contain headers: control_number, decision (first_name and last_name are optional but recommended)");
-            }
-            // First Name and Last Name are optional but recommended
-            if ($idx_fn === null) {
-                $idx_fn = null;
-            }
-            if ($idx_ln === null) {
-                $idx_ln = null;
+            // Expect headers: control_number, decision
+            $headers = fgetcsv($handle);
+            $headers = array_map(function($h){ return strtolower(trim($h)); }, $headers ?: []);
+            $idx_cn = array_search('control_number', $headers);
+            $idx_dec = array_search('decision', $headers);
+            if ($idx_cn === false || $idx_dec === false) {
+                throw new Exception("CSV must contain headers: control_number, decision");
             }
             $processed = 0; $failed = 0;
-            $email_sent_count = 0;
-            $email_failed_count = 0;
             $row_num = 1;
             $conn->beginTransaction();
             while (($row = fgetcsv($handle)) !== false) {
                 $row_num++;
                 if (!is_array($row) || count(array_filter($row, fn($v)=>$v!==null && $v!=='')) === 0) continue;
                 $control_number = trim($row[$idx_cn] ?? '');
-                $first_name = $idx_fn !== null && isset($row[$idx_fn]) ? trim($row[$idx_fn]) : null;
-                $last_name = $idx_ln !== null && isset($row[$idx_ln]) ? trim($row[$idx_ln]) : null;
-                $decisionRaw = trim((string)($row[$idx_dec] ?? ''));
-                $decision = strtolower($decisionRaw);
-                // Normalize decision variants
-                if ($decision === 'canceled') $decision = 'cancelled';
-                if ($decision === 'complete') $decision = 'completed';
-                // Skip rows that are pending or empty decision (from exported schedule CSV)
-                if ($decision === '' || $decision === 'pending') {
-                    // Not counted as failure; just skip
-                    continue;
-                }
+                $decision = strtolower(trim($row[$idx_dec] ?? ''));
                 if ($control_number === '' || !in_array($decision, ['completed','cancelled'], true)) {
                     $failed++;
-                    $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "Invalid row data (decision must be completed/cancelled)" ];
+                    $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => 'Invalid row data' ];
                     continue;
                 }
                 try {
@@ -211,22 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => 'Control number not found' ];
                         continue;
                     }
-                    // If first_name or last_name provided, validate they match
-                    if ($first_name !== null && strtolower(trim($user['first_name'])) !== strtolower($first_name)) {
-                        $failed++;
-                        $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "First name mismatch (Expected: {$user['first_name']}, Got: $first_name)" ];
-                        continue;
-                    }
-                    if ($last_name !== null && strtolower(trim($user['last_name'])) !== strtolower($last_name)) {
-                        $failed++;
-                        $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "Last name mismatch (Expected: {$user['last_name']}, Got: $last_name)" ];
-                        continue;
-                    }
-                    mark_enrollment($conn, (int)$user['id'], $decision, $admin_name, $email_sent_count, $email_failed_count);
+                    mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
                     $processed++;
-                    
-                    // Add small delay to avoid rate limiting (0.5 seconds between emails)
-                    usleep(500000); // 500ms delay
                 } catch (Exception $e) {
                     $failed++;
                     $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => $e->getMessage() ];
@@ -234,11 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             fclose($handle);
             $conn->commit();
-            $email_summary = "Emails sent: $email_sent_count";
-            if ($email_failed_count > 0) {
-                $email_summary .= ", failed: $email_failed_count";
-            }
-            $success = "Processed {$processed} rows. Failed: {$failed}. $email_summary.";
+            $success = "Processed {$processed} rows. Failed: {$failed}.";
         }
     } catch (Exception $e) {
         if ($conn->inTransaction()) { $conn->rollBack(); }

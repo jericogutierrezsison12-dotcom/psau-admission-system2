@@ -196,23 +196,6 @@ function initFormFunctionality() {
         });
     }
     
-    // Handle "Others" option for School Year select
-    const sySelect = document.getElementById('school_year');
-    const syOther = document.getElementById('school_year_other');
-    if (sySelect && syOther) {
-        sySelect.addEventListener('change', function() {
-            if (this.value === 'others') {
-                syOther.classList.remove('d-none');
-                syOther.required = true;
-            } else {
-                syOther.classList.add('d-none');
-                syOther.required = false;
-                syOther.value = '';
-            }
-            checkFormValidity();
-        });
-    }
-    
     // Check if all required fields are filled
     function checkFormValidity() {
         if (!submitBtn || !form) return;
@@ -232,19 +215,6 @@ function initFormFunctionality() {
             const gpaValue = parseFloat(gpaField.value);
             if (gpaValue < 75 || gpaValue > 100) {
                 isValid = false;
-            }
-        }
-        
-        // Validate School Year when 'Others' selected
-        if (sySelect && sySelect.value === 'others') {
-            if (!syOther || !syOther.value.trim()) {
-                isValid = false;
-            } else {
-                const sy = syOther.value.trim();
-                const match = sy.match(/^\\d{4}-\\d{4}$/);
-                if (!match) {
-                    isValid = false;
-                }
             }
         }
         

@@ -30,11 +30,24 @@
                     <i class="bi bi-person"></i> My Profile
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="confirmAndOpenTutorial(event);">
+                    <i class="bi bi-play-circle"></i> Tutorial
+                </a>
+            </li>
             <li class="nav-item mt-4">
                 <a class="nav-link" href="logout.php">
                     <i class="bi bi-box-arrow-left"></i> Logout
                 </a>
             </li>
+		<script>
+			function confirmAndOpenTutorial(event) {
+				event.preventDefault();
+				if (confirm("Do you want to open the tutorial video in a new tab?")) {
+					window.open("https://www.youtube.com/watch?v=tzNl--ppgbg", "_blank");
+				}
+			}
+		</script>
         </ul>
         
         <div class="px-3 py-4 mt-4 text-center">
@@ -42,11 +55,6 @@
                 <p>Need Help?</p>
                 <p><i class="bi bi-envelope"></i> officeofthepresident@psau.edu.ph</p>
                 <p><i class="bi bi-telephone"></i> (045) 866 0800</p>
-                <div class="mt-2">
-                    <button type="button" id="openTutorialSidebar" class="btn btn-sm btn-warning">
-                        <i class="bi bi-play-circle me-1"></i> Tutorial
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -57,15 +65,3 @@
         id="sidebarToggle" style="top: 70px; left: 10px; z-index: 1000;">
     <i class="bi bi-list"></i>
 </button> 
-<script>
-(function(){
-    const btn = document.getElementById('openTutorialSidebar');
-    if (!btn) return;
-    btn.addEventListener('click', function(){
-        const ok = confirm('Open the tutorial in a new tab?');
-        if (ok) {
-            window.open('https://www.youtube.com/watch?v=tzNl--ppgbg', '_blank', 'noopener');
-        }
-    });
-})();
-</script>

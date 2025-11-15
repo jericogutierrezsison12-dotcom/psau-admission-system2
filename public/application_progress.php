@@ -19,7 +19,6 @@ $application = null;
 $hasApplication = false;
 $status = 'Not Started';
 $statusClass = 'danger';
-$enrollmentCancelled = false;
 
 if ($user) {
     // Check if user has an application
@@ -31,18 +30,6 @@ if ($user) {
         $hasApplication = true;
         $status = $application['status'];
         
-        // If enrollment was cancelled (logged in status_history), override display status to show red
-        try {
-            $stmtChk = $conn->prepare("SELECT 1 FROM status_history WHERE application_id = ? AND status = 'Enrollment Cancelled' ORDER BY created_at DESC LIMIT 1");
-            $stmtChk->execute([$application['id']]);
-            $enrollmentCancelled = (bool)$stmtChk->fetchColumn();
-            if ($enrollmentCancelled) {
-                $status = 'Enrollment Cancelled';
-            }
-        } catch (Exception $e) {
-            // ignore
-        }
-
         // Set status class for styling
         switch ($status) {
             case 'Submitted':
@@ -68,9 +55,6 @@ if ($user) {
                 break;
             case 'Enrolled':
                 $statusClass = 'success';
-                break;
-            case 'Enrollment Cancelled':
-                $statusClass = 'danger';
                 break;
             default:
                 $statusClass = 'danger';
@@ -141,6 +125,7 @@ if ($hasApplication && in_array($status, ['Enrollment Scheduled', 'Enrolled'])) 
 
 // Get status history
 $statusHistory = [];
+$enrollmentCancelled = false;
 if ($hasApplication) {
     $stmt = $conn->prepare("
         SELECT * FROM status_history 
@@ -149,6 +134,23 @@ if ($hasApplication) {
     ");
     $stmt->execute([$application['id']]);
     $statusHistory = $stmt->fetchAll();
+    
+    // Check if enrollment was cancelled
+    $stmt = $conn->prepare("
+        SELECT ea.status 
+        FROM enrollment_assignments ea
+        JOIN users u ON ea.student_id = u.id
+        JOIN applications a ON u.id = a.user_id
+        WHERE a.id = ? AND ea.status = 'cancelled'
+        LIMIT 1
+    ");
+    $stmt->execute([$application['id']]);
+    $cancelled = $stmt->fetch();
+    if ($cancelled) {
+        $enrollmentCancelled = true;
+        $status = 'Enrollment Cancelled';
+        $statusClass = 'danger';
+    }
 }
 
 // Pass data to JavaScript
@@ -162,6 +164,7 @@ $applicationData = [
     'courseAssignment' => $courseAssignment,
     'enrollmentSchedule' => $enrollmentSchedule,
     'statusHistory' => $statusHistory,
+    'hasCancelledEnrollment' => $enrollmentCancelled,
     'user' => [
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],

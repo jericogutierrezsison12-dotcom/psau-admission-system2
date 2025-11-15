@@ -83,33 +83,16 @@
                                 
                                 <div class="mb-3">
                                     <label for="previous_school" class="form-label">Previous School <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="previous_school" name="previous_school" list="schoolList"
+                                    <input type="text" class="form-control" id="previous_school" name="previous_school" 
                                            placeholder="Example: Pampanga High School, Angeles City" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
-                                    <small class="text-muted">Enter complete school name and location or pick from suggestions</small>
-                                    <datalist id="schoolList">
-                                        <option value="Andres M. Luciano National High School, Magalang, Pampanga"></option>
-                                        <option value="Balitucan National High School, Magalang, Pampanga"></option>
-                                        <option value="Dolores National High School, Magalang, Pampanga"></option>
-                                        <option value="Tinajero National High School, Magalang, Pampanga"></option>
-                                        <option value="Magalang Institute Corporation, Magalang, Pampanga"></option>
-                                        <option value="Magalang Christian Ecumenical School, Inc., Magalang, Pampanga"></option>
-                                        <option value="St. Nathanael Academy, Inc., Magalang, Pampanga"></option>
-                                        <option value="Rodolfo V. Feliciano Memorial High School, Magalang, Pampanga"></option>
-                                    </datalist>
+                                    <small class="text-muted">Enter complete school name and location</small>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="school_year" class="form-label">School Year <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="school_year" name="school_year" list="schoolYearOptions"
+                                    <input type="text" class="form-control" id="school_year" name="school_year" 
                                            placeholder="Example: 2023-2024" required <?php echo $disableUpload ? 'disabled' : ''; ?>>
                                     <small class="text-muted">Format: YYYY-YYYY (e.g., 2023-2024)</small>
-                                    <datalist id="schoolYearOptions">
-                                        <option value="2025-2026"></option>
-                                        <option value="2026-2027"></option>
-                                        <option value="2027-2028"></option>
-                                        <option value="2028-2029"></option>
-                                        <option value="2029-2030"></option>
-                                    </datalist>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -138,39 +121,10 @@
                                 
                                 <div class="mb-3">
                                     <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="address" name="address" list="addressOptions"
-                                              placeholder="Example: 123 Main Street, Barangay San Vicente, San Fernando, Pampanga"
-                                              required <?php echo $disableUpload ? 'disabled' : ''; ?>>
-                                    <small class="text-muted">Enter complete address or pick from suggestions</small>
-                                    <datalist id="addressOptions">
-                                        <option value="Ayala, Magalang, Pampanga"></option>
-                                        <option value="Bucanan, Magalang, Pampanga"></option>
-                                        <option value="Camias, Magalang, Pampanga"></option>
-                                        <option value="Dolores, Magalang, Pampanga"></option>
-                                        <option value="Escaler, Magalang, Pampanga"></option>
-                                        <option value="La Paz, Magalang, Pampanga"></option>
-                                        <option value="Navaling, Magalang, Pampanga"></option>
-                                        <option value="San Agustin, Magalang, Pampanga"></option>
-                                        <option value="San Antonio, Magalang, Pampanga"></option>
-                                        <option value="San Francisco, Magalang, Pampanga"></option>
-                                        <option value="San Ildefonso, Magalang, Pampanga"></option>
-                                        <option value="San Isidro, Magalang, Pampanga"></option>
-                                        <option value="San Jose, Magalang, Pampanga"></option>
-                                        <option value="San Miguel, Magalang, Pampanga"></option>
-                                        <option value="San Nicolas I, Magalang, Pampanga"></option>
-                                        <option value="San Nicolas II (Concepcion), Magalang, Pampanga"></option>
-                                        <option value="San Pablo, Magalang, Pampanga"></option>
-                                        <option value="San Pedro I, Magalang, Pampanga"></option>
-                                        <option value="San Pedro II, Magalang, Pampanga"></option>
-                                        <option value="San Roque, Magalang, Pampanga"></option>
-                                        <option value="San Vicente, Magalang, Pampanga"></option>
-                                        <option value="Santa Cruz, Magalang, Pampanga"></option>
-                                        <option value="Santa Lucia, Magalang, Pampanga"></option>
-                                        <option value="Santa Maria, Magalang, Pampanga"></option>
-                                        <option value="Santo Niño, Magalang, Pampanga"></option>
-                                        <option value="Santo Rosario, Magalang, Pampanga"></option>
-                                        <option value="Turu, Magalang, Pampanga"></option>
-                                    </datalist>
+                                    <textarea class="form-control" id="address" name="address" rows="3" 
+                                              placeholder="Example: 123 Main Street, Barangay San Vicente, San Fernando, Pampanga" 
+                                              required <?php echo $disableUpload ? 'disabled' : ''; ?>></textarea>
+                                    <small class="text-muted">Enter complete address (House/Building Number, Street, Barangay, City/Municipality, Province)</small>
                                 </div>
                                 
                                 <!-- 2x2 Image Upload Section -->

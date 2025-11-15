@@ -47,8 +47,8 @@ if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
     fputcsv($out, []);
     fputcsv($out, ['Instructions:']);
     fputcsv($out, ["1. Control Number: Enter the applicant's control number"]);
-    fputcsv($out, ['2. First Name: Enter the applicant\'s first name']);
-    fputcsv($out, ['3. Last Name: Enter the applicant\'s last name']);
+    fputcsv($out, ['2. First Name: Enter the applicant's first name (for verification)']);
+    fputcsv($out, ['3. Last Name: Enter the applicant's last name (for verification)']);
     fputcsv($out, ['4. Stanine Score: Enter a score from 1 to 9']);
     fputcsv($out, ['5. Do not modify the column headers']);
     fputcsv($out, ['6. Remove sample data before uploading']);
@@ -94,7 +94,7 @@ $headerStyle = [
 
 $sheet->getStyle('A1:D1')->applyFromArray($headerStyle);
 
-// Add data validation for stanine score (in column D)
+// Add data validation for stanine score (now in column D)
 $validation = $sheet->getCell('D2')->getDataValidation();
 $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_WHOLE);
 $validation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
@@ -117,8 +117,8 @@ $sheet->fromArray($sampleData, null, 'A2');
 // Add instructions
 $sheet->setCellValue('A6', 'Instructions:');
 $sheet->setCellValue('A7', '1. Control Number: Enter the applicant\'s control number');
-$sheet->setCellValue('A8', '2. First Name: Enter the applicant\'s first name');
-$sheet->setCellValue('A9', '3. Last Name: Enter the applicant\'s last name');
+$sheet->setCellValue('A8', '2. First Name: Enter the applicant\'s first name (for verification)');
+$sheet->setCellValue('A9', '3. Last Name: Enter the applicant\'s last name (for verification)');
 $sheet->setCellValue('A10', '4. Stanine Score: Enter a score from 1 to 9');
 $sheet->setCellValue('A11', '5. Do not modify the column headers');
 $sheet->setCellValue('A12', '6. Remove sample data before uploading');

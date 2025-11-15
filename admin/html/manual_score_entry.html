@@ -33,16 +33,18 @@
                         
                         <form method="post" action="" id="scoreForm">
                             <div class="mb-3">
+                                <label for="control_number" class="form-label">Control Number</label>
+                                <input type="text" class="form-control" id="control_number" name="control_number" required>
+                            </div>
+                            
+                            <div class="mb-3">
                                 <label for="first_name" class="form-label">First Name (for verification)</label>
                                 <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Applicant first name" required>
                             </div>
+                            
                             <div class="mb-3">
                                 <label for="last_name" class="form-label">Last Name (for verification)</label>
                                 <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Applicant last name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="control_number" class="form-label">Control Number</label>
-                                <input type="text" class="form-control" id="control_number" name="control_number" required>
                             </div>
                             
                             <div class="mb-3">
@@ -50,8 +52,6 @@
                                 <input type="number" class="form-control" id="stanine_score" name="stanine_score" min="1" max="9" required>
                                 <div class="form-text">Enter a stanine score from 1 to 9</div>
                             </div>
-                            
-                            <!-- Remarks field removed as requested -->
                             
                             <div class="d-grid">
                                 <button type="submit" name="submit_score" class="btn btn-primary">

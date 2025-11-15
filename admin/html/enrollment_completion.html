@@ -47,6 +47,16 @@
                                     <div class="invalid-feedback">Please enter a control number.</div>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                    <div class="invalid-feedback">Please enter the applicant's first name.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                    <div class="invalid-feedback">Please enter the applicant's last name.</div>
+                                </div>
+                                <div class="mb-3">
                                     <label class="form-label">Decision</label>
                                     <div class="btn-group" role="group">
                                         <input type="radio" class="btn-check" name="decision" id="dec_completed" value="completed" checked>
@@ -72,7 +82,7 @@
                                 <div class="mb-3">
                                     <label for="csv_file" class="form-label">CSV File</label>
                                     <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
-                                    <div class="form-text">Headers required: control_number, decision (completed|cancelled). Optional: first_name, last_name (recommended for validation)</div>
+                                    <div class="form-text">Headers required: control_number, decision (completed|cancelled)</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Upload</button>
                             </form>

@@ -16,11 +16,11 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Get database credentials from environment variables or defaults
-$host = $_ENV['DB_HOST'] ?? $_ENV['MYSQL_HOST'] ?? 'shuttle.proxy.rlwy.net';
+$host = $_ENV['DB_HOST'] ?? $_ENV['MYSQL_HOST'] ?? 'ballast.proxy.rlwy.net';
 $dbname = $_ENV['DB_NAME'] ?? $_ENV['MYSQL_DATABASE'] ?? 'railway';
 $username = $_ENV['DB_USER'] ?? $_ENV['MYSQL_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? $_ENV['MYSQL_PASSWORD'] ?? 'JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU';
-$port = $_ENV['DB_PORT'] ?? $_ENV['MYSQL_PORT'] ?? 40148;
+$password = $_ENV['DB_PASS'] ?? $_ENV['MYSQL_PASSWORD'] ?? 'dVBlhdVopIpMhmYnxAsyldOkxaiXTHLi';
+$port = $_ENV['DB_PORT'] ?? $_ENV['MYSQL_PORT'] ?? 10649;
 
 echo "<h1>Database Connection Test</h1>";
 echo "<h2>Connection Details:</h2>";
