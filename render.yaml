@@ -11,15 +11,15 @@ services:
       # These DB_* variables will be used if Railway's MYSQL_* vars are not available
       # Update these values with your Railway database credentials if needed
       - key: DB_HOST
-        value: shuttle.proxy.rlwy.net
+        value: ballast.proxy.rlwy.net
       - key: DB_NAME
         value: railway
       - key: DB_USER
         value: root
       - key: DB_PASS
-        value: JCfNOSYEIrgNDqxwzaHBEufEJDPLQkKU
+        value: dVBlhdVopIpMhmYnxAsyldOkxaiXTHLi
       - key: DB_PORT
-        value: 40148
+        value: 10649
       - key: FIREBASE_API_KEY
         value: AIzaSyBQ5jLQX2JggHQU0ikymEEjywxEos5Lr3c
       - key: FIREBASE_AUTH_DOMAIN
