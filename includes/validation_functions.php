@@ -91,53 +91,17 @@ function log_submission_attempt($conn, $user_id, $was_successful, $pdf_message =
  * 
  * @param string $pdf_path Path to the PDF file
  * @return array Validation result with 'success', 'isValid', and 'message' keys
+ * 
+ * NOTE: OCR validation has been removed. This function now always returns success
+ * to allow immediate submission without OCR checking.
  */
 function validate_pdf($pdf_path) {
-    // Use OCR helpers defined in api_calls.php
-    if (!function_exists('ocrspace_extract_text')) {
-        require_once __DIR__ . '/api_calls.php';
-    }
-
-    try {
-        $ocr = ocrspace_extract_text($pdf_path);
-        if (!$ocr['success']) {
-            return [
-                'success' => false,
-                'isValid' => false,
-                'message' => 'OCR failed: ' . ($ocr['message'] ?? 'Unknown error')
-            ];
-        }
-
-        $text = $ocr['text'] ?? '';
-
-        // Detect report card using OCR text
-        $det = detect_report_card_from_text($text);
-        $is_report_card = $det[0];
-        $report_msg = $det[1];
-
-        // Quality estimation via OCR confidence (blur only)
-        $ql = estimate_quality_from_ocr_raw($ocr['raw']);
-        $quality_ok = $ql[0];
-        $quality_msg = $ql[1];
-
-        // Validation rule: must be a report card and not blurred
-        $is_valid = ($quality_ok && $is_report_card);
-
-        $message = $is_valid ? 'PDF validated successfully as a report card and document quality is good.'
-                             : ($is_report_card ? $quality_msg : $report_msg);
-
-        return [
-            'success' => true,
-            'isValid' => $is_valid,
-            'message' => $message
-        ];
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'isValid' => false,
-            'message' => 'Exception during PDF validation: ' . $e->getMessage()
-        ];
-    }
+    // OCR validation removed - always accept PDF
+    return [
+        'success' => true,
+        'isValid' => true,
+        'message' => 'PDF accepted without OCR validation'
+    ];
 }
 
 /**

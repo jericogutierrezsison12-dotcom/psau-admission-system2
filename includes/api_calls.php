@@ -13,7 +13,7 @@ function ocrspace_extract_text($pdf_path, $api_key = 'K87139000188957') {
         return ['success' => false, 'text' => '', 'raw' => null, 'message' => 'File not found'];
     }
 
-    $url = 'https://ocr-1-34tx.onrender.com';
+    $url = 'https://ocr-1-34tx.onrender.com/extract';
 
     // Prepare multipart/form-data for the new OCR endpoint
     $post_fields = [

@@ -197,175 +197,165 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSubmit) {
                     // Start transaction
                     $conn->beginTransaction();
                     
-                    // Validate PDF using the validation function
-                    $validation_result = validate_pdf($upload_path);
-                    $is_successful = ($validation_result && isset($validation_result['isValid']) && $validation_result['isValid'] === true);
-                    $pdf_message = ($validation_result && isset($validation_result['message'])) ? $validation_result['message'] : 'PDF validation failed';
+                    // OCR validation removed - accept immediately
+                    $is_successful = true;
+                    $pdf_message = 'PDF accepted without OCR validation';
                     
                     // Log submission attempt
                     log_submission_attempt($conn, $user['id'], $is_successful, $pdf_message);
                     
-                    // Check if PDF passed all validation requirements
-                    if (!$is_successful) {
-                        // PDF validation failed
-                        $conn->commit(); // Commit the attempt increment
+                    // Accept submission immediately without OCR validation
+                    // Check if this is a resubmission of a rejected application
+                    $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND status = 'Rejected' ORDER BY created_at DESC LIMIT 1");
+                    $stmt->execute([$user['id']]);
+                    $existing_rejected = $stmt->fetch();
+                    
+                    if ($existing_rejected) {
+                        // Update existing application if it was rejected
+                        $sql = "UPDATE applications SET 
+                            pdf_file = ?, 
+                            pdf_validated = ?, 
+                            validation_message = ?, 
+                            document_file_path = ?,
+                            document_file_size = ?,
+                            document_upload_date = NOW(),
+                            image_2x2_path = ?,
+                            image_2x2_name = ?,
+                            image_2x2_size = ?,
+                            image_2x2_type = ?,
+                            previous_school = ?,
+                            school_year = ?,
+                            strand = ?,
+                            gpa = ?,
+                            address = ?,
+                            status = 'Submitted', 
+                            updated_at = NOW() 
+                            WHERE id = ?";
                         
-                        $message = 'PDF validation failed: ' . $pdf_message;
-                        $message .= ' Remaining attempts: ' . ($maxAttempts - $submissionAttempts - 1);
-                        $messageType = 'danger';
-                    } else {
-                        // Check if this is a resubmission of a rejected application
-                        $stmt = $conn->prepare("SELECT * FROM applications WHERE user_id = ? AND status = 'Rejected' ORDER BY created_at DESC LIMIT 1");
-                        $stmt->execute([$user['id']]);
-                        $existing_rejected = $stmt->fetch();
+                        // Ensure the document path has uploads/ prefix
+                        $document_path = 'uploads/' . $new_filename;
+                        // Ensure the image path has images/ prefix
+                        $image_path_db = 'images/' . $new_imagename;
                         
-                        if ($existing_rejected) {
-                            // Update existing application if it was rejected
-                            $sql = "UPDATE applications SET 
-                                pdf_file = ?, 
-                                pdf_validated = ?, 
-                                validation_message = ?, 
-                                document_file_path = ?,
-                                document_file_size = ?,
-                                document_upload_date = NOW(),
-                                image_2x2_path = ?,
-                                image_2x2_name = ?,
-                                image_2x2_size = ?,
-                                image_2x2_type = ?,
-                                previous_school = ?,
-                                school_year = ?,
-                                strand = ?,
-                                gpa = ?,
-                                address = ?,
-                                status = 'Submitted', 
-                                updated_at = NOW() 
-                                WHERE id = ?";
-                            
-                            // Ensure the document path has uploads/ prefix
-                            $document_path = 'uploads/' . $new_filename;
-                            // Ensure the image path has images/ prefix
-                            $image_path_db = 'images/' . $new_imagename;
-                            
-                            $stmt = $conn->prepare($sql);
-                            $stmt->execute([
-                                $new_filename,
-                                $validation_result['isValid'] ?? false,
-                                $validation_result['message'] ?? 'PDF validation failed',
-                                $document_path,
-                                $file_size,
-                                $image_path_db,
-                                $new_imagename,
-                                $image_size,
-                                $image_ext,
-                                $previous_school,
-                                $school_year,
-                                $strand,
-                                $gpa,
-                                $address,
-                                $existing_rejected['id']
-                            ]);
-                            
-                            $application_id = $existing_rejected['id'];
-                            
-                            // Debug log
-                            error_log("Updated application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
-                            
-                            // Verify document path was saved correctly
-                            verify_document_path($conn, $application_id);
-                        } else {
-                            // Insert new application with document info and educational background
-                            $sql = "INSERT INTO applications (
-                                user_id, 
-                                pdf_file, 
-                                pdf_validated, 
-                                validation_message, 
-                                document_file_path, 
-                                document_file_size, 
-                                document_upload_date,
-                                image_2x2_path,
-                                image_2x2_name,
-                                image_2x2_size,
-                                image_2x2_type,
-                                previous_school,
-                                school_year,
-                                strand,
-                                gpa,
-                                address,
-                                status,
-                                created_at,
-                                updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
-                            
-                            // Ensure the document path has uploads/ prefix
-                            $document_path = 'uploads/' . $new_filename;
-                            // Ensure the image path has images/ prefix
-                            $image_path_db = 'images/' . $new_imagename;
-                            
-                            $stmt = $conn->prepare($sql);
-                            $stmt->execute([
-                                $user['id'],
-                                $new_filename,
-                                $validation_result['isValid'] ?? false,
-                                $validation_result['message'] ?? 'PDF validation failed',
-                                $document_path,
-                                $file_size,
-                                $image_path_db,
-                                $new_imagename,
-                                $image_size,
-                                $image_ext,
-                                $previous_school,
-                                $school_year,
-                                $strand,
-                                $gpa,
-                                $address
-                            ]);
-                            
-                            $application_id = $conn->lastInsertId();
-                            
-                            // Debug log
-                            error_log("Created new application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
-                        }
-                        
-                        // Log the status change in history
-                        $sql = "INSERT INTO status_history (application_id, status, description, performed_by) VALUES (?, 'Submitted', ?, ?)";
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([
-                            $application_id,
-                            'Application submitted with PDF upload',
-                            $user['first_name'] . ' ' . $user['last_name']
-                        ]);
-                        
-                        // Update user profile with the provided information
-                        $update_user = $conn->prepare("UPDATE users SET 
-                            address = ?, 
-                            updated_at = NOW() 
-                            WHERE id = ?");
-                        
-                        $update_user->execute([
+                            $new_filename,
+                            true, // pdf_validated - always true now
+                            $pdf_message, // validation_message
+                            $document_path,
+                            $file_size,
+                            $image_path_db,
+                            $new_imagename,
+                            $image_size,
+                            $image_ext,
+                            $previous_school,
+                            $school_year,
+                            $strand,
+                            $gpa,
                             $address,
-                            $user['id']
+                            $existing_rejected['id']
                         ]);
                         
-                        // Update Firebase Realtime Database with status
-                        update_firebase_status($user['control_number'], 'Submitted', [
-                            'application_id' => $application_id,
-                            'pdf_validated' => $validation_result['isValid'] ?? false
+                        $application_id = $existing_rejected['id'];
+                        
+                        // Debug log
+                        error_log("Updated application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
+                        
+                        // Verify document path was saved correctly
+                        verify_document_path($conn, $application_id);
+                    } else {
+                        // Insert new application with document info and educational background
+                        $sql = "INSERT INTO applications (
+                            user_id, 
+                            pdf_file, 
+                            pdf_validated, 
+                            validation_message, 
+                            document_file_path, 
+                            document_file_size, 
+                            document_upload_date,
+                            image_2x2_path,
+                            image_2x2_name,
+                            image_2x2_size,
+                            image_2x2_type,
+                            previous_school,
+                            school_year,
+                            strand,
+                            gpa,
+                            address,
+                            status,
+                            created_at,
+                            updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Submitted', NOW(), NOW())";
+                        
+                        // Ensure the document path has uploads/ prefix
+                        $document_path = 'uploads/' . $new_filename;
+                        // Ensure the image path has images/ prefix
+                        $image_path_db = 'images/' . $new_imagename;
+                        
+                        $stmt = $conn->prepare($sql);
+                        $stmt->execute([
+                            $user['id'],
+                            $new_filename,
+                            true, // pdf_validated - always true now
+                            $pdf_message, // validation_message
+                            $document_path,
+                            $file_size,
+                            $image_path_db,
+                            $new_imagename,
+                            $image_size,
+                            $image_ext,
+                            $previous_school,
+                            $school_year,
+                            $strand,
+                            $gpa,
+                            $address
                         ]);
                         
-                        // Add entry to Firebase history
-                        add_firebase_history($user['control_number'], 'Submitted', 'Application submitted with PDF upload', $user['first_name'] . ' ' . $user['last_name']);
+                        $application_id = $conn->lastInsertId();
                         
-                        // Commit transaction
-                        $conn->commit();
-                        
-                        // Set success message
-                        $message = 'Your application has been submitted successfully.';
-                        $messageType = 'success';
-                        
-                        // Redirect to send email notification
-                        header('Location: application_submitted.php?id=' . $application_id);
-                        exit;
+                        // Debug log
+                        error_log("Created new application ID: " . $application_id . " with document path: " . $document_path . " and image path: " . $image_path_db);
                     }
+                    
+                    // Log the status change in history
+                    $sql = "INSERT INTO status_history (application_id, status, description, performed_by) VALUES (?, 'Submitted', ?, ?)";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->execute([
+                        $application_id,
+                        'Application submitted with PDF upload',
+                        $user['first_name'] . ' ' . $user['last_name']
+                    ]);
+                    
+                    // Update user profile with the provided information
+                    $update_user = $conn->prepare("UPDATE users SET 
+                        address = ?, 
+                        updated_at = NOW() 
+                        WHERE id = ?");
+                    
+                    $update_user->execute([
+                        $address,
+                        $user['id']
+                    ]);
+                    
+                    // Update Firebase Realtime Database with status
+                    update_firebase_status($user['control_number'], 'Submitted', [
+                        'application_id' => $application_id,
+                        'pdf_validated' => true
+                    ]);
+                    
+                    // Add entry to Firebase history
+                    add_firebase_history($user['control_number'], 'Submitted', 'Application submitted with PDF upload', $user['first_name'] . ' ' . $user['last_name']);
+                    
+                    // Commit transaction
+                    $conn->commit();
+                    
+                    // Set success message
+                    $message = 'Your application has been submitted successfully.';
+                    $messageType = 'success';
+                    
+                    // Redirect to send email notification
+                    header('Location: application_submitted.php?id=' . $application_id);
+                    exit;
                 } else {
                     $message = 'Failed to upload file. Please try again.';
                     $messageType = 'danger';

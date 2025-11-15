@@ -46,15 +46,21 @@
                                     <input type="text" class="form-control" id="control_number" name="control_number" required>
                                     <div class="invalid-feedback">Please enter a control number.</div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="first_name" class="form-label">First Name</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
-                                    <div class="invalid-feedback">Please enter the applicant's first name.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="last_name" class="form-label">Last Name</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
-                                    <div class="invalid-feedback">Please enter the applicant's last name.</div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="first_name" class="form-label">First Name</label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="e.g., Juan" required>
+                                            <div class="invalid-feedback">Please enter first name (must match registered record).</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="last_name" class="form-label">Last Name</label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="e.g., Dela Cruz" required>
+                                            <div class="invalid-feedback">Please enter last name (must match registered record).</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Decision</label>
@@ -82,7 +88,7 @@
                                 <div class="mb-3">
                                     <label for="csv_file" class="form-label">CSV File</label>
                                     <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
-                                    <div class="form-text">Headers required: control_number, decision (completed|cancelled). Optional: first_name, last_name (recommended for validation)</div>
+                                    <div class="form-text">Headers required: control_number, decision (completed|cancelled). Optional but recommended: first_name, last_name</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Upload</button>
                             </form>
@@ -124,7 +130,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     function downloadTemplate(){
-        const csv = 'control_number,decision\n123456,completed\n654321,cancelled\n';
+        const csv = 'Control Number,First Name,Last Name,Decision\nPSAU000001,Juan,Dela Cruz,completed\nPSAU000002,Maria,Santos,cancelled\n';
         const blob = new Blob([csv], {type: 'text/csv'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

@@ -126,38 +126,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_score'])) {
         // Send email notification
         require_once '../firebase/firebase_email.php';
         
-        try {
-            $email_result = send_score_notification_email(
-                [
-                    'first_name' => $user['first_name'],
-                    'last_name' => $user['last_name'],
-                    'email' => $user['email']
-                ],
-                $control_number,
-                $stanine_score
-            );
-            
-            // Check if email was sent successfully
-            // send_score_notification_email returns array with 'success' key on success, or throws exception on failure
-            $email_sent = false;
-            if (is_array($email_result) && isset($email_result['success']) && $email_result['success'] === true) {
-                $email_sent = true;
-            } elseif ($email_result === true) {
-                $email_sent = true;
-            }
-            
-            // Include email status in success message
-            if ($email_sent) {
-                $email_status = "Email notification sent to the applicant.";
-                error_log("Manual score entry: Email sent successfully to {$user['email']} for control number: $control_number");
-            } else {
-                $email_status = "However, email notification could not be sent.";
-                error_log("Manual score entry: Email failed for control number: $control_number, email: {$user['email']}, result: " . json_encode($email_result));
-            }
-        } catch (Exception $email_exception) {
+        $email_sent = send_score_notification_email(
+            [
+                'first_name' => $user['first_name'],
+                'last_name' => $user['last_name'],
+                'email' => $user['email']
+            ],
+            $control_number,
+            $stanine_score
+        );
+        
+        // Include email status in success message
+        if ($email_sent) {
+            $email_status = "Email notification sent to the applicant.";
+        } else {
             $email_status = "However, email notification could not be sent.";
-            error_log("Manual score entry: Email exception for control number: $control_number - " . $email_exception->getMessage());
-            error_log("Manual score entry: Email exception trace: " . $email_exception->getTraceAsString());
         }
         
         // Log the activity
