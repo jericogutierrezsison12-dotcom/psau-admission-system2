@@ -90,7 +90,7 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent
             "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment was cancelled. For details, please contact admissions.</p>";
         try {
             $email_sent_result = firebase_send_email($userInfo['email'], $subject, $bodyMsg);
-            if (isset($email_sent_result['success']) && $email_sent_result['success']) {
+            if (isset($email_sent_result['success']) && $email_sent_result['success'] === true) {
                 if ($email_sent_count !== null) {
                     $email_sent_count++;
                 }
@@ -99,7 +99,7 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent
                 if ($email_failed_count !== null) {
                     $email_failed_count++;
                 }
-                error_log("Failed to send enrollment status email: " . json_encode($email_sent_result));
+                error_log("Failed to send enrollment status email to {$userInfo['email']} for user_id: $user_id. Result: " . json_encode($email_sent_result));
                 global $error;
                 $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email was not sent.';
             }
@@ -107,7 +107,8 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent
             if ($email_failed_count !== null) {
                 $email_failed_count++;
             }
-            error_log('Enrollment Completion Email error: ' . $e->getMessage());
+            error_log('Enrollment Completion Email error for user_id: ' . $user_id . ' - ' . $e->getMessage());
+            error_log('Enrollment Completion Email exception trace: ' . $e->getTraceAsString());
             global $error;
             $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email could not be sent.';
         }

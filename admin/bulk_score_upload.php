@@ -239,9 +239,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                             $stanine_score
                         );
                         
-                        // Check if email was sent successfully (returns array with 'success' key or boolean)
-                        $email_sent = (is_array($email_result) && isset($email_result['success']) && $email_result['success']) || 
-                                      (is_bool($email_result) && $email_result === true);
+                        // Check if email was sent successfully (same logic as manual upload)
+                        // send_score_notification_email returns array with 'success' key on success, or false on failure
+                        $email_sent = false;
+                        if (is_array($email_result) && isset($email_result['success']) && $email_result['success'] === true) {
+                            $email_sent = true;
+                        } elseif ($email_result === true) {
+                            $email_sent = true;
+                        }
                         
                         if ($email_sent) {
                             $email_sent_count++;
@@ -255,6 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                         $email_failed_count++;
                         $error_log[] = "Warning: Email notification error for control number: $control_number - " . $email_exception->getMessage();
                         error_log("Bulk upload: Email exception for control number: $control_number - " . $email_exception->getMessage());
+                        error_log("Bulk upload: Email exception trace: " . $email_exception->getTraceAsString());
                     }
                     
                     // Add small delay to avoid rate limiting (0.5 seconds between emails)
