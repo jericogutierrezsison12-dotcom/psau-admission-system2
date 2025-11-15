@@ -111,7 +111,6 @@ function renderProgressTracker(container) {
     let passedCurrentStage = false;
     
     // Generate the progress steps
-    const hasCancelledEnrollment = applicationData.hasCancelledEnrollment || false;
     applicationStages.forEach(stageName => {
         let stageClass = '';
         
@@ -125,7 +124,7 @@ function renderProgressTracker(container) {
                 stageClass = 'step-active';
             }
             passedCurrentStage = true;
-        } else if (hasCancelledEnrollment && stageName === 'Enrolled') {
+        } else if (status === 'Enrollment Cancelled' && stageName === 'Enrolled') {
             // If enrollment was cancelled, show the last stage as red
             stageClass = 'step-rejected';
         } else if (!passedCurrentStage) {

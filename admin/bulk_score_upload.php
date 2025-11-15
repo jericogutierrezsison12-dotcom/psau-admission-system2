@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         $stanine_score_index = array_search('stanine score', $headers);
         
         if ($control_number_index === false || $stanine_score_index === false) {
-            throw new Exception("Invalid Excel format. Required columns 'Control Number' and 'Stanine Score' not found. First Name and Last Name are optional but recommended.");
+            throw new Exception("Invalid Excel format. Required columns 'Control Number' and 'Stanine Score' not found. Please use the provided template.");
         }
         
         // First Name and Last Name are optional but recommended
@@ -117,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         $success_count = 0;
         $error_count = 0;
         $error_log = [];
+        $email_sent_count = 0;
+        $email_failed_count = 0;
         
         for ($i = 1; $i < count($rows); $i++) {
             $row = $rows[$i];
@@ -223,19 +225,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
                     $stmt->execute([$user['application_id'], $admin_username]);
 
                     // Send email notification
-                    $email_sent = send_score_notification_email(
-                        [
-                            'first_name' => $user['first_name'],
-                            'last_name' => $user['last_name'],
-                            'email' => $user['email']
-                        ],
-                        $control_number,
-                        $stanine_score
-                    );
-                    
-                    if (!$email_sent) {
-                        $error_log[] = "Warning: Email notification failed for control number: $control_number";
+                    try {
+                        $email_result = send_score_notification_email(
+                            [
+                                'first_name' => $user['first_name'],
+                                'last_name' => $user['last_name'],
+                                'email' => $user['email'],
+                                'control_number' => $control_number
+                            ],
+                            $control_number,
+                            $stanine_score
+                        );
+                        
+                        // Check if email was sent successfully
+                        // send_score_notification_email returns array with 'success' key on success, or throws exception on failure
+                        $email_sent = false;
+                        if (is_array($email_result) && isset($email_result['success']) && $email_result['success'] === true) {
+                            $email_sent = true;
+                        } elseif ($email_result === true) {
+                            $email_sent = true;
+                        }
+                        
+                        if ($email_sent) {
+                            $email_sent_count++;
+                            error_log("Bulk upload: Email sent successfully to {$user['email']} for control number: $control_number");
+                        } else {
+                            $email_failed_count++;
+                            $error_log[] = "Warning: Email notification failed for control number: $control_number";
+                            error_log("Bulk upload: Email failed for control number: $control_number, email: {$user['email']}, result: " . json_encode($email_result));
+                        }
+                    } catch (Exception $email_exception) {
+                        $email_failed_count++;
+                        $error_log[] = "Warning: Email notification error for control number: $control_number - " . $email_exception->getMessage();
+                        error_log("Bulk upload: Email exception for control number: $control_number - " . $email_exception->getMessage());
+                        error_log("Bulk upload: Email exception trace: " . $email_exception->getTraceAsString());
                     }
+                    
+                    // Add small delay to avoid rate limiting (0.5 seconds between emails)
+                    usleep(500000); // 500ms delay
                 }
                 
                 $success_count++;
@@ -257,8 +284,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['upload_scores'])) {
         $conn->commit();
         
         $response['success'] = true;
-        $response['message'] = "Upload completed: $success_count scores processed successfully, $error_count failed.";
-        if ($error_count > 0) {
+        $email_summary = "Emails sent: $email_sent_count";
+        if ($email_failed_count > 0) {
+            $email_summary .= ", failed: $email_failed_count";
+        }
+        $response['message'] = "Upload completed: $success_count scores processed successfully, $error_count failed. $email_summary.";
+        if ($error_count > 0 || $email_failed_count > 0) {
             $response['errors'] = $error_log;
         }
     } catch (Exception $e) {

@@ -34,22 +34,26 @@
 				<p class="small text-light mb-0">
 					&copy; <?php echo date('Y'); ?> Pampanga State Agricultural University
 				</p>
-				<p class="small text-light mb-0 mt-2">
-					<a href="#" onclick="confirmAndOpenTutorial(event);" class="text-decoration-none text-light">
+				<div class="mt-2">
+					<button type="button" id="openTutorialFooter" class="btn btn-sm btn-warning">
 						<i class="bi bi-play-circle me-1"></i> Watch Tutorial
-					</a>
-				</p>
+					</button>
+				</div>
 			</div>
 		</div>
-		<script>
-			function confirmAndOpenTutorial(event) {
-				event.preventDefault();
-				if (confirm("Do you want to open the tutorial video in a new tab?")) {
-					window.open("https://www.youtube.com/watch?v=tzNl--ppgbg", "_blank");
-				}
-			}
-		</script>
 	</div>
 </footer>
 
 <!-- Footer Scripts (optional) -->
+<script>
+(function(){
+	const btn = document.getElementById('openTutorialFooter');
+	if (!btn) return;
+	btn.addEventListener('click', function(){
+		const ok = confirm('Open the tutorial in a new tab?');
+		if (ok) {
+			window.open('https://www.youtube.com/watch?v=tzNl--ppgbg', '_blank', 'noopener');
+		}
+	});
+})();
+</script>

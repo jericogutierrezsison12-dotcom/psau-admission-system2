@@ -155,6 +155,106 @@ function firebase_send_email($to, $subject, $message, $options = []) {
 }
 
 /**
+ * Build a reusable applicant detail block for email notifications
+ *
+ * @param array $user
+ * @param string|null $override_control_number
+ * @return string
+ */
+function build_applicant_details_block($user, $override_control_number = null) {
+    // Normalize provided control number and treat empty strings as missing
+    $control_number = '';
+    if (isset($override_control_number)) {
+        $control_number = trim((string)$override_control_number);
+    }
+    if ($control_number === '' && isset($user['control_number'])) {
+        $control_number = trim((string)$user['control_number']);
+    }
+    // Attempt a lightweight DB lookup if still missing, using user id, application id, or email
+    if ($control_number === '') {
+        try {
+            // Attempt to include DB connection if available
+            $db_path = dirname(__DIR__) . '/includes/db_connect.php';
+            if (file_exists($db_path)) {
+                require_once $db_path;
+                if (isset($conn) && $conn instanceof PDO) {
+                    // Prefer explicit user_id if provided
+                    if (!empty($user['user_id'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE id = ? LIMIT 1');
+                        $stmt->execute([$user['user_id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    // Some callers may pass 'id' as user id
+                    if ($control_number === '' && !empty($user['id'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE id = ? LIMIT 1');
+                        $stmt->execute([$user['id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    // If we only have application_id, try joining applications to users
+                    if ($control_number === '' && !empty($user['application_id'])) {
+                        $stmt = $conn->prepare('
+                            SELECT u.control_number
+                            FROM applications a
+                            JOIN users u ON u.id = a.user_id
+                            WHERE a.id = ?
+                            LIMIT 1
+                        ');
+                        $stmt->execute([$user['application_id']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                    if ($control_number === '' && !empty($user['email'])) {
+                        $stmt = $conn->prepare('SELECT control_number FROM users WHERE email = ? LIMIT 1');
+                        $stmt->execute([$user['email']]);
+                        $control_number_db = trim((string)$stmt->fetchColumn());
+                        if ($control_number_db !== '') {
+                            $control_number = $control_number_db;
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // Silently ignore lookup errors; we'll fall back to N/A
+        }
+    }
+    if ($control_number === '') {
+        $control_number = 'N/A';
+    }
+    $first_name = trim($user['first_name'] ?? '');
+    $last_name = trim($user['last_name'] ?? '');
+    $full_name = trim($first_name . ' ' . $last_name);
+    if ($full_name === '') {
+        $full_name = 'N/A';
+    }
+    $email = $user['email'] ?? 'N/A';
+
+    try {
+        $timezone = new DateTimeZone('Asia/Manila');
+    } catch (Exception $e) {
+        $timezone = new DateTimeZone(date_default_timezone_get());
+    }
+    $sent_at = new DateTime('now', $timezone);
+    $formatted_sent_at = $sent_at->format('F j, Y g:i A');
+
+    return "
+        <div style='background-color: #eef7ee; padding: 15px; margin: 20px 0; border-left: 4px solid #2E7D32;'>
+            <h4 style='margin: 0 0 10px; color: #2E7D32;'>Applicant Details</h4>
+            <p style='margin: 5px 0;'><strong>Control Number:</strong> " . htmlspecialchars($control_number) . "</p>
+            <p style='margin: 5px 0;'><strong>Name:</strong> " . htmlspecialchars($full_name) . "</p>
+            <p style='margin: 5px 0;'><strong>Email:</strong> " . htmlspecialchars($email) . "</p>
+            <p style='margin: 5px 0;'><strong>Notification Sent:</strong> " . htmlspecialchars($formatted_sent_at) . "</p>
+        </div>";
+}
+
+/**
  * Send verification email to applicant
  * @param array $user User data
  * @return bool True if email was sent successfully
@@ -167,6 +267,7 @@ function send_verification_email($user) {
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Application Verified";
+    $details_block = build_applicant_details_block($user);
     
     // Create HTML message
     $message = "
@@ -179,6 +280,7 @@ function send_verification_email($user) {
             <p>We are pleased to inform you that your application to Pampanga State Agricultural University has been verified and approved.</p>
             <p>Your application has been verified successfully and is now moving to the next stage of the admission process.</p>
             <p>You will receive further instructions about the entrance examination schedule soon.</p>
+            " . $details_block . "
             <p>Thank you for choosing PSAU!</p>
             <p>Best regards,<br>PSAU Admissions Team</p>
         </div>
@@ -204,6 +306,7 @@ function send_exam_schedule_email($user, $schedule) {
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Entrance Exam Schedule";
+    $details_block = build_applicant_details_block($user);
     
     // Format date and time with defensive checks
     $exam_date = date('l, F j, Y', strtotime($schedule['exam_date'] ?? ''));
@@ -225,6 +328,7 @@ function send_exam_schedule_email($user, $schedule) {
         <div style='padding: 20px; border: 1px solid #ddd;'>
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
             <p>We are pleased to inform you that your entrance examination has been scheduled.</p>
+            " . $details_block . "
             
             <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #2E7D32; margin: 20px 0;'>
                 <h3 style='margin-top: 0; color: #2E7D32;'>Exam Details</h3>
@@ -274,6 +378,7 @@ function send_resubmission_email($user, $reason = '') {
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Application Requires Resubmission";
+    $details_block = build_applicant_details_block($user);
     
     // Set default reason if none provided
     if (empty($reason)) {
@@ -291,6 +396,7 @@ function send_resubmission_email($user, $reason = '') {
             <p>Thank you for your application to Pampanga State Agricultural University.</p>
             <p>After reviewing your application, we need you to make some corrections before we can proceed.</p>
             <p><strong>Reason for rejection:</strong> " . htmlspecialchars($reason) . "</p>
+            " . $details_block . "
             <p>Please log in to your account and resubmit your application with the necessary corrections.</p>
             <p>If you have any questions, please contact our admissions office.</p>
             <p>Best regards,<br>PSAU Admissions Team</p>
@@ -318,6 +424,7 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Entrance Exam Score Posted";
+    $details_block = build_applicant_details_block($user, $control_number);
     
     // Create course selection URL with control number parameter
     // $course_selection_url removed from CTA link per requirement
@@ -331,6 +438,7 @@ function send_score_notification_email($user, $control_number, $stanine_score) {
         <div style='padding: 20px; border: 1px solid #ddd;'>
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
             <p>Your entrance examination score has been posted.</p>
+            " . $details_block . "
             
             <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #2E7D32; margin: 20px 0;'>
                 <h3 style='margin-top: 0; color: #2E7D32;'>Exam Results</h3>
@@ -369,6 +477,7 @@ function send_course_assignment_email($user, $course, $reason = '', $application
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Course Assignment";
+    $details_block = build_applicant_details_block($user);
     
     // Create document view URL if document_file_path exists
     $document_link = '';
@@ -405,6 +514,7 @@ function send_course_assignment_email($user, $course, $reason = '', $application
         <div style='padding: 20px; border: 1px solid #ddd;'>
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
             <p>We are pleased to inform you about your course assignment at PSAU.</p>
+            " . $details_block . "
             
             <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #2E7D32; margin: 20px 0;'>
                 <h3 style='margin-top: 0; color: #2E7D32;'>Course Assignment</h3>
@@ -449,6 +559,7 @@ function send_enrollment_schedule_email($user, $schedule) {
     
     $to = $user['email'];
     $subject = "PSAU Admission System: Enrollment Schedule";
+    $details_block = build_applicant_details_block($user);
     
     // Format date and time
     $enrollment_date = date('l, F j, Y', strtotime($schedule['enrollment_date']));
@@ -468,6 +579,7 @@ function send_enrollment_schedule_email($user, $schedule) {
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
             
             <p>Your enrollment has been scheduled for:</p>
+            " . $details_block . "
             
             <div style='background-color: #f9f9f9; padding: 15px; margin: 15px 0; border-left: 4px solid #2E7D32;'>
                 <p style='margin: 5px 0;'><strong>Course:</strong> " . htmlspecialchars($schedule['course_code'] . ' - ' . $schedule['course_name']) . "</p>
@@ -536,6 +648,7 @@ function send_enrollment_schedule_email($user, $schedule) {
 function send_enrollment_schedule_update_email($user, $schedule_data) {
     $to = $user['email'];
     $subject = "PSAU Admission: Enrollment Schedule Updated";
+    $details_block = build_applicant_details_block($user);
     
     $message = "
     <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -546,6 +659,7 @@ function send_enrollment_schedule_update_email($user, $schedule_data) {
         
         <div style='padding: 20px; border: 1px solid #ddd; border-top: none;'>
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
+            " . $details_block . "
             
             <div style='background-color: #fff3e0; padding: 15px; margin: 15px 0; border-left: 4px solid #FF9800;'>
                 <h4 style='margin-top: 0; color: #E65100;'>⚠️ IMPORTANT: Your enrollment schedule has been updated</h4>
@@ -631,6 +745,7 @@ function send_enrollment_schedule_update_email($user, $schedule_data) {
 function send_exam_schedule_update_email($user, $schedule_data) {
     $to = $user['email'];
     $subject = "PSAU Admission: Entrance Exam Schedule Updated";
+    $details_block = build_applicant_details_block($user);
     
     $message = "
     <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -641,6 +756,7 @@ function send_exam_schedule_update_email($user, $schedule_data) {
         
         <div style='padding: 20px; border: 1px solid #ddd; border-top: none;'>
             <p>Dear " . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . ",</p>
+            " . $details_block . "
             
             <div style='background-color: #fff3e0; padding: 15px; margin: 15px 0; border-left: 4px solid #FF9800;'>
                 <h4 style='margin-top: 0; color: #E65100;'>⚠️ IMPORTANT: Your entrance exam schedule has been updated</h4>
