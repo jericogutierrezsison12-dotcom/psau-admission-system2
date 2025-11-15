@@ -78,16 +78,39 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
     $stmt4->execute([$application['id'], $historyStatus, $desc, $admin_name]);
 
     // EMAIL NOTIFICATION ADDED
-    $stmtU = $conn->prepare('SELECT email, first_name, last_name FROM users WHERE id = ?');
+    $stmtU = $conn->prepare('SELECT email, first_name, last_name, control_number FROM users WHERE id = ?');
     $stmtU->execute([$user_id]);
     $userInfo = $stmtU->fetch(PDO::FETCH_ASSOC);
     if ($userInfo && function_exists('firebase_send_email')) {
         $subject = ($status === 'completed') ?
             'Enrollment Completed - PSAU Admission System' :
             'Enrollment Cancelled - PSAU Admission System';
-        $bodyMsg = ($status === 'completed') ?
-            "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment has been successfully completed. Welcome to PSAU!</p>" :
-            "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment was cancelled. For details, please contact admissions.</p>";
+        
+        // Build detailed applicant information block
+        $control_number = $userInfo['control_number'] ?? 'N/A';
+        $details_block = '';
+        if (function_exists('build_applicant_details_block')) {
+            $details_block = build_applicant_details_block($userInfo, $control_number);
+        }
+        
+        $bodyMsg = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+            <div style='background-color: " . ($status === 'completed' ? '#2E7D32' : '#d32f2f') . "; color: white; padding: 20px; text-align: center;'>
+                <h2>Pampanga State Agricultural University</h2>
+            </div>
+            <div style='padding: 20px; border: 1px solid #ddd;'>
+                <p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p>
+                " . ($status === 'completed'
+                    ? "<p>Your enrollment has been successfully completed. Welcome to PSAU!</p>"
+                    : "<p>Your enrollment was cancelled. For details, please contact admissions.</p>") . "
+                " . $details_block . "
+                <p>Best regards,<br>PSAU Admissions Team</p>
+            </div>
+            <div style='background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666;'>
+                <p>&copy; " . date('Y') . " PSAU Admission System. All rights reserved.</p>
+            </div>
+        </div>";
+        
         try {
             $email_sent_result = firebase_send_email($userInfo['email'], $subject, $bodyMsg);
             if (!isset($email_sent_result['success']) || !$email_sent_result['success']) {
