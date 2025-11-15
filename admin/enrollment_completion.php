@@ -21,7 +21,7 @@ function find_user_by_control_number(PDO $conn, $control_number) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
+function mark_enrollment(PDO $conn, $user_id, $status, $admin_name, &$email_sent_count = null, &$email_failed_count = null) {
     // status: completed => Enrolled, cancelled => Enrollment Cancelled
     // Find latest application for user
     $stmt = $conn->prepare('SELECT id, status FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1');
@@ -90,12 +90,23 @@ function mark_enrollment(PDO $conn, $user_id, $status, $admin_name) {
             "<p>Dear {$userInfo['first_name']} {$userInfo['last_name']},</p><p>Your enrollment was cancelled. For details, please contact admissions.</p>";
         try {
             $email_sent_result = firebase_send_email($userInfo['email'], $subject, $bodyMsg);
-            if (!isset($email_sent_result['success']) || !$email_sent_result['success']) {
+            if (isset($email_sent_result['success']) && $email_sent_result['success']) {
+                if ($email_sent_count !== null) {
+                    $email_sent_count++;
+                }
+                error_log("Enrollment completion: Email sent successfully to {$userInfo['email']} for user_id: $user_id");
+            } else {
+                if ($email_failed_count !== null) {
+                    $email_failed_count++;
+                }
                 error_log("Failed to send enrollment status email: " . json_encode($email_sent_result));
                 global $error;
                 $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email was not sent.';
             }
         } catch (Exception $e) {
+            if ($email_failed_count !== null) {
+                $email_failed_count++;
+            }
             error_log('Enrollment Completion Email error: ' . $e->getMessage());
             global $error;
             $error = ($error ? $error.' ' : '') . 'Warning: Enrollment completion email could not be sent.';
@@ -131,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (strtolower($input_last_name) !== strtolower((string)$user['last_name'])) {
                 throw new Exception('Last name does not match registered record.');
             }
-            mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
+            mark_enrollment($conn, (int)$user['id'], $decision, $admin_name, null, null);
             $conn->commit();
             $success = 'Successfully updated enrollment for ' . htmlspecialchars($control_number) . '.';
         } elseif ($action === 'csv') {
@@ -182,6 +193,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $idx_ln = null;
             }
             $processed = 0; $failed = 0;
+            $email_sent_count = 0;
+            $email_failed_count = 0;
             $row_num = 1;
             $conn->beginTransaction();
             while (($row = fgetcsv($handle)) !== false) {
@@ -223,8 +236,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => "Last name mismatch (Expected: {$user['last_name']}, Got: $last_name)" ];
                         continue;
                     }
-                    mark_enrollment($conn, (int)$user['id'], $decision, $admin_name);
+                    mark_enrollment($conn, (int)$user['id'], $decision, $admin_name, $email_sent_count, $email_failed_count);
                     $processed++;
+                    
+                    // Add small delay to avoid rate limiting (0.5 seconds between emails)
+                    usleep(500000); // 500ms delay
                 } catch (Exception $e) {
                     $failed++;
                     $results[] = [ 'row' => $row_num, 'control_number' => $control_number, 'error' => $e->getMessage() ];
@@ -232,7 +248,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             fclose($handle);
             $conn->commit();
-            $success = "Processed {$processed} rows. Failed: {$failed}.";
+            $email_summary = "Emails sent: $email_sent_count";
+            if ($email_failed_count > 0) {
+                $email_summary .= ", failed: $email_failed_count";
+            }
+            $success = "Processed {$processed} rows. Failed: {$failed}. $email_summary.";
         }
     } catch (Exception $e) {
         if ($conn->inTransaction()) { $conn->rollBack(); }
